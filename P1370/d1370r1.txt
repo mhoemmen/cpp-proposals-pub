@@ -44,14 +44,21 @@ following discussion points.
    name, but I don't recall it and don't have the minutes).  The group
    strongly objected to names with the word "safe" in them.
 
-In discussion, J. F. Bastien expressed a preference for the traits
-resulting from Walter Brown's paper to come in ~has_${PROPERTY}_v<T>~,
-~${PROPERTY}_v~ pairs.  He would prefer the current
-~numeric_limits~-like behavior, in which ~${PROPERTY}_v<T>~ exists but
-has some arbitrary value if ~has_${PROPERTY}_v<T>~ is false, to the
-approach in which ~${PROPERTY}_v<T>~ does not exist if ~T~ does not
-have the property in question.  SG18 did not vote on this topic, but
-this feedback could be helpful for the next revision of P0437.
+In discussion, J. F. Bastien expressed a preference that the new
+traits proposed by P0437 should come in ~has_${PROPERTY}_v<T>~,
+~${PROPERTY}_v~ pairs.  He prefers the current ~numeric_limits~-like
+behavior, in which ~${PROPERTY}_v<T>~ exists but has some arbitrary
+value if ~has_${PROPERTY}_v<T>~ is false, to the approach in which
+~${PROPERTY}_v<T>~ does not exist if ~T~ does not have the property in
+question.  SG18 did not vote on this topic, but this feedback could be
+helpful for the next revision of P0437.  In particular,
+[[wg21.link/P0437R1][P0437R1] (the last revision of P0437 before the
+2019 Kona meeting) proposes that use of ~${PROPERTY}_v<T>~ be
+ill-formed if if ~T~ does not have the property in question.  Section
+6 of P0437R1 suggests a general mechanism, ~value_exists<Trait, T>~,
+that would replace ~has_${PROPERTY}_v<T>~.  We prefer P0437R1's
+approach, since it prevents bugs at compile time.  However, our
+proposal should work with both approaches.
 
 * Proposal
 
@@ -61,11 +68,10 @@ this feedback could be helpful for the next revision of P0437.
      value as ~numeric_limits<T>::lowest()~ does now.
      
   2. The actual current value of ~numeric_limits<T>::min()~ for
-     floating-point types ~T~ is useful for writing generic numerical
-     algorithms, but the name "min" is confusing.  We propose calling
-     this trait ~min_normal_v<T>~, based on the IEEE 754 term of art,
-     because it is the minimum positive normalized floating-point
-     number.
+     floating-point types ~T~ is the minimum positive normalized value
+     of ~T~.  This is useful for writing generic numerical algorithms,
+     but the name "min" is confusing.  We propose calling this trait
+     ~min_normal_v<T>~, based on the IEEE 754 term of art.
 
   3. Introduce a new trait, ~reciprocal_overflow_threshold_v<T>~, for
      the smallest positive floating-point number such that one divided
@@ -81,17 +87,29 @@ templates, so that new traits can be added easily."  We see this as
 an opportunity both to revise the definitions of these traits, and
 to consider adding new traits.
 
+** Smallest positive normalized value
+
 An example of existing traits needing revision is the current
 definition of ~numeric_limits<T>::min~, which is inconsistent for
 integer versus floating-point types ~T~.  For integer types, this
 function behaves as expected; it returns the minimum finite value.
 For signed integer types, this is the /negative/ value of largest
 magnitude, and for unsigned integer types, it is zero.  However, for a
-floating-point type, it returns the type's smallest /positive/
-normalized value.  Many developers find this surprising, and it can
-lead to errors when writing algorithms meant for either integers or
-floating-point values.  Nevertheless, the actual value is useful in
-practice, as we will show below.
+floating-point type, it returns the type's smallest positive
+normalized value.  This is confusing in two different ways:
+
+  1. It is positive, so it is not the least finite floating-point
+     value, namely ~-numeric_limits<T>::max()~.
+     
+  2. It is normalized, so if the implementation of floating-point
+     arithmetic has subnormal numbers, smaller positive floating-point
+     numbers of type ~T~ could exist.[fn:12]
+
+This surprising behavior could lead to bugs when writing algorithms
+meant for either integers or floating-point values.  Nevertheless, the
+actual value is useful in practice, as we will show below.
+
+** Reciprocal overflow threshold
 
 An example of a new trait to consider is the smallest positive
 floating-point number such that one divided by that number does not
@@ -100,26 +118,18 @@ overflow.  We propose calling this trait
 floating-point types exist for which this trait's value differs from
 that of ~min_normal_v<T>~.  This new trait is also useful in practice.
 
-* Terms
-
-/Numerical algorithms/ use floating-point numbers as approximations to
-real numbers, to do the kinds of computations that scientists,
-engineers, and statisticians often find useful.  /Generic numerical
-algorithms/ are written to work for different kinds of floating-point
-number types.
-
-/IEEE 754/ is the Institute of Electrical and Electronics Engineers'
-standard for binary floating-point computation.  The standard first
-came out in 1985, and the latest revision was released in 2008.  (The
-IEEE 754 Floating Point Standards Committee approved a new draft on 20
-July 2018, as reported by Committee member James Demmel over e-mail.)
-
 * Example: the LAPACK linear algebra library
 
 In this section, we will show that the two proposed traits are useful
 constants for writing generic numerical algorithms, and that they have
 distinct uses.  The LAPACK[fn:1] Fortran linear algebra library uses
 both values and distinguishes between them.
+
+To clarify: /Numerical algorithms/ use floating-point numbers as
+approximations to real numbers, to do the kinds of computations that
+scientists, engineers, and statisticians often find useful.  /Generic
+numerical algorithms/ are written to work for different kinds of
+floating-point number types.
 
 ** LAPACK is a library of generic numerical algorithms
 
@@ -145,7 +155,7 @@ Systems,"[fn:3] where "templates" means "recipes," not C++ templates.
 Thus, it should not be surprising to find design patterns in common
 between generic numerical algorithms not specifically using C++, and
 generic C++ libraries.  In fact, our motivating examples will come
-from LAPACK's "floating-point traits" routine ~_LAMCH~.
+from LAPACK's "floating-point traits" routines.
 
 LAPACK's "generic" approach means that algorithm developers need a way
 to access floating-point arithmetic properties as a function of data
@@ -178,40 +188,55 @@ different real floating-point types.  LAPACK's authors chose this
 functionality specifically for the needs of linear algebra algorithm
 development.  ~_LAMCH~ gives developers the following constants:
 
-  - eps: relative machine precision
-  - sfmin: safe minimum, such that ~1/sfmin~ does not overflow
-  - base: base of the machine
-  - prec: eps*base
-  - t: number of (base) digits in the mantissa
-  - rnd: 1.0 when rounding occurs in addition, 0.0 otherwise (authors'
-    note: "otherwise" means that addition chops instead of rounds)
-  - emin: minimum exponent before (gradual) underflow
-  - rmin: underflow threshold - ~base**(emin-1)~
-  - emax: largest exponent before overflow
-  - rmax: overflow threshold  - ~(base**emax)*(1-eps)~
+  - ~eps~: relative machine precision
+  - ~sfmin~: safe minimum, such that ~1/sfmin~ does not overflow
+  - ~base~: base of the machine
+  - ~prec~: eps*base
+  - ~t~: number of (base) digits in the mantissa
+  - ~rnd~: 1.0 when rounding occurs in addition, 0.0 otherwise[fn:11]
+  - ~emin~: minimum exponent before (gradual) underflow
+  - ~rmin~: underflow threshold - ~base**(emin-1)~
+  - ~emax~: largest exponent before overflow
+  - ~rmax~: overflow threshold  - ~(base**emax)*(1-eps)~
 
 ** How LAPACK uses our two proposed traits
 
 Our proposed ~min_normal_v<T>~ corresponds to the underflow threshold
 ~rmin~, and our ~reciprocal_overflow_threshold_v<T>~ corresponds to
-the "safe minimum" ~sfmin~.  Both values have different uses in
-LAPACK.  For one use of the underflow threshold, see for example the
-documentation of LAPACK's ~DLABAD~ routine.  LAPACK uses this to work
-around surprising behavior at the extreme exponent ranges of certain
-floating-point systems, for instance when doing complex arithmetic
-(see ~DLADIV~ and ~ZDRSCL~).  LAPACK uses the "safe minimum" in
-algorithms (e.g., equilibration and balancing) that scale the rows
-and/or columns of a matrix to improve accuracy of a subsequent
-factorization.  In the process of improving accuracy, one would not
-want to divide by too small of a number, and thus cause unwarranted
-underflow.
+the "safe minimum" ~sfmin~.  LAPACK uses the "safe minimum" more often
+than the underflow threshold, but it does use both values.
+
+LAPACK uses the safe minimum in algorithms (e.g., equilibration and
+balancing) that scale the rows and/or columns of a matrix to improve
+accuracy of a subsequent factorization.  In the process of improving
+accuracy, one would not want to divide by too small of a number, and
+thus cause underflow that is not warranted by the user's data.  For
+example, see ~DRSCL~, ~DLADIV~, and ~ZDRSCL~.  (The documentation of
+LAPACK's ~_LABAD~ routine explains how LAPACK uses this routine to
+work around surprising behavior at the extreme exponent ranges of
+certain floating-point systems.)
+
+The safe minimum also helps in LAPACK's LU factorization with complete
+pivoting (see e.g., ~ZGETC2~).  If LAPACK finds a pivot ~U(k, k)~ that
+is too small in magnitude, it replaces the pivot with a tiny real
+number.  This helps the factorization finish, which is an important
+goal for LU with complete pivoting (unlike the usual LU factorization
+with partial pivoting ~_GETRF~, which stops on encountering a zero
+pivot).  LAPACK derives the value for this tiny real number from the
+safe minimum, since LU factorization must divide numbers in the matrix
+by the pivot.
+
+LAPACK uses the underflow threshold quite a bit in its tests.  In its
+actual code, it uses this value when computing the eigenvalues of a
+real symmetric tridiagonal matrix (the ~_LARRD~ auxiliary routine,
+called from ~_STEMR~).
 
 ** How LAPACK computes the two traits
 
 In the most recent version of LAPACK, 3.8.0, LAPACK uses the Fortran
-intrinsic function ~TINY~ to compute the underflow threshold, and
-derives the "safe minimum" ~sfmin~ from that value and the overflow
-threshold (Fortran intrinsic ~HUGE~) as follows:
+intrinsic function ~TINY~ for the underflow threshold, and derives the
+"safe minimum" ~sfmin~ from that value and the overflow threshold
+(Fortran intrinsic ~HUGE~) as follows:
 #+BEGIN_SRC Fortran
           sfmin = tiny(zero)
           small = one / huge(zero)
@@ -356,3 +381,21 @@ eigensolver routines, so we ended up backing them out.
 Feb. 12, 1981.  Available online:
 https://people.eecs.berkeley.edu/~wkahan/ieee754status/why-ieee.pdf
 (last accessed Mar. 5, 2019).
+
+[fn:10] /IEEE 754/ is the Institute of Electrical and Electronics
+Engineers' standard for binary floating-point computation.  The
+standard first came out in 1985, and the latest revision was released
+in 2008.  (The IEEE 754 Floating Point Standards Committee approved a
+new draft on 20 July 2018, as reported by Committee member James
+Demmel over e-mail.)
+
+[fn:11] "Otherwise" here means that addition chops instead of rounds.
+
+[fn:12] Some systems have settings that change the behavior of
+floating-point arithmetic, in order to avoid subnormal numbers.  These
+options include "flush to zero," where arithmetic results that should
+produce a subnormal instead result in zero, and "denormals are zero,"
+where a subnormal input to arithmetic operations is assumed to be
+zero.  These options exist in part because some hardware
+implementations of floating-point arithmetic handle subnormal numbers
+very slowly.
