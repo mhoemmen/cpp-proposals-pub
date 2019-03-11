@@ -1,6 +1,6 @@
-#+TITLE: D1370R1: Generic numerical algorithm development with(out) ~numeric_limits~
+#+TITLE: P1370R1: Generic numerical algorithm development with(out) ~numeric_limits~
 #+AUTHOR: Mark Hoemmen (mhoemme@sandia.gov) and Damien Lebrun-Grandie (qdi@ornl.gov)
-#+DATE: 05 Mar 2019
+#+DATE: 10 Mar 2019
 
 * Feedback
 ** Kona 2019
@@ -44,25 +44,24 @@ following discussion points.
    name, but I don't recall it and don't have the minutes).  The group
    strongly objected to names with the word "safe" in them.
 
-In discussion, J. F. Bastien expressed a preference that the new
-traits proposed by P0437 should come in ~has_${PROPERTY}_v<T>~,
-~${PROPERTY}_v~ pairs.  He prefers the current ~numeric_limits~-like
+In discussion, one LEWG-I participant expressed a preference that the
+new traits proposed by P0437 should come in ~has_${PROPERTY}_v<T>~,
+~${PROPERTY}_v~ pairs.  They prefer the current ~numeric_limits~-like
 behavior, in which ~${PROPERTY}_v<T>~ exists but has some arbitrary
 value if ~has_${PROPERTY}_v<T>~ is false, to the approach in which
 ~${PROPERTY}_v<T>~ does not exist if ~T~ does not have the property in
 question.  SG18 did not vote on this topic, but this feedback could be
-helpful for the next revision of P0437.  In particular,
-[[wg21.link/P0437R1][P0437R1] (the last revision of P0437 before the
-2019 Kona meeting) proposes that use of ~${PROPERTY}_v<T>~ be
-ill-formed if if ~T~ does not have the property in question.  Section
-6 of P0437R1 suggests a general mechanism, ~value_exists<Trait, T>~,
-that would replace ~has_${PROPERTY}_v<T>~.  We prefer P0437R1's
-approach, since it prevents bugs at compile time.  However, our
-proposal should work with both approaches.
+helpful for the next revision of P0437.  In particular, the last
+revision of P0437 before the 2019 Kona meeting proposes that use of
+~${PROPERTY}_v<T>~ be ill-formed if if ~T~ does not have the property
+in question.  Section 6 of P0437R1 suggests a general mechanism,
+~value_exists<Trait, T>~, that would replace ~has_${PROPERTY}_v<T>~.
+We prefer P0437R1's approach, since it prevents bugs at compile time.
+However, our proposal should work with both approaches.
 
 * Proposal
 
-  1. In the next revision to P0437, whatever trait replaces
+  1. In the next revision to P0437[fn:1], whatever trait replaces
      ~numeric_limits<T>::min~ should always give the minimum finite
      value of ~T~.  For floating-point types, it should give the same
      value as ~numeric_limits<T>::lowest()~ does now.
@@ -71,7 +70,7 @@ proposal should work with both approaches.
      floating-point types ~T~ is the minimum positive normalized value
      of ~T~.  This is useful for writing generic numerical algorithms,
      but the name "min" is confusing.  We propose calling this trait
-     ~min_normal_v<T>~, based on the IEEE 754 term of art.
+     ~min_normal_v<T>~, based on the IEEE 754[fn:2] term of art.
 
   3. Introduce a new trait, ~reciprocal_overflow_threshold_v<T>~, for
      the smallest positive floating-point number such that one divided
@@ -81,11 +80,11 @@ proposal should work with both approaches.
 
 * Introduction
 
-[[wg21.link/P0437R1][P0437R1]] proposes to "[b]reak the monolithic
-~numeric_limits~ class template apart into a lot of individual trait
-templates, so that new traits can be added easily."  We see this as
-an opportunity both to revise the definitions of these traits, and
-to consider adding new traits.
+P0437R1[fn:1] proposes to "[b]reak the monolithic ~numeric_limits~
+class template apart into a lot of individual trait templates, so that
+new traits can be added easily."  We see this as an opportunity both
+to revise the definitions of these traits, and to consider adding new
+traits.
 
 ** Smallest positive normalized value
 
@@ -103,7 +102,7 @@ normalized value.  This is confusing in two different ways:
      
   2. It is normalized, so if the implementation of floating-point
      arithmetic has subnormal numbers, smaller positive floating-point
-     numbers of type ~T~ could exist.[fn:12]
+     numbers of type ~T~ could exist.[fn:3]
 
 This surprising behavior could lead to bugs when writing algorithms
 meant for either integers or floating-point values.  Nevertheless, the
@@ -122,7 +121,7 @@ that of ~min_normal_v<T>~.  This new trait is also useful in practice.
 
 In this section, we will show that the two proposed traits are useful
 constants for writing generic numerical algorithms, and that they have
-distinct uses.  The LAPACK[fn:1] Fortran linear algebra library uses
+distinct uses.  The LAPACK[fn:4] Fortran linear algebra library uses
 both values and distinguishes between them.
 
 To clarify: /Numerical algorithms/ use floating-point numbers as
@@ -146,12 +145,12 @@ LAPACK does not rely on Fortran generic procedures or parameterized
 derived types, the closest analogs in Fortran to C++ templates.
 However, most of LAPACK's routines are implemented in such a way that
 one could generate all four versions automatically from a single
-"template."[fn:2] As a result, we find LAPACK a useful analog to a C++
+"template."[fn:5] As a result, we find LAPACK a useful analog to a C++
 library of generic numerical algorithms, written using templates and
 traits classes.  Numerical algorithm developers who are not C++
 programmers have plenty of experience writing generic numerical
 algorithms.  See, for example, "Templates for the Solution of Linear
-Systems,"[fn:3] where "templates" means "recipes," not C++ templates.
+Systems,"[fn:6] where "templates" means "recipes," not C++ templates.
 Thus, it should not be surprising to find design patterns in common
 between generic numerical algorithms not specifically using C++, and
 generic C++ libraries.  In fact, our motivating examples will come
@@ -179,9 +178,9 @@ and ~ZGEQRF~.  Hence, we refer to the "floating-point traits" routines
 ~_LAMCH~ was designed to work on computers that may have non-IEEE-754
 floating-point arithmetic.  Older versions of the routine would
 actually compute the machine parameters.  This is what LAPACK 3.1.1
-does.[fn:4] More recent versions of LAPACK, including the most recent
+does.[fn:7] More recent versions of LAPACK, including the most recent
 version, 3.8.0, rely on Fortran intrinsics to get the values of most
-of the machine parameters.[fn:5]
+of the machine parameters.[fn:8]
 
 ~_LAMCH~ thus offers functionality analogous to ~numeric_traits~, for
 different real floating-point types.  LAPACK's authors chose this
@@ -193,7 +192,7 @@ development.  ~_LAMCH~ gives developers the following constants:
   - ~base~: base of the machine
   - ~prec~: eps*base
   - ~t~: number of (base) digits in the mantissa
-  - ~rnd~: 1.0 when rounding occurs in addition, 0.0 otherwise[fn:11]
+  - ~rnd~: 1.0 when rounding occurs in addition, 0.0 otherwise[fn:9]
   - ~emin~: minimum exponent before (gradual) underflow
   - ~rmin~: underflow threshold - ~base**(emin-1)~
   - ~emax~: largest exponent before overflow
@@ -277,10 +276,11 @@ conservative check of floating-point properties.)  Thus, for ~T=float~
 and ~T=double~, ~sfmin~ always equals ~numeric_limits<T>::min()~.
 However, several historical floating-point formats have the property
 that one divided by the underflow threshold would overflow.  Table 1
-in [fn:9] gives examples.  In general, this is possible whenever the
-absolute value of the underflow threshold exponent is greater than the
-overflow threshold exponent.  Whenever this property holds, LAPACK's
-~sfmin~ is larger than the minimum normalized floating-point value.
+in Prof. William Kahan's essay[fn:10] gives examples.  In general, this
+is possible whenever the absolute value of the underflow threshold
+exponent is greater than the overflow threshold exponent.  Whenever
+this property holds, LAPACK's ~sfmin~ is larger than the minimum
+normalized floating-point value.
 
 WG21 has seen proposals both to standardize new number formats, and to
 standardize ways for users to add support for their own number
@@ -298,12 +298,12 @@ data, unless they use the two proposed traits.
 * Conclusion
 
 We (the authors) have experience as developers and users of a C++
-library of generic numerical algorithms, namely Trilinos.[fn:6]  Many
-other such libraries exist, including Eigen[fn:7].  We also use the
+library of generic numerical algorithms, namely Trilinos.[fn:11] Many
+other such libraries exist, including Eigen[fn:12].  We also use the
 LAPACK library extensively, and have some experience modifying LAPACK
-algorithms.[fn:8]  We use and write traits classes that sometimes
-make use of ~numeric_limits~.  While we have found ~numeric_limits~
-useful, we think it could benefit from the following changes:
+algorithms.[fn:13] We use and write traits classes that sometimes make
+use of ~numeric_limits~.  While we have found ~numeric_limits~ useful,
+we think it could benefit from the following changes:
 
   1. Split out different traits into separate traits classes (the task
      of P0437).
@@ -330,68 +330,17 @@ States Government.
 
 * Footnotes
 
-[fn:1] E. Anderson, Z. Bai, C. Bischof, S. Blackford, J. Demmel,
-J. Dongarra, J. Du Croz, A. Greenbaum, S. Hammarling, A. McKenney, and
-D. Sorensen, "LAPACK Users' Guide," 3rd ed., Society for Industrial
-and Applied Mathematics, Philadelphia, PA, USA, 1999.
+[fn:1] Walter E. Brown, "Numeric Traits for the Standard Library,"
+P0437R1, Nov. 2018.  Available online: wg21.link/p0437r1.
 
-[fn:2] J.J. Dongarra, oral history interview by T. Haigh, 26
-Apr. 2004, Society for Industrial and Applied Mathematics,
-Philadelphia, PA, USA; available from
-http://history.siam.org/oralhistories/dongarra.htm.
-
-[fn:3] See, for example, R. Barrett, M. Berry, T. F. Chan, J. Demmel,
-J. Donato, J. Dongarra, V. Eijkhout, R. Pozo, C. Romine, and H. Van
-der Vorst, "Templates for the Solution of Linear Systems: Building
-Blocks for Iterative Methods," 2nd Edition, Society for Industrial and
-Applied Mathematics, Philadelphia, PA, USA, 1994.  "Templates" in the
-title does not mean C++ templates; it means something more like
-"design patterns."
-
-[fn:4] For example, here is the implementation of ~DLAMCH~ in LAPACK
-3.1.1: http://www.netlib.org/lapack/explore-3.1.1-html/dlamch.f.html
-
-[fn:5] See, for example, the much shorter implementation of ~DLAMCH~
-in LAPACK 3.8.0:
-http://www.netlib.org/lapack/explore-html/d5/dd4/dlamch_8f_a06d6aa332f6f66e062e9b96a41f40800.html#a06d6aa332f6f66e062e9b96a41f40800
-
-[fn:6] M. A. Heroux et al., "An overview of the Trilinos project,"
-ACM Transactions on Mathematical Software, Vol. 31, No. 3, Sep. 2005,
-pp. 397-423; M. A. Heroux and J. M. Willenbring, "A New Overview of
-The Trilinos Project," Scientific Programming, Vol 20, No. 2, 2012,
-pp. 83-88.  See also: [[https://github.com/trilinos/Trilinos][Trilinos' GitHub site]], and E. Bavier,
-M. Hoemmen, S. Rajamanickam, and Heidi Thornquist, "Amesos2 and Belos:
-Direct and Iterative Solvers for Large Sparse Linear Systems,"
-Scientific Programming, Vol. 20, No. 3, 2012, pp. 241-255.
-
-[fn:7] Gaël Guennebaud, Benoît Jacob, et al., "Eigen v3,"
-http://eigen.tuxfamily.org, 2010 [last accessed Nov. 2018].  See also
-Eigen's documentation for "Using custom scalar types":
-http://eigen.tuxfamily.org/dox/TopicCustomizing_CustomScalar.html.
-
-[fn:8] See e.g., J. W. Demmel, M. Hoemmen, Y. Hida, and E. J. Riedy,
-"Nonnegative Diagonals and High Performance on Low-Profile Matrices
-from Householder QR," SIAM J. Sci. Comput., Vol. 31, No. 4, 2009,
-pp. 2832-2841.  The authors later found out via a Matlab bug report
-that these changes to LAPACK's Householder reflector computation had
-subtle rounding error issues that broke one of LAPACK's dense
-eigensolver routines, so we ended up backing them out.
-
-[fn:9] William Kahan, "Why do we need a floating-point standard?",
-Feb. 12, 1981.  Available online:
-https://people.eecs.berkeley.edu/~wkahan/ieee754status/why-ieee.pdf
-(last accessed Mar. 5, 2019).
-
-[fn:10] /IEEE 754/ is the Institute of Electrical and Electronics
+[fn:2] /IEEE 754/ is the Institute of Electrical and Electronics
 Engineers' standard for binary floating-point computation.  The
 standard first came out in 1985, and the latest revision was released
 in 2008.  (The IEEE 754 Floating Point Standards Committee approved a
 new draft on 20 July 2018, as reported by Committee member James
 Demmel over e-mail.)
 
-[fn:11] "Otherwise" here means that addition chops instead of rounds.
-
-[fn:12] Some systems have settings that change the behavior of
+[fn:3] Some systems have settings that change the behavior of
 floating-point arithmetic, in order to avoid subnormal numbers.  These
 options include "flush to zero," where arithmetic results that should
 produce a subnormal instead result in zero, and "denormals are zero,"
@@ -399,3 +348,58 @@ where a subnormal input to arithmetic operations is assumed to be
 zero.  These options exist in part because some hardware
 implementations of floating-point arithmetic handle subnormal numbers
 very slowly.
+
+[fn:4] E. Anderson, Z. Bai, C. Bischof, S. Blackford, J. Demmel,
+J. Dongarra, J. Du Croz, A. Greenbaum, S. Hammarling, A. McKenney, and
+D. Sorensen, "LAPACK Users' Guide," 3rd ed., Society for Industrial
+and Applied Mathematics, Philadelphia, PA, USA, 1999.
+
+[fn:5] J.J. Dongarra, oral history interview by T. Haigh, 26
+Apr. 2004, Society for Industrial and Applied Mathematics,
+Philadelphia, PA, USA; available from
+http://history.siam.org/oralhistories/dongarra.htm.
+
+[fn:6] See, for example, R. Barrett, M. Berry, T. F. Chan, J. Demmel,
+J. Donato, J. Dongarra, V. Eijkhout, R. Pozo, C. Romine, and H. Van
+der Vorst, "Templates for the Solution of Linear Systems: Building
+Blocks for Iterative Methods," 2nd Edition, Society for Industrial and
+Applied Mathematics, Philadelphia, PA, USA, 1994.  "Templates" in the
+title does not mean C++ templates; it means something more like
+"design patterns."
+
+[fn:7] For example, here is the implementation of ~DLAMCH~ in LAPACK
+3.1.1: http://www.netlib.org/lapack/explore-3.1.1-html/dlamch.f.html
+
+[fn:8] See, for example, the much shorter implementation of ~DLAMCH~
+in LAPACK 3.8.0:
+http://www.netlib.org/lapack/explore-html/d5/dd4/dlamch_8f_a06d6aa332f6f66e062e9b96a41f40800.html#a06d6aa332f6f66e062e9b96a41f40800
+
+[fn:9] "Otherwise" here means that addition chops instead of rounds.
+
+[fn:10] William Kahan, "Why do we need a floating-point standard?",
+Feb. 12, 1981.  Available online:
+https://people.eecs.berkeley.edu/~wkahan/ieee754status/why-ieee.pdf
+(last accessed Mar. 5, 2019).
+
+[fn:11] M. A. Heroux et al., "An overview of the Trilinos project," ACM
+Transactions on Mathematical Software, Vol. 31, No. 3, Sep. 2005,
+pp. 397-423; M. A. Heroux and J. M. Willenbring, "A New Overview of
+The Trilinos Project," Scientific Programming, Vol 20, No. 2, 2012,
+pp. 83-88.  See also:
+[[https://github.com/trilinos/Trilinos][Trilinos' GitHub site]], and
+E. Bavier, M. Hoemmen, S. Rajamanickam, and Heidi Thornquist, "Amesos2
+and Belos: Direct and Iterative Solvers for Large Sparse Linear
+Systems," Scientific Programming, Vol. 20, No. 3, 2012, pp. 241-255.
+
+[fn:12] Gaël Guennebaud, Benoît Jacob, et al., "Eigen v3,"
+http://eigen.tuxfamily.org, 2010 [last accessed Nov. 2018].  See also
+Eigen's documentation for "Using custom scalar types":
+http://eigen.tuxfamily.org/dox/TopicCustomizing_CustomScalar.html.
+
+[fn:13] See e.g., J. W. Demmel, M. Hoemmen, Y. Hida, and E. J. Riedy,
+"Nonnegative Diagonals and High Performance on Low-Profile Matrices
+from Householder QR," SIAM J. Sci. Comput., Vol. 31, No. 4, 2009,
+pp. 2832-2841.  The authors later found out via a Matlab bug report
+that these changes to LAPACK's Householder reflector computation had
+subtle rounding error issues that broke one of LAPACK's dense
+eigensolver routines, so we ended up backing them out.

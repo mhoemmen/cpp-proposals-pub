@@ -1,0 +1,18 @@
+We propose the following:
+
+  1. In the next revision to P0437, whatever trait replaces
+     `numeric_limits<T>::min` should always give the minimum finite
+     value of `T`.  For floating-point types, it should give the same
+     value as `numeric_limits<T>::lowest()` does now.
+     
+  2. The actual current value of `numeric_limits<T>::min()` for
+     floating-point types `T` is the minimum positive normalized value
+     of `T`.  This is useful for writing generic numerical algorithms,
+     but the name "min" is confusing.  We propose calling this trait
+     `min_normal_v<T>`, based on the IEEE 754 term of art.
+
+  3. Introduce a new trait, `reciprocal_overflow_threshold_v<T>`, for
+     the smallest positive floating-point number such that one divided
+     by that number does not overflow.  This has differed from
+     `min_normal_v<T>` for historical floating-point types, and has
+     different uses than `min_normal_v<T>`.
