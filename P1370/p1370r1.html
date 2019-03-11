@@ -1,0 +1,847 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>P1370R1: Generic numerical algorithm development with(out) <code>numeric_limits</code></title>
+<!-- 2019-03-10 Sun 19:35 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Mark Hoemmen (mhoemme@sandia.gov) and Damien Lebrun-Grandie (qdi@ornl.gov)" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">P1370R1: Generic numerical algorithm development with(out) <code>numeric_limits</code></h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Feedback</a>
+<ul>
+<li><a href="#sec-1-1">1.1. Kona 2019</a>
+<ul>
+<li><a href="#sec-1-1-1">1.1.1. SG6 (Numerics)</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-2">1.2. SG18 (LEWG Incubator)</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. Proposal</a></li>
+<li><a href="#sec-3">3. Introduction</a>
+<ul>
+<li><a href="#sec-3-1">3.1. Smallest positive normalized value</a></li>
+<li><a href="#sec-3-2">3.2. Reciprocal overflow threshold</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. Example: the LAPACK linear algebra library</a>
+<ul>
+<li><a href="#sec-4-1">4.1. LAPACK is a library of generic numerical algorithms</a></li>
+<li><a href="#sec-4-2">4.2. How LAPACK uses our two proposed traits</a></li>
+<li><a href="#sec-4-3">4.3. How LAPACK computes the two traits</a></li>
+<li><a href="#sec-4-4">4.4. The two traits' values can differ</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. Conclusion</a></li>
+<li><a href="#sec-6">6. Funding and disclaimer</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Feedback</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Kona 2019</h3>
+<div class="outline-text-3" id="text-1-1">
+</div><div id="outline-container-sec-1-1-1" class="outline-4">
+<h4 id="sec-1-1-1"><span class="section-number-4">1.1.1</span> SG6 (Numerics)</h4>
+<div class="outline-text-4" id="text-1-1-1">
+<p>
+Revise with addtional <code>safe_min</code> value (name subject to future bikeshedding)?
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="right">SF</th>
+<th scope="col" class="right">F</th>
+<th scope="col" class="right">N</th>
+<th scope="col" class="right">A</th>
+<th scope="col" class="right">SF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="right">5</td>
+<td class="right">0</td>
+<td class="right">2</td>
+<td class="right">0</td>
+<td class="right">0</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Revise with explanation of distinction betweeen the various constants?
+(Authors' note: This refers specifically to two constants: the minimum
+positive normalized floating-point number (what Fortran calls <code>TINY</code>),
+and the minimum positive floating-point number s such that 1/s is
+finite (what LAPACK calls <code>SFMIN</code>).)
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="right">SF</th>
+<th scope="col" class="right">F</th>
+<th scope="col" class="right">N</th>
+<th scope="col" class="right">A</th>
+<th scope="col" class="right">SF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="right">5</td>
+<td class="right">2</td>
+<td class="right">0</td>
+<td class="right">0</td>
+<td class="right">0</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Merge into a revision of P0437r2? (Authors' note: Intent is that this
+paper should first be revised and resubmitted, and then should be
+rebased on top of the latest version of P0437.)
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="right">SF</th>
+<th scope="col" class="right">F</th>
+<th scope="col" class="right">N</th>
+<th scope="col" class="right">A</th>
+<th scope="col" class="right">SF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="right">5</td>
+<td class="right">2</td>
+<td class="right">0</td>
+<td class="right">0</td>
+<td class="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> SG18 (LEWG Incubator)</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+The LEWG-I minutes were not posted, but the authors remember the
+following discussion points.
+</p>
+
+<ol class="org-ol">
+<li>Suggested name for what Fortran calls <code>TINY</code>: <code>min_normal_v</code> (a
+term of art from IEEE 754).
+</li>
+
+<li>Suggested name for what LAPACK calls <code>sfmin</code>:
+<code>reciprocal_overflow_threshold_v</code> (there was another, more concise
+name, but I don't recall it and don't have the minutes).  The group
+strongly objected to names with the word "safe" in them.
+</li>
+</ol>
+
+<p>
+In discussion, one LEWG-I participant expressed a preference that the
+new traits proposed by P0437 should come in <code>has_${PROPERTY}_v&lt;T&gt;</code>,
+<code>${PROPERTY}_v</code> pairs.  They prefer the current <code>numeric_limits</code>-like
+behavior, in which <code>${PROPERTY}_v&lt;T&gt;</code> exists but has some arbitrary
+value if <code>has_${PROPERTY}_v&lt;T&gt;</code> is false, to the approach in which
+<code>${PROPERTY}_v&lt;T&gt;</code> does not exist if <code>T</code> does not have the property in
+question.  SG18 did not vote on this topic, but this feedback could be
+helpful for the next revision of P0437.  In particular, the last
+revision of P0437 before the 2019 Kona meeting proposes that use of
+<code>${PROPERTY}_v&lt;T&gt;</code> be ill-formed if if <code>T</code> does not have the property
+in question.  Section 6 of P0437R1 suggests a general mechanism,
+<code>value_exists&lt;Trait, T&gt;</code>, that would replace <code>has_${PROPERTY}_v&lt;T&gt;</code>.
+We prefer P0437R1's approach, since it prevents bugs at compile time.
+However, our proposal should work with both approaches.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Proposal</h2>
+<div class="outline-text-2" id="text-2">
+<ol class="org-ol">
+<li>In the next revision to P0437<sup><a id="fnr.1" name="fnr.1" class="footref" href="#fn.1">1</a></sup>, whatever trait replaces
+<code>numeric_limits&lt;T&gt;::min</code> should always give the minimum finite
+value of <code>T</code>.  For floating-point types, it should give the same
+value as <code>numeric_limits&lt;T&gt;::lowest()</code> does now.
+</li>
+
+<li>The actual current value of <code>numeric_limits&lt;T&gt;::min()</code> for
+floating-point types <code>T</code> is the minimum positive normalized value
+of <code>T</code>.  This is useful for writing generic numerical algorithms,
+but the name "min" is confusing.  We propose calling this trait
+<code>min_normal_v&lt;T&gt;</code>, based on the IEEE 754<sup><a id="fnr.2" name="fnr.2" class="footref" href="#fn.2">2</a></sup> term of art.
+</li>
+
+<li>Introduce a new trait, <code>reciprocal_overflow_threshold_v&lt;T&gt;</code>, for
+the smallest positive floating-point number such that one divided
+by that number does not overflow.  This has differed from
+<code>min_normal_v&lt;T&gt;</code> for historical floating-point types, and has
+different uses than <code>min_normal_v&lt;T&gt;</code>.
+</li>
+</ol>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Introduction</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+P0437R1<sup><a id="fnr.1.100" name="fnr.1.100" class="footref" href="#fn.1">1</a></sup> proposes to "[b]reak the monolithic <code>numeric_limits</code>
+class template apart into a lot of individual trait templates, so that
+new traits can be added easily."  We see this as an opportunity both
+to revise the definitions of these traits, and to consider adding new
+traits.
+</p>
+</div>
+
+<div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> Smallest positive normalized value</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+An example of existing traits needing revision is the current
+definition of <code>numeric_limits&lt;T&gt;::min</code>, which is inconsistent for
+integer versus floating-point types <code>T</code>.  For integer types, this
+function behaves as expected; it returns the minimum finite value.
+For signed integer types, this is the <i>negative</i> value of largest
+magnitude, and for unsigned integer types, it is zero.  However, for a
+floating-point type, it returns the type's smallest positive
+normalized value.  This is confusing in two different ways:
+</p>
+
+<ol class="org-ol">
+<li>It is positive, so it is not the least finite floating-point
+value, namely <code>-numeric_limits&lt;T&gt;::max()</code>.
+</li>
+
+<li>It is normalized, so if the implementation of floating-point
+arithmetic has subnormal numbers, smaller positive floating-point
+numbers of type <code>T</code> could exist.<sup><a id="fnr.3" name="fnr.3" class="footref" href="#fn.3">3</a></sup>
+</li>
+</ol>
+
+<p>
+This surprising behavior could lead to bugs when writing algorithms
+meant for either integers or floating-point values.  Nevertheless, the
+actual value is useful in practice, as we will show below.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> Reciprocal overflow threshold</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+An example of a new trait to consider is the smallest positive
+floating-point number such that one divided by that number does not
+overflow.  We propose calling this trait
+<code>reciprocal_overflow_threshold_v&lt;T&gt;</code>.  As we will show below,
+floating-point types exist for which this trait's value differs from
+that of <code>min_normal_v&lt;T&gt;</code>.  This new trait is also useful in practice.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Example: the LAPACK linear algebra library</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+In this section, we will show that the two proposed traits are useful
+constants for writing generic numerical algorithms, and that they have
+distinct uses.  The LAPACK<sup><a id="fnr.4" name="fnr.4" class="footref" href="#fn.4">4</a></sup> Fortran linear algebra library uses
+both values and distinguishes between them.
+</p>
+
+<p>
+To clarify: <i>Numerical algorithms</i> use floating-point numbers as
+approximations to real numbers, to do the kinds of computations that
+scientists, engineers, and statisticians often find useful.  <i>Generic
+numerical algorithms</i> are written to work for different kinds of
+floating-point number types.
+</p>
+</div>
+
+<div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> LAPACK is a library of generic numerical algorithms</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+LAPACK is a Fortran library, but it takes a "generic" approach to
+algorithms for different data types.  LAPACK implements algorithms for
+four different data types:
+</p>
+
+<ul class="org-ul">
+<li>Single-precision real (S)
+</li>
+<li>Double-precision real (D)
+</li>
+<li>Single-precision complex (C)
+</li>
+<li>Double-precision complex (Z)
+</li>
+</ul>
+
+<p>
+LAPACK does not rely on Fortran generic procedures or parameterized
+derived types, the closest analogs in Fortran to C++ templates.
+However, most of LAPACK's routines are implemented in such a way that
+one could generate all four versions automatically from a single
+"template."<sup><a id="fnr.5" name="fnr.5" class="footref" href="#fn.5">5</a></sup> As a result, we find LAPACK a useful analog to a C++
+library of generic numerical algorithms, written using templates and
+traits classes.  Numerical algorithm developers who are not C++
+programmers have plenty of experience writing generic numerical
+algorithms.  See, for example, "Templates for the Solution of Linear
+Systems,"<sup><a id="fnr.6" name="fnr.6" class="footref" href="#fn.6">6</a></sup> where "templates" means "recipes," not C++ templates.
+Thus, it should not be surprising to find design patterns in common
+between generic numerical algorithms not specifically using C++, and
+generic C++ libraries.  In fact, our motivating examples will come
+from LAPACK's "floating-point traits" routines.
+</p>
+
+<p>
+LAPACK's "generic" approach means that algorithm developers need a way
+to access floating-point arithmetic properties as a function of data
+type, just as if a C++ developer were writing an algorithm templated
+on a floating-point type.  Many linear algebra algorithms depend on
+those properties to avoid unwarranted overflow or underflow, and to
+get accurate results.  As a result, LAPACK provides the <code>SLAMCH</code> and
+<code>DLAMCH</code> routines, that return machine parameters for the given real
+floating-point type (single-precision real resp. double-precision
+real).  (One can derive from these the properties for corresponding
+complex numbers.)
+</p>
+
+<p>
+LAPACK routines have a uniform naming convention, where the first
+letter indicates the data type.  LAPACK developers refer to the
+"generic" algorithm by omitting the first letter.  For example,
+<code>_GEQRF</code> represents the same QR factorization for all data types for
+which it is implemented, in this case, <code>SGEQRF</code>, <code>DGEQRF</code>, <code>CGEQRF</code>,
+and <code>ZGEQRF</code>.  Hence, we refer to the "floating-point traits" routines
+<code>SLAMCH</code> and <code>DLAMCH</code> generically as <code>_LAMCH</code>.
+</p>
+
+<p>
+<code>_LAMCH</code> was designed to work on computers that may have non-IEEE-754
+floating-point arithmetic.  Older versions of the routine would
+actually compute the machine parameters.  This is what LAPACK 3.1.1
+does.<sup><a id="fnr.7" name="fnr.7" class="footref" href="#fn.7">7</a></sup> More recent versions of LAPACK, including the most recent
+version, 3.8.0, rely on Fortran intrinsics to get the values of most
+of the machine parameters.<sup><a id="fnr.8" name="fnr.8" class="footref" href="#fn.8">8</a></sup>
+</p>
+
+<p>
+<code>_LAMCH</code> thus offers functionality analogous to <code>numeric_traits</code>, for
+different real floating-point types.  LAPACK's authors chose this
+functionality specifically for the needs of linear algebra algorithm
+development.  <code>_LAMCH</code> gives developers the following constants:
+</p>
+
+<ul class="org-ul">
+<li><code>eps</code>: relative machine precision
+</li>
+<li><code>sfmin</code>: safe minimum, such that <code>1/sfmin</code> does not overflow
+</li>
+<li><code>base</code>: base of the machine
+</li>
+<li><code>prec</code>: eps*base
+</li>
+<li><code>t</code>: number of (base) digits in the mantissa
+</li>
+<li><code>rnd</code>: 1.0 when rounding occurs in addition, 0.0 otherwise<sup><a id="fnr.9" name="fnr.9" class="footref" href="#fn.9">9</a></sup>
+</li>
+<li><code>emin</code>: minimum exponent before (gradual) underflow
+</li>
+<li><code>rmin</code>: underflow threshold - <code>base**(emin-1)</code>
+</li>
+<li><code>emax</code>: largest exponent before overflow
+</li>
+<li><code>rmax</code>: overflow threshold  - <code>(base**emax)*(1-eps)</code>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> How LAPACK uses our two proposed traits</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+Our proposed <code>min_normal_v&lt;T&gt;</code> corresponds to the underflow threshold
+<code>rmin</code>, and our <code>reciprocal_overflow_threshold_v&lt;T&gt;</code> corresponds to
+the "safe minimum" <code>sfmin</code>.  LAPACK uses the "safe minimum" more often
+than the underflow threshold, but it does use both values.
+</p>
+
+<p>
+LAPACK uses the safe minimum in algorithms (e.g., equilibration and
+balancing) that scale the rows and/or columns of a matrix to improve
+accuracy of a subsequent factorization.  In the process of improving
+accuracy, one would not want to divide by too small of a number, and
+thus cause underflow that is not warranted by the user's data.  For
+example, see <code>DRSCL</code>, <code>DLADIV</code>, and <code>ZDRSCL</code>.  (The documentation of
+LAPACK's <code>_LABAD</code> routine explains how LAPACK uses this routine to
+work around surprising behavior at the extreme exponent ranges of
+certain floating-point systems.)
+</p>
+
+<p>
+The safe minimum also helps in LAPACK's LU factorization with complete
+pivoting (see e.g., <code>ZGETC2</code>).  If LAPACK finds a pivot <code>U(k, k)</code> that
+is too small in magnitude, it replaces the pivot with a tiny real
+number.  This helps the factorization finish, which is an important
+goal for LU with complete pivoting (unlike the usual LU factorization
+with partial pivoting <code>_GETRF</code>, which stops on encountering a zero
+pivot).  LAPACK derives the value for this tiny real number from the
+safe minimum, since LU factorization must divide numbers in the matrix
+by the pivot.
+</p>
+
+<p>
+LAPACK uses the underflow threshold quite a bit in its tests.  In its
+actual code, it uses this value when computing the eigenvalues of a
+real symmetric tridiagonal matrix (the <code>_LARRD</code> auxiliary routine,
+called from <code>_STEMR</code>).
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> How LAPACK computes the two traits</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+In the most recent version of LAPACK, 3.8.0, LAPACK uses the Fortran
+intrinsic function <code>TINY</code> for the underflow threshold, and derives the
+"safe minimum" <code>sfmin</code> from that value and the overflow threshold
+(Fortran intrinsic <code>HUGE</code>) as follows:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-Fortran">	 sfmin = tiny(zero)
+	 small = one / huge(zero)
+	 IF( small.GE.sfmin ) THEN
+*
+*           Use SMALL plus a bit, to avoid the possibility of rounding
+*           causing overflow when computing  1/sfmin.
+*
+	    sfmin = small*( one+eps )
+	 END IF
+	 rmach = sfmin
+</pre>
+</div>
+
+<p>
+Here is the C++ equivalent:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C++"><span style="color: #ffff00;">template</span>&lt;<span style="color: #ffff00;">class</span> <span style="color: #ffffe0;">T</span>&gt;
+<span style="color: #ffffe0;">T</span> <span style="font-weight: bold; text-decoration: underline;">safe_minimum</span> (<span style="color: #ffff00;">const</span> <span style="color: #ffffe0;">T</span>&amp; <span style="background-color: #000000; font-style: italic;">/* </span><span style="background-color: #000000; font-style: italic;">ignored */</span>) {
+  <span style="color: #ffff00;">constexpr</span> <span style="color: #ffffe0;">T</span> <span style="color: #90ee90;">one</span> (1.0);
+  <span style="color: #ffff00;">constexpr</span> <span style="color: #ffffe0;">T</span> <span style="color: #90ee90;">eps</span> = <span style="color: #ff00ff;">std</span>::<span style="color: #ff00ff;">numeric_limits</span>&lt;<span style="color: #ffffe0;">T</span>&gt;::epsilon();
+  <span style="color: #ffff00;">constexpr</span> <span style="color: #ffffe0;">T</span> <span style="color: #90ee90;">tiny</span> = <span style="color: #ff00ff;">std</span>::<span style="color: #ff00ff;">numeric_limits</span>&lt;<span style="color: #ffffe0;">T</span>&gt;::min();
+  <span style="color: #ffff00;">constexpr</span> <span style="color: #ffffe0;">T</span> <span style="color: #90ee90;">huge</span> = <span style="color: #ff00ff;">std</span>::<span style="color: #ff00ff;">numeric_limits</span>&lt;<span style="color: #ffffe0;">T</span>&gt;::max();
+  <span style="color: #ffff00;">constexpr</span> <span style="color: #ffffe0;">T</span> <span style="color: #90ee90;">small</span> = one / huge;
+  <span style="color: #ffffe0;">T</span> <span style="color: #90ee90;">sfmin</span> = tiny;
+  <span style="color: #ffff00;">if</span> (small &gt;= tiny) {
+    sfmin = small * (one + eps);
+  }
+  <span style="color: #ffff00;">return</span> sfmin;
+}
+</pre>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4-4" class="outline-3">
+<h3 id="sec-4-4"><span class="section-number-3">4.4</span> The two traits' values can differ</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+For IEEE 754 <code>float</code> and <code>double</code>, the <code>IF</code> branch never gets taken.
+(LAPACK was originally written to work on computers that did not
+implement IEEE 754 arithmetic, so the extra branches may have made
+sense for earlier computer architectures.  They are also useful as a
+conservative check of floating-point properties.)  Thus, for <code>T=float</code>
+and <code>T=double</code>, <code>sfmin</code> always equals <code>numeric_limits&lt;T&gt;::min()</code>.
+However, several historical floating-point formats have the property
+that one divided by the underflow threshold would overflow.  Table 1
+in Prof. William Kahan's essay<sup><a id="fnr.10" name="fnr.10" class="footref" href="#fn.10">10</a></sup> gives examples.  In general, this
+is possible whenever the absolute value of the underflow threshold
+exponent is greater than the overflow threshold exponent.  Whenever
+this property holds, LAPACK's <code>sfmin</code> is larger than the minimum
+normalized floating-point value.
+</p>
+
+<p>
+WG21 has seen proposals both to standardize new number formats, and to
+standardize ways for users to add support for their own number
+formats.  Furthermore, WG21 has seen proposals for generic linear
+algebra (e.g., P1385) and other algorithms useful for machine
+learning.  This makes it critical for C++ developers, including
+Standard Library developers, to have Standard Library support for
+writing type-independent floating-point algorithms.  Ignoring the two
+proposed traits puts these developers at risk, especially for
+algorithms that rescale data to improve accuracy (a common feature
+when solving linear systems, for example).  Such algorithms could
+cause infinities and/or Not-a-Numbers that are not warranted by the
+data, unless they use the two proposed traits.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Conclusion</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+We (the authors) have experience as developers and users of a C++
+library of generic numerical algorithms, namely Trilinos.<sup><a id="fnr.11" name="fnr.11" class="footref" href="#fn.11">11</a></sup> Many
+other such libraries exist, including Eigen<sup><a id="fnr.12" name="fnr.12" class="footref" href="#fn.12">12</a></sup>.  We also use the
+LAPACK library extensively, and have some experience modifying LAPACK
+algorithms.<sup><a id="fnr.13" name="fnr.13" class="footref" href="#fn.13">13</a></sup> We use and write traits classes that sometimes make
+use of <code>numeric_limits</code>.  While we have found <code>numeric_limits</code> useful,
+we think it could benefit from the following changes:
+</p>
+
+<ol class="org-ol">
+<li>Split out different traits into separate traits classes (the task
+of P0437).
+</li>
+<li>Replace <code>numeric_limits&lt;T&gt;::min</code> for floating-point types <code>T</code>
+     with the new trait <code>min_normal_v&lt;T&gt;</code>.
+</li>
+<li>Add a new trait <code>reciprocal_overflow_threshold_v&lt;T&gt;</code> for
+floating-point types <code>T</code>, whose value is the smallest positive
+<code>T</code> such that one divided by the value does not overflow.
+</li>
+</ol>
+
+<p>
+Our thanks to Walter Brown for P0437, and for helpful discussion and
+advice.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> Funding and disclaimer</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Sandia National Laboratories is a multi-mission laboratory managed and
+operated by National Technology and Engineering Solutions of Sandia,
+LLC., a wholly owned subsidiary of Honeywell International, Inc., for
+the U.S. Department of Energy's National Nuclear Security
+Administration under contract DE-NA0003525.  This paper describes
+objective technical results and analysis.  Any subjective views or
+opinions that might be expressed in the paper do not necessarily
+represent the views of the U.S. Department of Energy or the United
+States Government.
+</p>
+</div>
+</div>
+<div id="footnotes">
+<h2 class="footnotes">Footnotes: </h2>
+<div id="text-footnotes">
+
+<div class="footdef"><sup><a id="fn.1" name="fn.1" class="footnum" href="#fnr.1">1</a></sup> <p class="footpara">
+Walter E. Brown, "Numeric Traits for the Standard Library,"
+P0437R1, Nov. 2018.  Available online: wg21.link/p0437r1.
+</p></div>
+
+<div class="footdef"><sup><a id="fn.2" name="fn.2" class="footnum" href="#fnr.2">2</a></sup> <p class="footpara">
+<i>IEEE 754</i> is the Institute of Electrical and Electronics
+Engineers' standard for binary floating-point computation.  The
+standard first came out in 1985, and the latest revision was released
+in 2008.  (The IEEE 754 Floating Point Standards Committee approved a
+new draft on 20 July 2018, as reported by Committee member James
+Demmel over e-mail.)
+</p></div>
+
+<div class="footdef"><sup><a id="fn.3" name="fn.3" class="footnum" href="#fnr.3">3</a></sup> <p class="footpara">
+Some systems have settings that change the behavior of
+floating-point arithmetic, in order to avoid subnormal numbers.  These
+options include "flush to zero," where arithmetic results that should
+produce a subnormal instead result in zero, and "denormals are zero,"
+where a subnormal input to arithmetic operations is assumed to be
+zero.  These options exist in part because some hardware
+implementations of floating-point arithmetic handle subnormal numbers
+very slowly.
+</p></div>
+
+<div class="footdef"><sup><a id="fn.4" name="fn.4" class="footnum" href="#fnr.4">4</a></sup> <p class="footpara">
+E. Anderson, Z. Bai, C. Bischof, S. Blackford, J. Demmel,
+J. Dongarra, J. Du Croz, A. Greenbaum, S. Hammarling, A. McKenney, and
+D. Sorensen, "LAPACK Users' Guide," 3rd ed., Society for Industrial
+and Applied Mathematics, Philadelphia, PA, USA, 1999.
+</p></div>
+
+<div class="footdef"><sup><a id="fn.5" name="fn.5" class="footnum" href="#fnr.5">5</a></sup> <p class="footpara">
+J.J. Dongarra, oral history interview by T. Haigh, 26
+Apr. 2004, Society for Industrial and Applied Mathematics,
+Philadelphia, PA, USA; available from
+<a href="http://history.siam.org/oralhistories/dongarra.htm">http://history.siam.org/oralhistories/dongarra.htm</a>.
+</p></div>
+
+<div class="footdef"><sup><a id="fn.6" name="fn.6" class="footnum" href="#fnr.6">6</a></sup> <p class="footpara">
+See, for example, R. Barrett, M. Berry, T. F. Chan, J. Demmel,
+J. Donato, J. Dongarra, V. Eijkhout, R. Pozo, C. Romine, and H. Van
+der Vorst, "Templates for the Solution of Linear Systems: Building
+Blocks for Iterative Methods," 2nd Edition, Society for Industrial and
+Applied Mathematics, Philadelphia, PA, USA, 1994.  "Templates" in the
+title does not mean C++ templates; it means something more like
+"design patterns."
+</p></div>
+
+<div class="footdef"><sup><a id="fn.7" name="fn.7" class="footnum" href="#fnr.7">7</a></sup> <p class="footpara">
+For example, here is the implementation of <code>DLAMCH</code> in LAPACK
+3.1.1: <a href="http://www.netlib.org/lapack/explore-3.1.1-html/dlamch.f.html">http://www.netlib.org/lapack/explore-3.1.1-html/dlamch.f.html</a>
+</p></div>
+
+<div class="footdef"><sup><a id="fn.8" name="fn.8" class="footnum" href="#fnr.8">8</a></sup> <p class="footpara">
+See, for example, the much shorter implementation of <code>DLAMCH</code>
+in LAPACK 3.8.0:
+<a href="http://www.netlib.org/lapack/explore-html/d5/dd4/dlamch_8f_a06d6aa332f6f66e062e9b96a41f40800.html#a06d6aa332f6f66e062e9b96a41f40800">http://www.netlib.org/lapack/explore-html/d5/dd4/dlamch_8f_a06d6aa332f6f66e062e9b96a41f40800.html#a06d6aa332f6f66e062e9b96a41f40800</a>
+</p></div>
+
+<div class="footdef"><sup><a id="fn.9" name="fn.9" class="footnum" href="#fnr.9">9</a></sup> <p class="footpara">
+"Otherwise" here means that addition chops instead of rounds.
+</p></div>
+
+<div class="footdef"><sup><a id="fn.10" name="fn.10" class="footnum" href="#fnr.10">10</a></sup> <p class="footpara">
+William Kahan, "Why do we need a floating-point standard?",
+Feb. 12, 1981.  Available online:
+<a href="https://people.eecs.berkeley.edu/~wkahan/ieee754status/why-ieee.pdf">https://people.eecs.berkeley.edu/~wkahan/ieee754status/why-ieee.pdf</a>
+(last accessed Mar. 5, 2019).
+</p></div>
+
+<div class="footdef"><sup><a id="fn.11" name="fn.11" class="footnum" href="#fnr.11">11</a></sup> <p class="footpara">
+M. A. Heroux et al., "An overview of the Trilinos project," ACM
+Transactions on Mathematical Software, Vol. 31, No. 3, Sep. 2005,
+pp. 397-423; M. A. Heroux and J. M. Willenbring, "A New Overview of
+The Trilinos Project," Scientific Programming, Vol 20, No. 2, 2012,
+pp. 83-88.  See also:
+<a href="https://github.com/trilinos/Trilinos">Trilinos' GitHub site</a>, and
+E. Bavier, M. Hoemmen, S. Rajamanickam, and Heidi Thornquist, "Amesos2
+and Belos: Direct and Iterative Solvers for Large Sparse Linear
+Systems," Scientific Programming, Vol. 20, No. 3, 2012, pp. 241-255.
+</p></div>
+
+<div class="footdef"><sup><a id="fn.12" name="fn.12" class="footnum" href="#fnr.12">12</a></sup> <p class="footpara">
+Gaël Guennebaud, Benoît Jacob, et al., "Eigen v3,"
+<a href="http://eigen.tuxfamily.org">http://eigen.tuxfamily.org</a>, 2010 [last accessed Nov. 2018].  See also
+Eigen's documentation for "Using custom scalar types":
+<a href="http://eigen.tuxfamily.org/dox/TopicCustomizing_CustomScalar.html">http://eigen.tuxfamily.org/dox/TopicCustomizing_CustomScalar.html</a>.
+</p></div>
+
+<div class="footdef"><sup><a id="fn.13" name="fn.13" class="footnum" href="#fnr.13">13</a></sup> <p class="footpara">
+See e.g., J. W. Demmel, M. Hoemmen, Y. Hida, and E. J. Riedy,
+"Nonnegative Diagonals and High Performance on Low-Profile Matrices
+from Householder QR," SIAM J. Sci. Comput., Vol. 31, No. 4, 2009,
+pp. 2832-2841.  The authors later found out via a Matlab bug report
+that these changes to LAPACK's Householder reflector computation had
+subtle rounding error issues that broke one of LAPACK's dense
+eigensolver routines, so we ended up backing them out.
+</p></div>
+
+
+</div>
+</div></div>
+<div id="postamble" class="status">
+<p class="date">Date: 10 Mar 2019</p>
+<p class="author">Author: Mark Hoemmen (mhoemme@sandia.gov) and Damien Lebrun-Grandie (qdi@ornl.gov)</p>
+<p class="date">Created: 2019-03-10 Sun 19:35</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
