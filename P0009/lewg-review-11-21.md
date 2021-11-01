@@ -4,18 +4,18 @@
   - coauthors from US National Labs, US NAVY, NVIDIA, AMD, StellarScience, Swiss Super Computing Centre  
 - we believe this is ready for C++23
 - reference implementation at [kokkos/mdspan](https://github.com/kokkos/mdspan)
-  - using this to replace the predecssor data structure in Kokkos - which is used by hundreds of HPC projects
+  - using this to replace the predecessor data structure in Kokkos - which is used by hundreds of HPC projects
   - also used for P1673 (Linear Algebra) implementation [kokkos/stdblas](https://github.com/kokkos/stdblas)
 
 ## Primary Changes Since Last Review
 
 - added back in design discussion
-- incorproated P2299r3
+- incorporated P2299r3
   - introduced `dextents` alias for all dynamic extents
-  - Remove `mdspan` alias and renamed `basic_mdspan` to `mdspan`: combination of `dextents` and deduction guides largely replaces the utility of a short cut alias
+  - Remove `mdspan` alias and renamed `basic_mdspan` to `mdspan`: combination of `dextents` and deduction guides largely replaces the utility of a shortcut alias
   - added `mdspan` deduction guides
 - use `operator[]` in `mdspan` instead of `operator()`
-- cleanup of `nothrow` and `throw` clauses
+- cleanup of `noexcept` and "Throws" clauses
 - improved `submdspan` wording (this is in R14 post the R13 which was in the mailing)
 
 ### Design Discussion
