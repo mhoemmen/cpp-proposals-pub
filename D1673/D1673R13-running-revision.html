@@ -1380,8 +1380,9 @@ should not result in ambiguous overloads, since <code>Triangle</code> is
 already Constrained to be <code>upper_triangle_t</code> or
 <code>lower_triangle_t</code>. Add a nonwording section explaining this
 design choice.</p></li>
-<li><p>Add <code>triangle_t</code> and <code>storage_order_t</code>
-public type aliases to <code>layout_blas_packed</code>.</p></li>
+<li><p>Add <code>triangle_type</code> and
+<code>storage_order_type</code> public type aliases to
+<code>layout_blas_packed</code>.</p></li>
 <li><p>Fix <code>layout_blas_packed</code> requirements so that wording
 of <code>operator()</code> and other members doesn’t need to consider
 overflow.</p></li>
@@ -6695,8 +6696,8 @@ and Triangular Packed (TP) matrix types. <i>– end note]</i></p>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> StorageOrder<span class="op">&gt;</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> layout_blas_packed <span class="op">{</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> triangle_t <span class="op">=</span> Triangle;</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> storage_order_t <span class="op">=</span> StorageOrder;</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> triangle_type <span class="op">=</span> Triangle;</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> storage_order_type <span class="op">=</span> StorageOrder;</span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Extents<span class="op">&gt;</span></span>
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> mapping <span class="op">{</span></span>
