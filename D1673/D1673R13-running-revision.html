@@ -7451,8 +7451,18 @@ if <code>Accessor</code> is a specialization of
 <li><p><span class="marginalizedparent"><a class="marginalized">(2.1)</a></span>
 <code>mdspan&lt;typename A::element_type, Extents, Layout, A&gt;(a.data_handle(), a.mapping(), a.accessor().nested_accessor())</code>
 if <code>Accessor</code> is a specialization of
-<code>conjugated_accessor</code>; otherwise</p></li>
+<code>conjugated_accessor</code>;</p></li>
 <li><p><span class="marginalizedparent"><a class="marginalized">(2.2)</a></span>
+otherwise, <code>a</code> if
+<code>remove_cvref_t&lt;ElementType&gt;</code> is an arithmetic
+type;</p></li>
+<li><p><span class="marginalizedparent"><a class="marginalized">(2.3)</a></span>
+otherwise, <code>a</code> if
+<code>conj(declval&lt;ElementType&gt;())</code> is ill-formed, with
+overload resolution performed in a context that includes the declaration
+<code>template&lt;class T&gt; T conj(const T&amp;) = delete;</code>;</p></li>
+<li><p><span class="marginalizedparent"><a class="marginalized">(2.4)</a></span>
+otherwise,
 <code>mdspan&lt;typename A::element_type, Extents, Layout, A&gt;(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))</code>.</p></li>
 </ul>
 <p>[<em>Example:</em></p>
