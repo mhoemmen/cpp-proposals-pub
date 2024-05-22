@@ -1,7 +1,7 @@
 
 ---
 title: "`mdarray` design questions and answers"
-document: D0000R0
+document: P3308R0
 date: 2024/05/21
 audience: LEWG
 author:
