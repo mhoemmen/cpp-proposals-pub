@@ -1,8 +1,8 @@
 
 ---
 title: "Fix C++26 by optimizing linalg::conjugated for noncomplex value types"
-document: P3050R1
-date: 2024/04/08
+document: P3050R2
+date: 2024/08/12
 audience: LEWG
 author:
   - name: Mark Hoemmen
@@ -30,6 +30,14 @@ toc: true
     * Change title and abstract, to emphasize that delaying
         this until after C++26 would be a breaking change
 
+* Revision 2 will be submitted by 2024/08/15.
+
+    * Minor wording fix (define "`E`" in "`conj(E)`")
+
+    * Bump value of `__cpp_lib_linalg` macro
+
+    * Add nonwording "Presentation" section    
+
 # Abstract
 
 We propose the following change to the C++ Working Paper.
@@ -37,8 +45,96 @@ If an `mdspan` object `x` has noncomplex `value_type`,
 and if that `mdspan` does not already have
 accessor type `conjugated_accessor<A>`
 for some nested accessor type `A`,
-then we propose to change `conjugated(x)` just to return `x`.
+then we propose to change `conjugated(X)` just to return `X`.
 Delaying this until after C++26 would be a breaking change.
+
+# Presentation
+
+Reviewers who are not familiar with `std::linalg` might like to start with this section.
+It summarizes why `conjugated` exists, how it works, and why its definition needs to change.
+
+## Terms
+
+* A _complex number_ $z = x + iy$ has a _real part_ $x$ and an _imaginary part_ $y$.
+
+    * Mathematical convention calls $x$ the "real part" even if $x$ isn't necessarily a real number (e.g., it could be an integer).
+
+    * In std::linalg, a "complex number" is any number type, not necessarily `std::complex`, where `conj` is ADL-findable.  (Users define their own complex number types to work around various `std::complex` issues, as P1673 explains.)
+
+    * For numbers that are not complex, we say "noncomplex" and not "real" because `std::linalg` does not require them to be real numbers, or even necessarily to be of arithmetic types (e.g., they could be user-defined number types).
+
+* The _conjugate_ of a complex number $z = x + iy$ is $x - iy$.
+
+* The conjugate of a noncomplex number is just the number (as its imaginary part is zero).
+
+    * `conj(z)` returns `std::complex` even if `z` is an arithmetic type.
+
+    * `std::linalg` uses _`conj-if-needed(z)`_, which preserves the type of its input.
+
+* For a rank-2 `mdspan` `A`:
+
+    * the _transpose_ of `A` is a rank-2 `mdspan` `B` such that `B[c, r]` equals `A[r, c]`; and
+
+    * the _conjugate transpose_ of `A` is a rank-2 `mdspan` `B` such that `B[c, r]` equals _`conj-if-needed`_`(A[r, c])`.
+
+* _BLAS_ (pronounced "blahz") stands for the "Basic Linear Algebra Subroutines," a Standard Fortran and C interface providing linear algebra operations.  This is the foundation of `std::linalg`.
+
+## Common practice: "conjugate transpose of a noncomplex matrix is just the transpose"
+
+The conjugate transpose of a complex matrix naturally generalizes the transpose of a noncomplex matrix.  Users who develop generic algorithms for either complex or noncomplex problems write the algorithm once using the conjugate transpose.  BLAS and matrix-oriented programming languages like Matlab treat both using the same notation (e.g., the `'C'` flag means transpose for a noncomplex matrix, and conjugate transpose for a complex matrix).
+
+## `conjugated`, `transposed`, and `conjugate_transposed` views
+
+A key feature of linear algebra libraries is their ability to view the transpose or conjugate transpose of a matrix "in place" without actually changing its elements.  Matrices may be large and copying them may be too expensive.
+
+* BLAS implements "view (conjugate) transpose in place" with a separate flag argument: `'N'`, `'T'`, or `'C'`.
+
+* `std::linalg` implements this using the `mdspan` view creation functions `conjugated`, `transposed`, and `conjugate_transposed`.
+
+## How does `conjugated` work currently?
+
+1. If the input mdspan has accessor type `conjugated_accessor<NestedAccessor>`, then the result has accessor type `NestedAccessor`;
+
+2. otherwise, if the input mdspan has accessor type `Accessor`, then the result has accessor type `conjugated_accessor<Accessor>`.
+
+`conjugated_accessor`'s (read-only) `access` function conjugates the element if it's a complex number, else it just returns the number.
+
+## This is correct, but can hinder optimization
+
+The current behavior of `conjugated` is mathematically correct, but may result in poor performance.
+
+The problem is that `conjugated(A)` for an mdspan-of-noncomplex-numbers `A` should just return `A`, but instead it returns an `mdspan` with a different accessor type than `A`.
+
+This is bad because both Standard Library implementations and users may want to optimize for "known accessors" such as `default_accessor`.  Accessors communicate optimization information, like "this is a contiguous array in memory."  Optimizations for known accessors include calling really fast libraries that exploit low-level hardware features.  The generic accessor code path may be asymptotically slower in terms of the number of memory accesses.
+
+```c++
+template<class ElementType, class IndexType, size_t Ext0, class Layout, class Accessor>
+void generic_algorithm( // fully generic
+  mdspan<ElementType, extent<IndexType, Ext0>, Layout, Accessor> x);
+
+template<class ElementType, class IndexType, size_t Ext0, class Layout>
+void generic_algorithm( // specialization
+  mdspan<ElementType, extent<IndexType, Ext0>, Layout, default_accessor<ElementType>> x);
+```
+
+Currently, `conjugated` of a `default_accessor<ElementType>` mdspan has accessor `conjugated_accessor<default_accessor<ElementType>>`.  Calling `generic_algorithm` with this mdspan will thus take the "generic path," rather than the specialization.
+
+If we want to optimize the `conjugated_accessor` case, we have to add another specialization.  This has compile-time costs.  Users either have to remember to do this, or write their generic algorithms twice (once for complex and once for noncomplex).
+
+```c++
+template<class Real, class IndexType, size_t Ext0, class Layout>
+  requires(not impl::is_complex_v<Real>)
+void generic_algorithm( // another specialization
+  mdspan<Real, extent<IndexType, Ext0>, Layout, conjugated_accessor<default_accessor<Real>>> x)
+{
+  // Dispatch to default_accessor specialization
+  return generic_algorithm(mdspan{x.data_handle(), x.mapping(), x.accessor().nested_accessor()});
+}
+```
+
+## Fix: `conjugated(A)` should return `A` if `A` is noncomplex
+
+P3050 proposes the only reasonable fix: make `conjugated(A)` return `A` if the elements of `A` are not complex.
 
 # Design justification
 
@@ -352,38 +448,51 @@ for an LWG review contribution.
 
 > Text in blockquotes is not proposed wording, but rather instructions for generating proposed wording.
 >
-> Change [linalg.conj.conjugated] paragraphs 1 and 2
-> to read as follows.
-> (Paragraph 1 has been reorganized from a sentence
-> into 3 bullet points, where the new Paragraph 1.2
-> was inserted as the middle bullet point.
-> Paragraph 2 has had Paragraph 2.2 changed to 2.3,
-> and a new bullet point inserted as Paragraph 2.2.)
+> In [version.syn], for the following definition,
+
+```c++
+#define __cpp_lib_linalg YYYYMML // also in <linalg>
+```
+
+> adjust the placeholder vlaue YYYYMML as needed so as to denote this proposal's date of adoption.
+>
+> Change [linalg.conj.conjugated] paragraphs 1 and 2 to read as follows.
+> (Paragraph 1 has been reorganized from a sentence into four bullet points,
+> where the old Paragraph 2.2 has been changed to 2.4,
+> and the new Paragraphs 1.2 and 1.3 have been inserted as the middle bullet points.
+> Similarly, Paragraph 2 has been reorganized from two bullet points into four.
+> The old Paragraph 2.2 has been changed to 2.4,
+> and the new Paragraphs 2.2 and 2.3 have been inserted as the middle bullet points.)
 
 [1]{.pnum} Let `A` be
 
-* [1.1]{.pnum} `remove_cvref_t<decltype(a.accessor().nested_accessor())>` if `Accessor` is a specialization of `conjugated_accessor`;
+* [1.1]{.pnum} `remove_cvref_t<decltype(a.accessor().nested_accessor())>` if `Accessor` is a specialization of `conjugated_accessor`; otherwise,
 
-* [1.2]{.pnum} otherwise, `Accessor`
-    if `remove_cvref_t<ElementType>` is an arithmetic type
-    or if the expression `conj(E)` is not valid
-    with overload resolution performed in a context
-    that includes the declaration
-    `template<class T> conj(const T&) = delete;`;
+* [1.2]{.pnum} `Accessor`
+    if `remove_cvref_t<ElementType>` is an arithmetic type; otherwise,
 
-* [1.3]{.pnum} otherwise, `conjugated_accessor<Accessor>`.
-
-[2]{.pnum} *Returns:*
-
-* [2.1]{.pnum} `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), a.accessor().nested_accessor())`
-    if `Accessor` is a specialization of `conjugated_accessor`;
-    otherwise
-
-* [2.2]{.pnum} `a`
-    if `remove_cvref_t<ElementType>` is an arithmetic type
-    or if the expression `conj(E)` is not valid
+* [1.3]{.pnum} `Accessor`
+    if the expression `conj(E)` is not valid for any subexpression `E`
+    whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>`
     with overload resolution performed in a context
     that includes the declaration
     `template<class T> conj(const T&) = delete;`; otherwise,
 
-* [2.3]{.pnum} `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.
+* [1.4]{.pnum} `conjugated_accessor<Accessor>`.
+
+[2]{.pnum} *Returns:*
+
+* [2.1]{.pnum} `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), a.accessor().nested_accessor())`
+    if `Accessor` is a specialization of `conjugated_accessor`; otherwise,
+
+* [2.2]{.pnum} `a`
+    if `remove_cvref_t<ElementType>` is an arithmetic type; otherwise,
+
+* [2.3]{.pnum} `a`
+    if the expression `conj(E)` is not valid for any subexpression `E`
+    whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>`
+    with overload resolution performed in a context
+    that includes the declaration
+    `template<class T> conj(const T&) = delete;`; otherwise,
+
+* [2.4]{.pnum} `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.
