@@ -1,22 +1,29 @@
 
 ---
 title: "Fix C++26 by making the symmetric and Hermitian rank-k and rank-2k updates consistent with the BLAS"
-document: P3371R0
+document: P3371R1
 date: today
 audience: LEWG
 author:
   - name: Mark Hoemmen
     email: <mhoemmen@nvidia.com>
+  - name: Ilya Burylov
+    email: <burylov@gmail.com>
 toc: true
 ---
 
 # Authors
 
 * Mark Hoemmen (mhoemmen@nvidia.com) (NVIDIA)
+* Ilya Burylov (burylov@gmail.com) (NVIDIA)
 
 # Revision history
 
 * Revision 0 to be submitted 2024-08-15
+
+* Revision 1 to be submitted 2024-09-15
+
+    * Add Ilya Burylov as coauthor
 
 # Abstract
 
