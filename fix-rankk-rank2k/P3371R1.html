@@ -485,15 +485,17 @@ proposals and LWG issues</a></li>
 <li><a href="#acknowledgments" id="toc-acknowledgments"><span class="toc-section-number">6</span> Acknowledgments</a></li>
 <li><a href="#wording" id="toc-wording"><span class="toc-section-number">7</span> Wording</a>
 <ul>
-<li><a href="#new-exposition-only-concept" id="toc-new-exposition-only-concept"><span class="toc-section-number">7.1</span> New exposition-only
-concept</a></li>
-<li><a href="#rank-k-update-functions-in-synopsis" id="toc-rank-k-update-functions-in-synopsis"><span class="toc-section-number">7.2</span> Rank-k update functions in
+<li><a href="#describe-how-functions-access-e" id="toc-describe-how-functions-access-e"><span class="toc-section-number">7.1</span> Describe how functions access
+E</a></li>
+<li><a href="#new-exposition-only-concept-for-possibly-packed-output-matrices" id="toc-new-exposition-only-concept-for-possibly-packed-output-matrices"><span class="toc-section-number">7.2</span> New exposition-only concept for
+possibly-packed output matrices</a></li>
+<li><a href="#rank-k-update-functions-in-synopsis" id="toc-rank-k-update-functions-in-synopsis"><span class="toc-section-number">7.3</span> Rank-k update functions in
 synopsis</a></li>
-<li><a href="#rank-2k-update-functions-in-synopsis" id="toc-rank-2k-update-functions-in-synopsis"><span class="toc-section-number">7.3</span> Rank-2k update functions in
+<li><a href="#rank-2k-update-functions-in-synopsis" id="toc-rank-2k-update-functions-in-synopsis"><span class="toc-section-number">7.4</span> Rank-2k update functions in
 synopsis</a></li>
-<li><a href="#specification-of-rank-k-update-functions" id="toc-specification-of-rank-k-update-functions"><span class="toc-section-number">7.4</span> Specification of rank-k update
+<li><a href="#specification-of-rank-k-update-functions" id="toc-specification-of-rank-k-update-functions"><span class="toc-section-number">7.5</span> Specification of rank-k update
 functions</a></li>
-<li><a href="#specification-of-rank-2k-update-functions" id="toc-specification-of-rank-2k-update-functions"><span class="toc-section-number">7.5</span> Specification of rank-2k update
+<li><a href="#specification-of-rank-2k-update-functions" id="toc-specification-of-rank-2k-update-functions"><span class="toc-section-number">7.6</span> Specification of rank-2k update
 functions</a></li>
 </ul></li>
 </ul>
@@ -519,6 +521,8 @@ noncomplex).</p></li>
 <li><p>Add “<code>C</code> may alias <code>E</code>” to all the new
 updating overloads of the symmetric and Hermitian rank-k and rank-2k
 functions</p></li>
+<li><p>Specify that the functions access the new <code>E</code>
+parameter in the same way as the <code>C</code> parameter</p></li>
 </ul></li>
 </ul>
 <h1 data-number="3" id="abstract"><span class="header-section-number">3</span> Abstract<a href="#abstract" class="self-link"></a></h1>
@@ -653,9 +657,10 @@ thus permitting the desired case where <code>E</code> is
 <em><code>possibly-packed-out-matrix</code></em> (instead of a
 <em><code>possibly-packed-inout-matrix</code></em>).</p></li>
 <li><p><code>E</code> must be accessed as a symmetric or Hermitian
-matrix (depending on the function name) and using the same triangle as
-<code>C</code>. (The existing [linalg.general] 4 wording for symmetric
-and Hermitian behavior does not cover <code>E</code>.)</p></li>
+matrix (depending on the function name) and such accesses must use the
+same triangle as <code>C</code>. (The existing [linalg.general] 4
+wording for symmetric and Hermitian behavior does not cover
+<code>E</code>.)</p></li>
 </ol></li>
 <li><p>Change the behavior of the existing symmetric and Hermitian
 rank-k and rank-2k overloads to be overwriting instead of updating.</p>
@@ -1054,7 +1059,37 @@ placeholder section number which the editor shall determine.</p>
 <p>adjust the placeholder value <code>YYYYMML</code> as needed so as to
 denote this proposal’s date of adoption.</p>
 </blockquote>
-<h2 data-number="7.1" id="new-exposition-only-concept"><span class="header-section-number">7.1</span> New exposition-only concept<a href="#new-exposition-only-concept" class="self-link"></a></h2>
+<h2 data-number="7.1" id="describe-how-functions-access-e"><span class="header-section-number">7.1</span> Describe how functions access
+E<a href="#describe-how-functions-access-e" class="self-link"></a></h2>
+<blockquote>
+<p>Add the following lines just after the new line 1 of
+[linalg.algs.blas3.rankk]. (These lines include the proposed fix from
+LWG4136.)</p>
+</blockquote>
+<p><span class="marginalizedparent"><a class="marginalized">2</a></span>
+For any function <code>F</code> that takes a parameter named
+<code>t</code>, an <code>InMat2</code> template parameter, and a
+function parameter <code>InMat2 E</code>, <code>t</code> applies to
+accesses done through the parameter <code>E</code>. <code>F</code> will
+only access the triangle of <code>E</code> specified by <code>t</code>.
+For accesses of diagonal elements <code>E[i, i]</code>, <code>F</code>
+will use the value
+<em><code>real-if-needed</code></em><code>(E[i, i])</code> if the name
+of <code>F</code> starts with <code>hermitian</code>. For accesses
+<code>E[i, j]</code> outside the triangle specified by <code>t</code>,
+<code>F</code> will use the value</p>
+<p><span class="marginalizedparent"><a class="marginalized">(2.1)</a></span>
+<em><code>conj-if-needed</code></em><code>(E[j, i])</code> if the name
+of <code>F</code> starts with <code>hermitian</code>, or</p>
+<p><span class="marginalizedparent"><a class="marginalized">(2.2)</a></span>
+<code>E[j, i]</code> if the name of <code>F</code> starts with
+<code>symmetric</code>.</p>
+<p><span class="marginalizedparent"><a class="marginalized">3</a></span>
+If <code>InMat2</code> has <code>layout_blas_packed</code> layout, then
+the layout’s <code>Triangle</code> template argument has the same type
+as the function’s <code>Triangle</code> template argument.</p>
+<h2 data-number="7.2" id="new-exposition-only-concept-for-possibly-packed-output-matrices"><span class="header-section-number">7.2</span> New exposition-only concept for
+possibly-packed output matrices<a href="#new-exposition-only-concept-for-possibly-packed-output-matrices" class="self-link"></a></h2>
 <blockquote>
 <p>In the header <code>&lt;linalg&gt;</code> synopsis
 <strong>[linalg.syn]</strong>, immediately before the following,</p>
@@ -1082,7 +1117,7 @@ before the following,</p>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    is<span class="op">-</span>mdspan<span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">&amp;&amp;</span> T<span class="op">::</span>rank<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span> <span class="op">&amp;&amp;</span></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    is_assignable_v<span class="op">&lt;</span><span class="kw">typename</span> T<span class="op">::</span>reference, <span class="kw">typename</span> T<span class="op">::</span>element_type<span class="op">&gt;</span> <span class="op">&amp;&amp;</span></span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">(</span>T<span class="op">::</span>is_always_unique<span class="op">()</span> <span class="op">||</span> is<span class="op">-</span>layout<span class="op">-</span>blas<span class="op">-</span>packed<span class="op">&lt;</span><span class="kw">typename</span> T<span class="op">::</span>layout_type<span class="op">&gt;)</span>;</span></code></pre></div>
-<h2 data-number="7.2" id="rank-k-update-functions-in-synopsis"><span class="header-section-number">7.2</span> Rank-k update functions in
+<h2 data-number="7.3" id="rank-k-update-functions-in-synopsis"><span class="header-section-number">7.3</span> Rank-k update functions in
 synopsis<a href="#rank-k-update-functions-in-synopsis" class="self-link"></a></h2>
 <blockquote>
 <p>In the header <code>&lt;linalg&gt;</code> synopsis
@@ -1233,7 +1268,7 @@ synopsis<a href="#rank-k-update-functions-in-synopsis" class="self-link"></a></h
 <span id="cb15-111"><a href="#cb15-111" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
 <span id="cb15-112"><a href="#cb15-112" aria-hidden="true" tabindex="-1"></a>      ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb15-113"><a href="#cb15-113" aria-hidden="true" tabindex="-1"></a>      InMat1 A, InMat2 E, OutMat C, Triangle t<span class="op">)</span>;</span></code></pre></div>
-<h2 data-number="7.3" id="rank-2k-update-functions-in-synopsis"><span class="header-section-number">7.3</span> Rank-2k update functions in
+<h2 data-number="7.4" id="rank-2k-update-functions-in-synopsis"><span class="header-section-number">7.4</span> Rank-2k update functions in
 synopsis<a href="#rank-2k-update-functions-in-synopsis" class="self-link"></a></h2>
 <blockquote>
 <p>In the header <code>&lt;linalg&gt;</code> synopsis
@@ -1300,7 +1335,7 @@ synopsis<a href="#rank-2k-update-functions-in-synopsis" class="self-link"></a></
 <span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_2k_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>                                         InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t<span class="op">)</span>;</span></code></pre></div>
-<h2 data-number="7.4" id="specification-of-rank-k-update-functions"><span class="header-section-number">7.4</span> Specification of rank-k update
+<h2 data-number="7.5" id="specification-of-rank-k-update-functions"><span class="header-section-number">7.5</span> Specification of rank-k update
 functions<a href="#specification-of-rank-k-update-functions" class="self-link"></a></h2>
 <blockquote>
 <p>Replace the entire contents of [linalg.algs.blas3.rankk] with the
@@ -1529,7 +1564,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>  Triangle t<span class="op">)</span>;</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">12</a></span>
 <em>Effects:</em> Computes <span class="math inline"><em>C</em> = <em>E</em> + <em>A</em><em>A</em><sup><em>H</em></sup></span>.</p>
-<h2 data-number="7.5" id="specification-of-rank-2k-update-functions"><span class="header-section-number">7.5</span> Specification of rank-2k update
+<h2 data-number="7.6" id="specification-of-rank-2k-update-functions"><span class="header-section-number">7.6</span> Specification of rank-2k update
 functions<a href="#specification-of-rank-2k-update-functions" class="self-link"></a></h2>
 <blockquote>
 <p>Replace the entire contents of [linalg.algs.blas3.rank2k] with the

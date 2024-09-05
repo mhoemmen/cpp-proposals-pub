@@ -31,6 +31,8 @@ toc: true
 
     * Add "`C` may alias `E`" to all the new updating overloads of the symmetric and Hermitian rank-k and rank-2k functions
 
+    * Specify that the functions access the new `E` parameter in the same way as the `C` parameter
+
 # Abstract
 
 The [linalg] functions `hermitian_rank_1_update`, `symmetric_matrix_rank_k_update`,  `hermitian_matrix_rank_k_update`, `symmetric_matrix_rank_2k_update`, and  `hermitian_matrix_rank_2k_update` currently have behavior inconsistent with their corresponding BLAS (Basic Linear Algebra Subroutines) routines.  (`symmetric_rank_1_update`, `hermitian_rank_2_update`, and `symmetric_rank_2_update` are fine.)  Also, the behavior of the rank-k and rank-2k updates is inconsistent with that of `matrix_product`, even though in mathematical terms they are special cases of a matrix-matrix product.  We propose three fixes.
@@ -96,7 +98,7 @@ We propose to fix this by making the four functions work just like `matrix_vecto
     
     c. The updating overloads take `E` as an _`in-matrix`_, and take `C` as a _`possibly-packed-out-matrix`_ (instead of a _`possibly-packed-inout-matrix`_).
     
-    d. `E` must be accessed as a symmetric or Hermitian matrix (depending on the function name) and using the same triangle as `C`.  (The existing [linalg.general] 4 wording for symmetric and Hermitian behavior does not cover `E`.)
+    d. `E` must be accessed as a symmetric or Hermitian matrix (depending on the function name) and such accesses must use the same triangle as `C`.  (The existing [linalg.general] 4 wording for symmetric and Hermitian behavior does not cover `E`.)
 
 3. Change the behavior of the existing symmetric and Hermitian rank-k and rank-2k overloads to be overwriting instead of updating.
 
@@ -298,7 +300,19 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 > adjust the placeholder value `YYYYMML` as needed
 > so as to denote this proposal's date of adoption.
 
-## New exposition-only concept
+## Describe how functions access E
+
+> Add the following lines just after the new line 1 of [linalg.algs.blas3.rankk].  (These lines include the proposed fix from LWG4136.)
+
+[2]{.pnum} For any function `F` that takes a parameter named `t`, an `InMat2` template parameter, and a function parameter `InMat2 E`, `t` applies to accesses done through the parameter `E`.  `F` will only access the triangle of `E` specified by `t`.  For accesses of diagonal elements `E[i, i]`, `F` will use the value _`real-if-needed`_`(E[i, i])` if the name of `F` starts with `hermitian`.  For accesses `E[i, j]` outside the triangle specified by `t`, `F` will use the value
+
+[2.1]{.pnum} _`conj-if-needed`_`(E[j, i])` if the name of `F` starts with `hermitian`, or
+
+[2.2]{.pnum} `E[j, i]` if the name of `F` starts with `symmetric`.
+
+[3]{.pnum} If `InMat2` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument.
+
+## New exposition-only concept for possibly-packed output matrices
 
 > In the header `<linalg>` synopsis **[linalg.syn]**,
 > immediately before the following,
