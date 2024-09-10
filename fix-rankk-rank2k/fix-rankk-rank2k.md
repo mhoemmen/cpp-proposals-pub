@@ -33,6 +33,10 @@ toc: true
 
     * Specify that the functions access the new `E` parameter in the same way as the `C` parameter
 
+    * Add exposition-only concept _`noncomplex`_ to constrain a scaling factor to be noncomplex, as needed for Hermitian rank-1 and rank-k functions
+
+    * Add nonwording section explaining why we don't change `triangular_matrix_product`
+
 # Abstract
 
 The [linalg] functions `hermitian_rank_1_update`, `symmetric_matrix_rank_k_update`,  `hermitian_matrix_rank_k_update`, `symmetric_matrix_rank_2k_update`, and  `hermitian_matrix_rank_2k_update` currently have behavior inconsistent with their corresponding BLAS (Basic Linear Algebra Subroutines) routines.  (`symmetric_rank_1_update`, `hermitian_rank_2_update`, and `symmetric_rank_2_update` are fine.)  Also, the behavior of the rank-k and rank-2k updates is inconsistent with that of `matrix_product`, even though in mathematical terms they are special cases of a matrix-matrix product.  We propose three fixes.
@@ -264,6 +268,69 @@ We do not support this approach.  First, it would introduce many overloads, with
 
 Second, `alpha` overloads would not prevent users from *also* supplying `scaled(gamma, A)` as the matrix for some other scaling factor `gamma`.  Thus, instead of solving the problem, the overloads would introduce more possibilities for errors.
 
+## Triangular matrices, unit diagonals, and scaling factors
+
+1. In BLAS, triangular matrix-vector and matrix-matrix products apply `alpha` scaling to the implicit unit diagonal.  In [linalg], the scaling factor `alpha` is not applied to the implicit unit diagonal.  This is because the library does not interpret `scaled(alpha, A)` differently than any other `mdspan`.
+
+2. Users of triangular matrix-vector products can recover BLAS functionality by scaling the input vector instead of the input matrix, so this only matters for triangular matrix-matrix products.
+
+3. All calls of the BLAS's triangular matrix-matrix product routine `xTRMM` in LAPACK (other than in testing routines) use `alpha` equal to one.
+
+4. Straightforward approaches for fixing this issue would not break backwards compatibility.
+
+5. Therefore, we do not consider fixing this a high-priority issue, and we do not propose a fix for it in this paper.
+
+### BLAS applies alpha after unit diagonal; linalg applies it before
+
+The `triangular_matrix_vector_product` and `triangular_matrix_product` algorithms have an `implicit_unit_diagonal` option.  This makes the algorithm not access the diagonal of the matrix, and compute as if the diagonal were all ones.  The option corresponds to the BLAS's "Unit" flag.  BLAS routines that take both a "Unit" flag and an `alpha` scaling factor apply "Unit" *before* scaling by `alpha`, so that the matrix is treated as if it has a diagonal of all `alpha` values.  In contrast, [linalg] follows the general principle that `scaled(alpha, A)` should be treated like any other kind of `mdspan`.  As a result, algorithms interpret `implicit_unit_diagonal` as applied to the matrix *after* scaling by `alpha`, so that the matrix still has a diagonal of all ones.
+
+### Triangular solve algorithms not affected
+
+The triangular solve algorithms in [linalg] are not affected, because their BLAS analogs either do not take an `alpha` argument (as with `xTRSV`), or the `alpha` argument does not affect the triangular matrix (with `xTRSM`, `alpha` affects the right-hand sides `B`, not the triangular matrix `A`).
+
+### Triangular matrix-vector product work-around
+
+This issue only reduces functionality of `triangular_matrix_product`.  Users of `triangular_matrix_vector_product` who wish to replicate the original BLAS functionality can scale the input matrix (by supplying `scaled(alpha, x)` instead of `x` as the input argument) instead of the triangular matrix.
+
+### Triangular matrix-matrix product example
+
+The following example computes $A := 2 A B$ where $A$ is a lower triangular matrix, but it makes the diagonal of $A$ all ones on the input (right-hand) side.
+```c++
+triangular_matrix_product(scaled(2.0, A), lower_triangle, implicit_unit_diagonal, B, A);
+```
+Contrast with the analogous BLAS routine `DTRMM`, which has the effect of making the diagonal elements all `2.0`.
+```fortran
+dtrmm('Left side', 'Lower triangular', 'No transpose', 'Unit diagonal', m, n, 2.0, A, lda, B, ldb)
+```
+If we want to use [linalg] to express what the BLAS call expresses, we need to perform a separate scaling.
+```c++
+triangular_matrix_product(A, lower_triangle, implicit_unit_diagonal, B, A);
+scale(2.0, A);
+```
+This is counterintuitive, and may also affect performance.  Performance of `scale` is typically bound by memory bandwidth and/or latency, but if the work done by `scale` could be fused with the work done by the `triangular_matrix_product`, then `scale`'s memory operations could be "hidden" in the cost of the matrix product. 
+
+### LAPACK never calls `xTRMM` with the implicit unit diagonal option and `alpha` not equal to one
+
+How much might users care about this missing [linalg] feature?  P1673R13 explains that the BLAS was codesigned with LAPACK and that every reference BLAS routine is used by some LAPACK routine.  "The BLAS does not aim to provide a complete set of mathematical operations.  Every function in the BLAS exists because some LINPACK or LAPACK algorithm needs it" (Section 10.6.1).  Therefore, to judge the urgency of adding new functionality to [linalg], we can ask whether the functionality would be needed by a C++ re-implementation of LAPACK.  We think not much, because the highest-priority target audience of the BLAS is LAPACK developers, and LAPACK routines (other than testing routines) never use a scaling factor alpha other than one.  
+
+We survey calls to `xTRMM` in the latest version of LAPACK as of the publication date of R1 of this proposal, LAPACK 3.12.0.  It suffices to survey `DTRMM`, the double-precision real case, since for all the routines of interest, the complex case follows the same pattern.  (We did survey `ZTRMM`, the double-precision complex case, just in case.)  LAPACK has 24 routines that call `DTRMM` directly.  They fall into five categories.
+
+1. Test routines: `DCHK3`, `DCHKE`, `DLARHS`
+
+2. Routines relating to QR factorization or using the result of a QR factorization (especially with block Householder reflectors): `DGELQT3`, `DLARFB`, `DGEQRT3`, `DLARFB_GETT`, `DLARZB`, `DORM22`
+
+3. Routines relating to computing an inverse of a triangular matrix or of a matrix that has been factored into triangular matrices: `DLAUUM`, `DTRITRI`, `DTFTRI`, `DPFTRI`
+
+4. Routines relating to solving eigenvalue (or generalized eigenvalue) problems: `DLAHR2`, `DSYGST`, `DGEHRD`, `DSYGV`, `DSYGV_2STAGE`, `DSYGVD`, `DSYGVX` (note that `DLAQR5` depends on `DTRMM` via `EXTERNAL` declaration, but doesn't actually call it)
+
+5. Routines relating to symmetric indefinite factorizations: `DSYT01_AA`, `DSYTRI2X`, `DSYTRI_3X`
+
+The only routines that call `DTRMM` with `alpha` equal to anything other than one or negative one are the testing routines.  Some calls in `DGELQT3` and `DLARFB_GETT` use negative one, but these calls never specify an implicit unit diagonal (they use the explicit diagonal option).  The only routine that might possibly call `DTRMM` with both negative one as alpha and the implicit unit diagonal is `DTFTRI`.  (This routine "computes the inverse of a triangular matrix A stored in RFP [Rectangular Full Packed] format."  RFP format was introduced to LAPACK in the late 2000's, well after the BLAS Standard was published.  See <a href="http://www.netlib.org/lapack/lawnspdf/lawn199.pdf">LAPACK Working Note 199</a>, which was published in 2008.)  `DTFTRI` passes its caller's `diag` argument (which specifies either implicit unit diagonal or explicit diagonal) to `DTRMM`.  The only two LAPACK routines that call `DTFTRI` are `DERRRFP` (a testing routine) and `DPFTRI`.  `DPFTRI` only ever calls `DTFTRI` with `diag` *not* specifying the implicit unit diagonal option.  Therefore, LAPACK never needs both `alpha` not equal to one and the implicit unit diagonal option, so adding the ability to "scale the implicit diagonal" in [linalg] is a low-priority feature.
+
+### Fixes would not break backwards compatibility
+
+We can think of two ways to fix this issue.  First, we could add an `alpha` scaling parameter, analogous to the symmetric and Hermitian rank-1 and rank-k update functions.  Second, we could add a new kind of `Diagonal` template parameter type that expresses a "diagonal value."  For example, `implicit_diagonal_t{alpha}` (or a function form, `implicit_diagonal(alpha)`) would tell the algorithm not to access the diagonal elements, but instead to assume that their value is `alpha`.  Both of these solutions would let users specify the diagonal's scaling factor separately from the scaling factor for the rest of the matrix.  Those two scaling factors could differ, which is new functionality not offered by the BLAS.  More importantly, both of these solutions could be added later, after C++26, without breaking backwards compatibility.
+
 # Ordering with respect to other proposals and LWG issues
 
 We currently have two other `std::linalg` fix papers in review.
@@ -348,6 +415,37 @@ template<class T>
     is_assignable_v<typename T::reference, typename T::element_type> &&
     (T::is_always_unique() || is-layout-blas-packed<typename T::layout_type>);
 ```
+
+## New exposition-only concept for noncomplex numbers
+
+> In the Header `<linalg>` synopsis [linalg.syn], at the end of the section
+> started by the following comment:
+>
+> `// [linalg.helpers.concepts], linear algebra argument concepts`,
+>
+> add the following declaration of the exposition-only concept _`noncomplex`_.
+
+```c++
+template<class T>
+  concept _noncomplex_ = @_see below_@; // exposition only
+```
+
+> Append the following to [linalg.helpers.concepts].
+
+```c++
+template<class T>
+  concept _noncomplex_ = @_see below_@;
+```
+
+4. A type `T` models _`noncomplex`_ if `T` is a linear algebra value type, and either
+
+4.1) `T` is not an arithmetic type, or
+
+4.2) the expression `conj(E)` is not valid, with overload resolution performed in a context that includes the declaration `template<class T> T conj(const T&) = delete;`.
+
+## Constrain Scalar alpha in Hermitian rank-1 and rank-k updates
+
+TODO
 
 ## Rank-k update functions in synopsis
 
