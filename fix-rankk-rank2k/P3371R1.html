@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2024-09-09" />
+  <meta name="dcterms.date" content="2024-09-10" />
   <title>Fix C++26 by making the symmetric and Hermitian rank-k and rank-2k updates consistent with the BLAS</title>
   <style>
 code{white-space: pre-wrap;}
@@ -426,7 +426,7 @@ BLAS</h1>
   </tr>
   <tr>
     <td>Date: </td>
-    <td>2024-09-09</td>
+    <td>2024-09-10</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project: </td>
@@ -643,7 +643,7 @@ the overwriting version of <code>matrix_product</code>, but
 <em>semantics</em> that differ from both the overwriting and the
 updating versions of <code>matrix_product</code>. For example,</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>hermitian_matrix_rank_k_update<span class="op">(</span>alpha, A, C<span class="op">)</span>;</span></code></pre></div>
-<p>updates <span class="math inline"><em>C</em></span> with <span class="math inline"><em>C</em> − <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>,
+<p>updates <span class="math inline"><em>C</em></span> with <span class="math inline"><em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>,
 but</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>matrix_product<span class="op">(</span>scaled<span class="op">(</span>alpha, A<span class="op">)</span>, conjugate_transposed<span class="op">(</span>A<span class="op">)</span>, C<span class="op">)</span>;</span></code></pre></div>
 <p>overwrites <span class="math inline"><em>C</em></span> with <span class="math inline"><em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>.
@@ -799,9 +799,9 @@ rank-2k updates<a href="#nothing-wrong-with-rank-2-or-rank-2k-updates" class="se
 <p>This issue does <em>not</em> arise with the rank-2 or rank-2k
 updates. In the BLAS, the rank-2 updates <code>xHER2</code> and the
 rank-2k updates <code>xHER2K</code> all take <code>alpha</code> as a
-complex number. There’s no need to impose a precondition on the value of
-<code>alpha</code>, because <span class="math inline">$\alpha A B^H +
-\bar{alpha} B A^H$</span> is Hermitian by construction.</p>
+complex number. The matrix <span class="math inline"><em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
+is Hermitian by construction, so there’s no need to impose a
+precondition on the value of <span class="math inline"><em>α</em></span>.</p>
 <h3 data-number="4.2.3" id="nothing-wrong-with-scaling-factor-beta"><span class="header-section-number">4.2.3</span> Nothing wrong with scaling
 factor beta<a href="#nothing-wrong-with-scaling-factor-beta" class="self-link"></a></h3>
 <p>The scaling factor <code>beta</code> only arises with the rank-k

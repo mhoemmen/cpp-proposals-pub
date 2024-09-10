@@ -80,7 +80,7 @@ The problem with the current symmetric and Hermitian rank-k and rank-2k function
 ```c++
 hermitian_matrix_rank_k_update(alpha, A, C);
 ```
-updates $C$ with $C - \alpha A A^H$, but
+updates $C$ with $C + \alpha A A^H$, but
 ```c++
 matrix_product(scaled(alpha, A), conjugate_transposed(A), C);
 ```
@@ -143,7 +143,7 @@ The BLAS solves this problem by having the Hermitian rank-1 update routines `xHE
 
 ### Nothing wrong with rank-2 or rank-2k updates
 
-This issue does *not* arise with the rank-2 or rank-2k updates.  In the BLAS, the rank-2 updates `xHER2` and the rank-2k updates `xHER2K` all take `alpha` as a complex number.  There's no need to impose a precondition on the value of `alpha`, because $\alpha A B^H + \bar{alpha} B A^H$ is Hermitian by construction.
+This issue does *not* arise with the rank-2 or rank-2k updates.  In the BLAS, the rank-2 updates `xHER2` and the rank-2k updates `xHER2K` all take `alpha` as a complex number.  The matrix $\alpha A B^H + \bar{\alpha} B A^H$ is Hermitian by construction, so there's no need to impose a precondition on the value of $\alpha$.
 
 ### Nothing wrong with scaling factor beta
 
