@@ -25,21 +25,21 @@ toc: true
 
     * Main wording changes from R0:
 
-        * Instead of just changing the symmetric and Hermitian rank-k and rank-2k updates to have both overwriting and updating overloads, change *all* the update functions: rank-1 (general, symmetric, and Hermitian), rank-2 (symmetric and Hermitian), rank-k, and rank-2k
+        * Instead of just changing the symmetric and Hermitian rank-k and rank-2k updates to have both overwriting and updating overloads, change *all* the update functions in this way: rank-1 (general, symmetric, and Hermitian), rank-2, rank-k, and rank-2k
 
-        * Add "`C` may alias `E`" to all the new updating overloads
+        * For all the new updating overloads, specify that `C` (or `A`) may alias `E`
 
-        * For the new symmetric and Hermitian updating overloads, specify that the functions access the new `E` parameter in the same way (e.g., with respect to the lower or upper triangle) as the `C` parameter
+        * For the new symmetric and Hermitian updating overloads, specify that the functions access the new `E` parameter in the same way (e.g., with respect to the lower or upper triangle) as the `C` (or `A`) parameter
 
         * Add exposition-only concept _`noncomplex`_ to constrain a scaling factor to be noncomplex, as needed for Hermitian rank-1 and rank-k functions
 
     * Add Ilya Burylov as coauthor
 
-    * Change title from "Fix C++26 by making the symmetric and Hermitian rank-k and rank-2k updates consistent with the BLAS," to "Fix C++26 by making the rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS."  Change abstract to list the newly proposed rank-1 and rank-2 update changes (make them consistent with rank-k and rank-2k updates, and constrain `Scalar` to be noncomplex).
+    * Change title and abstract to express the wording changes
 
     * Add nonwording section explaining why we change rank-1 and rank-2 updates to be consistent with rank-k and rank-2k updates.  Revise other nonwording sections accordingly.
 
-    * Add nonwording sections explaining why we don't change `hermitian_matrix_vector_product`, `hermitian_matrix_product`, or `triangular_matrix_product`
+    * Add nonwording sections explaining why we don't change `hermitian_matrix_vector_product`, `hermitian_matrix_product`, `triangular_matrix_product`, or the triangular solves
 
     * Reorganize and expand nonwording sections
 
@@ -49,9 +49,9 @@ The [linalg] functions `matrix_rank_1_update`, `matrix_rank_1_update_c`, `symmet
 
 1. Add "updating" overloads to the rank-1, rank-2, rank-k, and rank-2k update functions.  The new overloads are analogous to the updating overloads of `matrix_product`.  For example, `symmetric_matrix_rank_k_update(A, scaled(beta, C), C, upper_triangle)` will perform $C := \beta C + A A^T$.
 
-2. Change the behavior of the existing rank-1, rank-2, rank-k, and rank-2k update functions to be "overwriting."  For example, `symmetric_matrix_rank_k_update(A, C, upper_triangle)` will perform $C := A A^T$ instead of $C := C + A A^T$.
+2. Change the behavior of the existing rank-1, rank-2, rank-k, and rank-2k update functions to be "overwriting" instead of "unconditionally updating."  For example, `symmetric_matrix_rank_k_update(A, C, upper_triangle)` will perform $C = A A^T$ instead of $C := C + A A^T$.
 
-3. For `hermitian_rank_1_update` and `hermitian_rank_k_update`, we constrain the `Scalar` template parameter (if any) to be noncomplex.  This ensures that the update will be mathematically Hermitian.  (A constraint is not needed for the rank-2 and rank-2k update functions.)
+3. For `hermitian_rank_1_update` and `hermitian_rank_k_update`, constrain the `Scalar` template parameter (if any) to be noncomplex.  This ensures that the update will be mathematically Hermitian.  (A constraint is not needed for the rank-2 and rank-2k update functions.)
 
 Items (2) and (3) are breaking changes to the current Working Draft.  Thus, we must finish this before finalization of C++26.
 
@@ -61,7 +61,7 @@ Items (2) and (3) are breaking changes to the current Working Draft.  Thus, we m
 
 ### BLAS supports scaling factor beta; std::linalg currently does not
 
-Each function in std::linalg generally corresponds to one or more routines or functions in the original BLAS (Basic Linear Algebra Subroutines).  Every computation that the BLAS can do, a function in std::linalg should be able to do.
+Each function in any section whose label begins with "linalg.algs" generally corresponds to one or more routines or functions in the original BLAS (Basic Linear Algebra Subroutines).  Every computation that the BLAS can do, a function in the C++ Standard Library should be able to do.
 
 One `std::linalg` user <a href="https://github.com/kokkos/stdBLAS/issues/272#issuecomment-2248273146">reported</a> an exception to this rule.  The BLAS routine `DSYRK` (Double-precision SYmmetric Rank-K update) computes $C := \beta C + \alpha A A^T$, but the corresponding `std::linalg` function `symmetric_matrix_rank_k_update` only computes $C := C + \alpha A A^T$.  That is, `std::linalg` currently has no way to express this BLAS operation with a general $\beta$ scaling factor.  This issue applies to all of the symmetric and Hermitian rank-k and rank-2k update functions.
 
@@ -96,7 +96,7 @@ Incidentally, the fact that these functions have "update" in their name is not r
 
 ### Add new updating overloads; make existing ones overwriting
 
-We propose to fix this by making the four functions work just like `matrix_vector_product` or `matrix_product`.  This entails three changes.
+We propose to fix this by making the functions work just like `matrix_vector_product` or `matrix_product`.  This entails three changes.
 
 1. Add two new exposition-only concepts _`possibly-packed-in-matrix`_ and _`possibly-packed-out-matrix`_ for constraining input and output parameters of the changed or new symmetric and Hermitian update functions.
 
@@ -106,7 +106,7 @@ We propose to fix this by making the four functions work just like `matrix_vecto
     
     b. Explicitly permit `C` and `E` to alias, thus permitting the desired case where `E` is `scaled(beta, C)`.
     
-    c. The updating overloads take `E` as a _`in-matrix`_ (or _`possibly-packed-in-matrix`_ in the case of symmetric and Hermitian updates), and take `C` as a _`possibly-packed-out-matrix`_ (instead of a _`possibly-packed-inout-matrix`_).
+    c. The updating overloads take `E` as a _`possibly-packed-in-matrix`_, and take `C` as a _`possibly-packed-out-matrix`_ (instead of a _`possibly-packed-inout-matrix`_).
     
     d. `E` must be accessed as a symmetric or Hermitian matrix (depending on the function name) and such accesses must use the same triangle as `C`.  (The existing [linalg.general] 4 wording for symmetric and Hermitian behavior does not cover `E`.)
 
@@ -124,11 +124,11 @@ Both sets of overloads still only write to the specified triangle (lower or uppe
 
 1. Rank-1 and rank-2 updates currently unconditionally update and do not take a $\beta$ scaling factor.
 
-2. We propose making them consistent with the proposed change to the rank-k and rank-2k updates.  This means both changing the meaning of the current overloads to be overwriting, and adding new overloads that are updating.
+2. We propose making all the rank-1 and rank-2 update functions consistent with the proposed change to the rank-k and rank-2k updates.  This means both changing the meaning of the current overloads to be overwriting, and adding new overloads that are updating.  This includes general (nonsymmetric), symmetric, and Hermitian rank-1 update functions, as well as symmetric and Hermitian rank-2 update functions.
 
 3. As a result, the exposition-only concept _`possibly-packed-inout-matrix`_ is no longer needed.  We propose removing it.
 
-### In both BLAS and std::linalg, rank-1 and rank-2 unconditionally update
+### Current std::linalg behavior
 
 The rank-k and rank-2k update functions have the following rank-1 and rank-2 analogs, where $A$ denotes a symmetric or Hermitian matrix (depending on the function's name) and $x$ and $y$ denote vectors.
 
@@ -142,22 +142,20 @@ These functions *unconditionally* update the matrix $A$.  They do not have an ov
 * `matrix_rank_1_update`: computes $A := A + x y^T$
 * `matrix_rank_1_update_c`: computes $A := A + x y^H$
 
+### Current behavior is inconsistent with BLAS Standard and rank-k and rank-2k updates
+
 These six rank-1 and rank-2 update functions map to BLAS routines as follows.
 
 * `matrix_rank_1_update`: `xGER`
 * `matrix_rank_1_update`: `xGERC`
-* `symmetric_matrix_rank_1_update`: `xSYR`
-* `hermitian_matrix_rank_1_update`: `xHER`
-* `hermitian_matrix_rank_1_update`: `xSYR2`
-* `hermitian_matrix_rank_1_update`: `xHER2`
+* `symmetric_matrix_rank_1_update`: `xSYR`, `xSPR`
+* `hermitian_matrix_rank_1_update`: `xHER`, `xHPR`
+* `hermitian_matrix_rank_1_update`: `xSYR2`, `xSPR2`
+* `hermitian_matrix_rank_1_update`: `xHER2`, `xHPR2`
 
-These six BLAS routines also unconditionally update the matrix.  They do not have a way to supply a $\beta$ scaling factor.  This differs from the corresponding rank-k and rank-2k update functions in the BLAS, which all take a $\beta$ scaling factor and thus can do either overwriting (with zero $\beta$) or updating (with nonzero $\beta$).  These include `xSYRK`, `xHERK`, `xSYR2K`, and `xHER2K`.  One could also include the general matrix-matrix product `xGEMM` among these, as `xGEMM` also takes a $\beta$ scaling factor.
+The Reference BLAS and the BLAS Standard (see Chapter 2, pp. 64 - 68) differ here.  The Reference BLAS and the original 1988 BLAS 2 paper specify all of the rank-1 and rank-2 update routines listed above as unconditionally updating, and not taking a $\beta$ scaling factor.  However, the (2002) BLAS Standard specifies all of these rank-1 and rank-2 update functions as taking a $\beta$ scaling factor.  We consider the latter to express our design intent.  It is also consistent with the corresponding rank-k and rank-2k update functions in the BLAS, which all take a $\beta$ scaling factor and thus can do either overwriting (with zero $\beta$) or updating (with nonzero $\beta$).  These routines include `xSYRK`, `xHERK`, `xSYR2K`, and `xHER2K`.  One could also include the general matrix-matrix product `xGEMM` among these, as `xGEMM` also takes a $\beta$ scaling factor.
 
-### Reference BLAS and BLAS Standard differ
-
-The Reference BLAS and the BLAS Standard (see Chapter 2, pp. 64 - 68) differ here.  The Reference BLAS and the original 1988 BLAS 2 paper specify the rank-1 and rank-2 update routines as unconditionally updating, without a $\beta$ scaling factor.  However, the (2002) BLAS Standard specifies all of these rank-1 and rank-2 update functions as taking a $\beta$ scaling factor.  We consider the latter to express our design intent.
-
-### Making rank-1 and rank-2 take beta would improve design consistency
+### This change would remove a special case in std::linalg's design
 
 <a href="https://isocpp.org/files/papers/P1673R13.html#function-argument-aliasing-and-zero-scalar-multipliers">Section 10.3 of P1673R13</a> explains the three ways that the std::linalg design translates Fortran `INTENT(INOUT)` arguments into a C++ idiom.
 
@@ -310,7 +308,27 @@ We do not support this approach.  First, it would introduce many overloads, with
 
 Second, `alpha` overloads would not prevent users from *also* supplying `scaled(gamma, A)` as the matrix for some other scaling factor `gamma`.  Thus, instead of solving the problem, the overloads would introduce more possibilities for errors.
 
-## Triangular matrices, unit diagonals, and scaling factors
+### What if `Scalar` is noncomplex but `conj` is ADL-findable?
+
+Our proposed change defines a "noncomplex number" at compile time.  We say that complex numbers have `conj` that is findable by ADL, and noncomplex numbers are either arithmetic types or do not have an ADL-findable `conj`.  We choose this definition because it is the same one that we use to define the behavior of `conjugated_accessor` (and also `conjugated`, if P3050 is adopted).  It also is the C++ analog of what the BLAS does, namely specify the type of the `alpha` argument as real instead of complex.
+
+This definition is conservative, because it excludes complex numbers with zero imaginary part.  For `conjugated_accessor` and `conjugated`, this does not matter; the class and function behave the same from the user's perspective.  The exposition-only function _`conj-if-needed`_ specifically exists so that `conjugated_accessor` and `conjugated` do not change their input `mdspan`'s `value_type`.  However, for the rank-1 and rank-k Hermitian update functions affected by this proposal, constraining `Scalar alpha` at compile time to be noncomplex prevents users from calling those functions with a "complex" number `alpha` whose imaginary part is zero.
+
+This matters if the user defines a number type `Real` that is meant to represent noncomplex numbers, but nevertheless has an ADL-findable `conj`, thus making it a "complex" number type from the perspective of [linalg] functions.  There are two ways users might define `conj(Real)`.
+
+1. *Imitating* `std::complex`: Users might define a complex number type `UserComplex` whose real and imaginary parts have type `Real`, and then imitate the behavior of `std::conj(double)` by defining `UserComplex conj(Real x)` to return a `UserComplex` number with real part `x` and imaginary part zero.
+
+2. *Type-preserving*: `Real conj(Real x)` returns `x`.
+
+Option (1) would be an unfortunate choice.  [linalg] defines _`conj-if-needed`_ specifically to fix the problem that `std::conj(double)` returns `std::complex<double>` instead of `double`.  However, Option (2) would be a reasonable thing for users to do, especially if they have designed custom number types without [linalg] in mind.  One could accommodate such users by relaxing the constraint on `Scalar` and taking one of the following two approaches.
+
+1. Adding a precondition that _`imag-if-needed`_`(alpha)` equals `Scalar{}`
+
+2. Imitating <a href="https://cplusplus.github.io/LWG/issue4136">LWG 4136</a>, by defining the scaling factor to be _`real-if-needed`_`(alpha)` instead of `alpha`
+
+We did not take Approach (1), because adding a precondition decreases safety by adding undefined behavior.  It also forces users to add run-time checks.  Defining those checks correctly for generic, possibly but not necessarily complex number types would be challenging.  We did not take Approach (2) because its behavior would deviate from the BLAS, which requires the scaling factor `alpha` to be noncomplex at compile time.
+
+## Triangular matrix products, unit diagonals, and scaling factors
 
 1. In BLAS, triangular matrix-vector and matrix-matrix products apply `alpha` scaling to the implicit unit diagonal.  In [linalg], the scaling factor `alpha` is not applied to the implicit unit diagonal.  This is because the library does not interpret `scaled(alpha, A)` differently than any other `mdspan`.
 
@@ -372,6 +390,50 @@ The only routines that call `DTRMM` with `alpha` equal to anything other than on
 ### Fixes would not break backwards compatibility
 
 We can think of two ways to fix this issue.  First, we could add an `alpha` scaling parameter, analogous to the symmetric and Hermitian rank-1 and rank-k update functions.  Second, we could add a new kind of `Diagonal` template parameter type that expresses a "diagonal value."  For example, `implicit_diagonal_t{alpha}` (or a function form, `implicit_diagonal(alpha)`) would tell the algorithm not to access the diagonal elements, but instead to assume that their value is `alpha`.  Both of these solutions would let users specify the diagonal's scaling factor separately from the scaling factor for the rest of the matrix.  Those two scaling factors could differ, which is new functionality not offered by the BLAS.  More importantly, both of these solutions could be added later, after C++26, without breaking backwards compatibility.
+
+## Triangular solves, unit diagonals, and scaling factors
+
+1. In BLAS, triangular solves with possibly multiple right-hand sides (`xTRSM`) apply `alpha` scaling to the implicit unit diagonal.  In [linalg], the scaling factor `alpha` is not applied to the implicit unit diagonal.  This is because the library does not interpret `scaled(alpha, A)` differently than any other `mdspan`.
+
+2. Users of triangular solves would need a separate `scale` call to recover BLAS functionality.
+
+3. LAPACK sometimes calls `xTRSM` with `alpha` not equal to one.
+
+4. Straightforward approaches for fixing this issue would not break backwards compatibility.
+
+5. Therefore, we do not consider fixing this a high-priority issue, and we do not propose a fix for it in this paper.
+
+### BLAS applies alpha after unit diagonal; linalg applies it before
+
+Triangular solves have a similar issue to the one explained in the previous section.  The BLAS routine `xTRSM` applies `alpha` "after" the implicit unit diagonal, while std::linalg applies `alpha` "before."  (`xTRSV` does not take an `alpha` scaling factor.)  As a result, the BLAS solves with a different matrix than std::linalg.
+
+In mathematical terms, `xTRSM` solves the equation $\alpha (A + I) X = B$ for $X$, where $A$ is the user's input matrix (without implicit unit diagonal) and $I$ is the identity matrix (with ones on the diagonal and zeros everywhere else).  `triangular_matrix_matrix_left_solve` solves the equation $(\alpha A + I) Y = B$ for $Y$.  The two results $X$ and $Y$ are not equal in general.
+
+### Work-around requires changing all elements of the matrix
+
+Users could work around this problem by first scaling the matrix $A$ by $\alpha$, and then solving for $Y$.  In the common case where the "other triangle" of $A$ holds another triangular matrix, users could not call `scale(alpha, A)`.  They would instead need to iterate over the elements of $A$ manually.  Users might also need to "unscale" the matrix after the solve.  Another option would be to copy the matrix $A$ before scaling.
+```c++
+for (size_t i = 0; i < A.extent(0); ++i) {
+  for (size_t j = i + 1; j < A.extent(1); ++j) {
+    A[i, j] *= alpha;
+  }
+}
+triangular_matrix_matrix_left_solve(A, lower_triangle, implicit_unit_diagonal, B, Y);
+for (size_t i = 0; i < A.extent(0); ++i) {
+  for (size_t j = i + 1; j < A.extent(1); ++j) {
+    A[i, j] /= alpha;
+  }
+}
+```
+Users cannot solve this problem by scaling $B$ (either with `scaled(1.0 / alpha, B)` or with `scale(1.0 / alpha, B)`).  Transforming $X$ into $Y$ or vice versa is mathematically nontrivial in general, and may introduce new failure conditions.  This issue occurs with both the in-place and out-of-place triangular solves.
+
+### Unsupported case occurs in LAPACK
+
+The common case in LAPACK is calling `xTRSM` with `alpha` equal to one, but other values of `alpha` occur.  For example, `xTRTRI` calls `xTRSM` with `alpha` equal to $-1$.  Thus, we cannot dismiss this issue, as we could with `xTRMM`.
+
+### Fixes would not break backwards compatibility
+
+As with triangular matrix products above, we can think of two ways to fix this issue.  First, we could add an `alpha` scaling parameter, analogous to the symmetric and Hermitian rank-1 and rank-k update functions.  Second, we could add a new kind of `Diagonal` template parameter type that expresses a "diagonal value."  For example, `implicit_diagonal_t{alpha}` (or a function form, `implicit_diagonal(alpha)`) would tell the algorithm not to access the diagonal elements, but instead to assume that their value is `alpha`.  Both of these solutions would let users specify the diagonal's scaling factor separately from the scaling factor for the rest of the matrix.  Those two scaling factors could differ, which is new functionality not offered by the BLAS.  More importantly, both of these solutions could be added later, after C++26, without breaking backwards compatibility.
 
 # Ordering with respect to other proposals and LWG issues
 
