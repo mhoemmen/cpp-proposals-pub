@@ -1,6 +1,6 @@
 
 ---
-title: "Fix C++26 by making the symmetric and Hermitian rank-k and rank-2k updates consistent with the BLAS"
+title: "Fix C++26 by making the symmetric and Hermitian rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS"
 document: P3371R1
 date: today
 audience: LEWG
@@ -25,7 +25,7 @@ toc: true
 
     * Add Ilya Burylov as coauthor
 
-    * Change title from "Fix C++26 by making the symmetric and Hermitian rank-k and rank-2k updates consistent with the BLAS," to "Fix C++26 by making the symmetric and Hermitian rank-1, rank-k, and rank-2k updates consistent with the BLAS."  Change abstract to list the newly proposed rank-1 update change (constrain `Scalar` to be noncomplex).
+    * Change title from "Fix C++26 by making the symmetric and Hermitian rank-k and rank-2k updates consistent with the BLAS," to "Fix C++26 by making the symmetric and Hermitian rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS."  Change abstract to list the newly proposed rank-1 and rank-2 update changes (make them consistent with rank-k and rank-2k updates, and constrain `Scalar` to be noncomplex).
 
     * Reorganize and expand nonwording sections
 
@@ -37,15 +37,17 @@ toc: true
 
     * Add nonwording section explaining why we don't change `triangular_matrix_product`
 
+    * Add nonwording section explaining why we change rank-1 and rank-2 updates to be consistent with rank-k and rank-2k updates.  Revise other nonwording sections accordingly.
+
 # Abstract
 
-The [linalg] functions `hermitian_rank_1_update`, `symmetric_matrix_rank_k_update`,  `hermitian_matrix_rank_k_update`, `symmetric_matrix_rank_2k_update`, and  `hermitian_matrix_rank_2k_update` currently have behavior inconsistent with their corresponding BLAS (Basic Linear Algebra Subroutines) routines.  (`symmetric_rank_1_update`, `hermitian_rank_2_update`, and `symmetric_rank_2_update` are fine.)  Also, the behavior of the rank-k and rank-2k updates is inconsistent with that of `matrix_product`, even though in mathematical terms they are special cases of a matrix-matrix product.  We propose three fixes.
+The [linalg] functions `matrix_rank_1_update`, `matrix_rank_1_update_c`, `symmetric_rank_1_update`, `hermitian_rank_1_update`, `symmetric_matrix_rank_k_update`,  `hermitian_matrix_rank_k_update`, `symmetric_matrix_rank_2k_update`, and  `hermitian_matrix_rank_2k_update` currently have behavior inconsistent with their corresponding BLAS (Basic Linear Algebra Subroutines) routines.  Also, the behavior of the rank-k and rank-2k updates is inconsistent with that of `matrix_product`, even though in mathematical terms they are special cases of a matrix-matrix product.  We propose three fixes.
 
-1. Add "updating" overloads to the symmetric and Hermitian rank-k and rank-2k update functions.  The new overloads are analogous to the updating overloads of `matrix_product`.  For example, `symmetric_matrix_rank_k_update(A, scaled(beta, C), C, upper_triangle)` will perform $C := \beta C + A A^T$.
+1. Add "updating" overloads to the rank-1, rank-2, rank-k, and rank-2k update functions.  The new overloads are analogous to the updating overloads of `matrix_product`.  For example, `symmetric_matrix_rank_k_update(A, scaled(beta, C), C, upper_triangle)` will perform $C := \beta C + A A^T$.
 
-2. Change the behavior of the existing symmetric and Hermitian rank-k and rank-2k update functions to be "overwriting."  For example, `symmetric_matrix_rank_k_update(A, C, upper_triangle)` will perform $C := A A^T$ instead of $C := C + A A^T$.
+2. Change the behavior of the existing rank-1, rank-2, rank-k, and rank-2k update functions to be "overwriting."  For example, `symmetric_matrix_rank_k_update(A, C, upper_triangle)` will perform $C := A A^T$ instead of $C := C + A A^T$.
 
-3. For `hermitian_rank_1_update` and `hermitian_rank_k_update`, we constrain the `Scalar` template parameter (if any) to be noncomplex.  This ensures that the update will be mathematically Hermitian.
+3. For `hermitian_rank_1_update` and `hermitian_rank_k_update`, we constrain the `Scalar` template parameter (if any) to be noncomplex.  This ensures that the update will be mathematically Hermitian.  (A constraint is not needed for the rank-2 and rank-2k update functions.)
 
 Items (2) and (3) are breaking changes to the current Working Draft.  Thus, we must finish this before finalization of C++26.
 
@@ -64,7 +66,7 @@ One `std::linalg` user <a href="https://github.com/kokkos/stdBLAS/issues/272#iss
 * `symmetric_matrix_rank_2k_update`: computes $C := C + \alpha A B^H + \alpha B A^H$
 * `hermitian_matrix_rank_2k_update`: computes $C := C + \alpha A B^H + \bar{\alpha} B A^H$, where $\bar{\alpha}$ denotes the complex conjugate of $\alpha$
 
-### Inconsistency with general matrix product
+### Make these functions consistent with general matrix product
 
 These functions implement special cases of matrix-matrix products.  The `matrix_product` function in `std::linalg` implements the general case of matrix-matrix products.  This function corresponds to the BLAS's `SGEMM`, `DGEMM`, `CGEMM`, and `ZGEMM`, which compute $C := \beta C + \alpha A B$, where $\alpha$ and $\beta$ are scaling factors.  The `matrix_product` function has two kinds of overloads:
 
@@ -114,7 +116,15 @@ Items (2) and (3) are breaking changes to the current Working Draft.  This needs
 
 Both sets of overloads still only write to the specified triangle (lower or upper) of the output matrix `C`.  As a result, the new updating overloads only read from that triangle of the input matrix `E`.  Therefore, even though `E` may be a different matrix than `C`, the updating overloads do not need an additional `Triangle t_E` parameter for `E`.  The `symmetric_*` functions interpret `E` as symmetric in the same way that they interpret `C` as symmetric, and the `hermitian_*` functions interpret `E` as Hermitian in the same way that they interpret `C` as Hermitian.  Nevertheless, we do need new wording to explain how the functions may interpret and access `E`.
 
-### Do not apply this fix to rank-1 or rank-2 update functions
+## Change rank-1 and rank-2 updates to be consistent with rank-k and rank-2k
+
+1. Rank-1 and rank-2 updates currently unconditionally update and do not take a $\beta$ scaling factor.
+
+2. We propose making them consistent with the proposed change to the rank-k and rank-2k updates.  This means both changing the meaning of the current overloads to be overwriting, and adding new overloads that are updating.
+
+3. As a result, the exposition-only concept _`possibly-packed-inout-matrix`_ is no longer needed.  We propose removing it.
+
+### In both BLAS and std::linalg, rank-1 and rank-2 unconditionally update
 
 The rank-k and rank-2k update functions have the following rank-1 and rank-2 analogs, where $A$ denotes a symmetric or Hermitian matrix (depending on the function's name) and $x$ and $y$ denote vectors.
 
@@ -123,15 +133,43 @@ The rank-k and rank-2k update functions have the following rank-1 and rank-2 ana
 * `symmetric_matrix_rank_2_update`: computes $A := A + \alpha x y^T + \alpha y x^T$
 * `hermitian_matrix_rank_2_update`: computes $A := A + \alpha x y^H + \bar{\alpha} x y^H$
 
-We do NOT propose to change these functions analogously to the rank-k and rank-2k update functions.  This is because the BLAS routines corresponding to the rank-1 and rank-2 functions -- `xSYR`, `xHER`, `xSYR2`, and `xHER2` -- do not have a way to supply a $\beta$ scaling factor.  That is, these `std::linalg` functions can already do everything that their corresponding BLAS routines can do.  This is consistent with our design intent in <a href="https://isocpp.org/files/papers/P1673R13.html#function-argument-aliasing-and-zero-scalar-multipliers">Section 10.3 of P1673R3</a> for translating Fortran `INTENT(INOUT)` arguments into a C++ idiom.
+These functions *unconditionally* update the matrix $A$.  They do not have an overwriting option.  In this, they follow the "general" (not necessarily symmetric or Hermitian) rank-1 update functions.
 
-> b. Else, if the BLAS function unconditionally updates (like `xGER`), we retain read-and-write behavior for that argument.
->
-> c. Else, if the BLAS function uses a scalar `beta` argument to decide whether to read the output argument as well as write to it (like `xGEMM`), we provide two versions: a write-only [that is, "overwriting"] version (as if `beta` is zero), and a read-and-write [that is, "updating"] version (as if `beta` is nonzero).
+* `matrix_rank_1_update`: computes $A := A + x y^T$
+* `matrix_rank_1_update_c`: computes $A := A + x y^H$
 
-The rank-1 and rank-2 update functions "unconditionally update," in the same way that the BLAS's general rank-1 update routine `xGER` does.  However, the BLAS's rank-k and rank-2k update functions "use a scalar `beta` argument...," so for consistency, it makes sense for `std::linalg` to provide both overwriting and updating versions.  Users who want overwriting behavior in a rank-1 or rank-2 update can call the corresponding rank-k or rank-2k updating function with a matrix with one column ($k = 1$) instead of a vector.
+These six rank-1 and rank-2 update functions map to BLAS routines as follows.
 
-Since we do not propose changing the symmetric and Hermitian rank-1 and rank-2 functions, we retain the exposition-only concept _`possibly-packed-inout-matrix`_, which they use to constrain their parameter `A`.
+* `matrix_rank_1_update`: `xGER`
+* `matrix_rank_1_update`: `xGERC`
+* `symmetric_matrix_rank_1_update`: `xSYR`
+* `hermitian_matrix_rank_1_update`: `xHER`
+* `hermitian_matrix_rank_1_update`: `xSYR2`
+* `hermitian_matrix_rank_1_update`: `xHER2`
+
+These six BLAS routines also unconditionally update the matrix.  They do not have a way to supply a $\beta$ scaling factor.  This differs from the corresponding rank-k and rank-2k update functions in the BLAS, which all take a $\beta$ scaling factor and thus can do either overwriting (with zero $\beta$) or updating (with nonzero $\beta$).  These include `xSYRK`, `xHERK`, `xSYR2K`, and `xHER2K`.  One could also include the general matrix-matrix product `xGEMM` among these, as `xGEMM` also takes a $\beta$ scaling factor.
+
+### Reference BLAS and BLAS Standard differ
+
+The Reference BLAS and the BLAS Standard (see Chapter 2, pp. 64 - 68) differ here.  The Reference BLAS and the original 1988 BLAS 2 paper specify the rank-1 and rank-2 update routines as unconditionally updating, without a $\beta$ scaling factor.  However, the (2002) BLAS Standard specifies all of these rank-1 and rank-2 update functions as taking a $\beta$ scaling factor.  We consider the latter to express our design intent.
+
+### Making rank-1 and rank-2 take beta would improve design consistency
+
+<a href="https://isocpp.org/files/papers/P1673R13.html#function-argument-aliasing-and-zero-scalar-multipliers">Section 10.3 of P1673R13</a> explains the three ways that the std::linalg design translates Fortran `INTENT(INOUT)` arguments into a C++ idiom.
+
+1. Provide in-place and not-in-place overloads for triangular solve and triangular multiply.
+
+2. "Else, if the BLAS function unconditionally updates (like `xGER`), we retain read-and-write behavior for that argument."
+
+3. "Else, if the BLAS function uses a scalar beta argument to decide whether to read the output argument as well as write to it (like `xGEMM`), we provide two versions: a write-only version (as if `beta` is zero), and a read-and-write version (as if `beta` is nonzero)."
+
+Our design goal was for functions with vector or matrix output to imitate `std::transform` as much as possible.  This favors Way (3) as the default approach, which turns `INTENT(INOUT)` arguments on the Fortran side into separate input and output parameters on the C++ side.  Way (2) is really an awkward special case.  The BLAS Standard effectively eliminates this special case on the Fortran side by making the rank-1 and rank-2 updates work just like the rank-k and rank-2k updates, with a $\beta$ scaling factor.  This makes it natural to eliminate the Way (2) special case on the C++ side as well.
+
+### Exposition-only concept no longer needed
+
+These changes make the exposition-only concept _`possibly-packed-inout-matrix`_ superfluous.  We propose removing it.
+
+Note that this would not eliminate all uses of the exposition-only concept _`inout-matrix`_.  The in-place triangular matrix product functions `triangular_matrix_left_product` and `triangular_matrix_right_product`, and the in-place triangular linear system solve functions `triangular_matrix_matrix_left_solve` and `triangular_matrix_matrix_right_solve` would still use _`inout-matrix`_.
 
 ## Constrain alpha in Hermitian rank-1 and rank-k updates to be noncomplex
 
@@ -147,13 +185,13 @@ This issue does *not* arise with the rank-2 or rank-2k updates.  In the BLAS, th
 
 ### Nothing wrong with scaling factor beta
 
-The scaling factor `beta` only arises with the rank-k update function `hermitian_rank_k_update`.  The current wording behaves correctly with respect to `beta`.  For the new updating overloads of `hermitian_rank_k_update`, [linalg] expresses a `beta` scaling factor by letting users supply `scaled(beta, C)` as the argument for `E`.  The current wording merely requires that `scaled(beta, C)` be Hermitian.  It is actually incorrect to constrain `beta` or `C` separately.  For example, if $\beta = -i$ and $C$ is the matrix whose elements are all $i$, then $C$ is not Hermitian but $\beta C$ (and therefore `scaled(beta, C)`) is Hermitian.
+Both the current wording and the proposed changes to all these update functions behave correctly with respect to `beta`.
 
-The current wording for `hermitian_rank_1_update` is correct.  As explained elsewhere in this proposal, `hermitian_rank_1_update` only needs to support what `xHER` supports, and `xHER` does not support updates with a `beta` scaling factor.
+For the new updating overloads of `hermitian_rank_1_update` and `hermitian_rank_k_update`, [linalg] expresses a `beta` scaling factor by letting users supply `scaled(beta, C)` as the argument for `E`.  The wording only requires that `E` be Hermitian.  If `E` is `scaled(beta, C)`, this concerns only the product of `beta` and `C`.  It would be incorrect to constrain `beta` or `C` separately.  For example, if $\beta = -i$ and $C$ is the matrix whose elements are all $i$, then $C$ is not Hermitian but $\beta C$ (and therefore `scaled(beta, C)`) is Hermitian.
 
-This issue does *not* arise with the rank-2k updates.  In the BLAS, `xHER2K` takes `beta` as a real number.  The previous paragraph's reasoning for `beta` applies here as well.
+This issue does *not* arise with the rank-2k updates.  For example, the BLAS routine `xHER2K` takes `beta` as a real number.  The previous paragraph's reasoning for `beta` applies here as well.
 
-This issue also does not arise with the rank-2 updates.  In the Reference BLAS, the rank-2 update routines `xHER2` do not have a way to supply `beta`.  As explained in P1673, [linalg] prefers to limit itself to the functionality in the Reference BLAS, as this is the most widely available implementation.  Thus, [linalg] retains the no-`beta` interface.  Interestingly, in the BLAS Standard, `xHER2` *does* take `beta`.  The BLAS Standard says that "$\alpha$ is a complex scalar and and [sic] $\beta$ is a real scalar."  The Fortran 77 and C bindings specify the type of `beta` as real (`<rtype>` resp. `RSCALAR_IN`), but the Fortran 95 binding lists both `alpha` and `beta` as `COMPLEX(<wp>)`.  The type of `beta` in the Fortran 95 is likely a typo, considering the wording.
+This issue also does not arise with the rank-2 updates.  In the Reference BLAS, the rank-2 update routines `xHER2` do not have a way to supply `beta`, while in the BLAS Standard, `xHER2` *does* take `beta`.  The BLAS Standard says that "$\alpha$ is a complex scalar and and [sic] $\beta$ is a real scalar."  The Fortran 77 and C bindings specify the type of `beta` as real (`<rtype>` resp. `RSCALAR_IN`), but the Fortran 95 binding lists both `alpha` and `beta` as `COMPLEX(<wp>)`.  The type of `beta` in the Fortran 95 is likely a typo, considering the wording.
 
 ### Nothing wrong with Hermitian matrix-vector and matrix-matrix products
 
@@ -286,7 +324,7 @@ The `triangular_matrix_vector_product` and `triangular_matrix_product` algorithm
 
 ### Triangular solve algorithms not affected
 
-The triangular solve algorithms in [linalg] are not affected, because their BLAS analogs either do not take an `alpha` argument (as with `xTRSV`), or the `alpha` argument does not affect the triangular matrix (with `xTRSM`, `alpha` affects the right-hand sides `B`, not the triangular matrix `A`).
+The triangular solve algorithms in std::linalg are not affected, because their BLAS analogs either do not take an `alpha` argument (as with `xTRSV`), or the `alpha` argument does not affect the triangular matrix (with `xTRSM`, `alpha` affects the right-hand sides `B`, not the triangular matrix `A`).
 
 ### Triangular matrix-vector product work-around
 
