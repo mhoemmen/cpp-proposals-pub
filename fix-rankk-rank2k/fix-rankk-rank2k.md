@@ -1,7 +1,7 @@
 
 ---
 title: "Fix C++26 by making the rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS"
-document: P3371R1
+document: P3371R2
 date: today
 audience: LEWG
 author:
@@ -45,19 +45,23 @@ toc: true
 
     * Reorganize and expand nonwording sections
 
+* Revision 2 to be submitted 2024-10-15
+
+    * For Hermitian matrix rank-1 and rank-k updates, do not constrain the type of the scaling factor `alpha`, as R1 did.  Instead, define the algorithms to use _`real-if-needed`_`(alpha)`.  Remove exposition-only concept _`noncomplex`_.
+
 # Abstract
 
-The [linalg] functions `matrix_rank_1_update`, `matrix_rank_1_update_c`, `symmetric_rank_1_update`, `hermitian_rank_1_update`, `symmetric_matrix_rank_k_update`,  `hermitian_matrix_rank_k_update`, `symmetric_matrix_rank_2k_update`, and  `hermitian_matrix_rank_2k_update` currently have behavior inconsistent with their corresponding BLAS (Basic Linear Algebra Subroutines) routines.  Also, the behavior of the rank-k and rank-2k updates is inconsistent with that of `matrix_product`, even though in mathematical terms they are special cases of a matrix-matrix product.  We propose three fixes.
+We propose the following changes to [linalg] that improve consistency of the rank-1, rank-2, rank-k, and rank-2k update functions with the BLAS.
 
-1. Add "updating" overloads to the rank-1, rank-2, rank-k, and rank-2k update functions.  The new overloads are analogous to the updating overloads of `matrix_product`.  For example, `symmetric_matrix_rank_k_update(A, scaled(beta, C), C, upper_triangle)` will perform $C := \beta C + A A^T$.
+1. Add "updating" overloads to all the rank-1, rank-2, rank-k, and rank-2k update functions: general, symmetric, and Hermitian.  The new overloads are analogous to the updating overloads of `matrix_product`.  For example, `symmetric_matrix_rank_k_update(A, scaled(beta, C), C, upper_triangle)` will perform $C := \beta C + A A^T$.  This makes the functions consistent with the BLAS's behavior for nonzero `beta`, and also more consistent with the behavior of `matrix_product` (of which they are mathematically a special case).
 
-2. Change the behavior of the existing rank-1, rank-2, rank-k, and rank-2k update functions to be "overwriting" instead of "unconditionally updating."  For example, `symmetric_matrix_rank_k_update(A, C, upper_triangle)` will perform $C = A A^T$ instead of $C := C + A A^T$.
+2. Change the behavior of all the existing rank-1, rank-2, rank-k, and rank-2k update functions (general, symmetric, and Hermitian) to be "overwriting" instead of "unconditionally updating."  For example, `symmetric_matrix_rank_k_update(A, C, upper_triangle)` will perform $C = A A^T$ instead of $C := C + A A^T$.  This makes them consistent with the BLAS's behavior when `beta` is zero.
 
-3. For `hermitian_rank_1_update` and `hermitian_rank_k_update`, constrain the `Scalar` template parameter (if any) to be noncomplex.  This ensures that the update will be mathematically Hermitian.  (A constraint is not needed for the rank-2 and rank-2k update functions.)
+3. For the overloads of `hermitian_rank_1_update` and `hermitian_rank_k_update` that have an `alpha` scaling factor parameter, only use _`real-if-needed`_`(alpha)` in the update.  This ensures that the update will be mathematically Hermitian, and makes the behavior well defined if `alpha` has nonzero imaginary part.  The change is also consistent with our proposed resolution for LWG 4136 ("Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part").
 
 Items (2) and (3) are breaking changes to the current Working Draft.  Thus, we must finish this before finalization of C++26.
 
-# Discussion and proposed changes
+# Discussion of proposed changes
 
 ## Support both overwriting and updating rank-k and rank-2k updates
 
@@ -175,17 +179,98 @@ These changes make the exposition-only concept _`possibly-packed-inout-matrix`_ 
 
 Note that this would not eliminate all uses of the exposition-only concept _`inout-matrix`_.  The in-place triangular matrix product functions `triangular_matrix_left_product` and `triangular_matrix_right_product`, and the in-place triangular linear system solve functions `triangular_matrix_matrix_left_solve` and `triangular_matrix_matrix_right_solve` would still use _`inout-matrix`_.
 
-## Constrain alpha in Hermitian rank-1 and rank-k updates to be noncomplex
+## Use only the real part of scaling factor `alpha` for Hermitian matrix rank-1 and rank-k updates
 
-### Scaling factor alpha needs to be noncomplex, else update may be non-Hermitian
+For Hermitian rank-1 and rank-k matrix updates, if users provide a scaling factor `alpha`, it must have zero imaginary part.  Otherwise, the matrix update will not be Hermitian.  Neither the C++ Working Draft nor any other proposal in flight requires this.  We propose fixing it by making these update algorithms only use the real part of `alpha`, as in _`real-if-needed`_`(alpha)`.  This solution is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part," where we make Hermitian rank-1 and rank-k matrix updates use only the real part of matrices' diagonals.
 
-The C++ Working Draft already has `Scalar alpha` overloads of `hermitian_rank_k_update`.  The `Scalar` type currently can be complex.  However, if `alpha` has nonzero imaginary part, then $\alpha A A^H$ may no longer be a Hermitian matrix, even though $A A^H$ is mathematically always Hermitian.  For example, if $A$ is the identity matrix (with ones on the diagonal and zeros elsewhere) and $\alpha = i$, then $\alpha A A^H$ is the diagonal matrix whose diagonal elements are all $i$.  While that matrix is symmetric, it is not Hermitian, because all elements on the diagonal of a Hermitian matrix must have nonzero imaginary part.  The rank-1 update function `hermitian_rank_1_update` has the analogous issue.
+We can think of at least three alternative solutions, and will explain here why we did not choose them.  The first is to constrain `alpha` to have a noncomplex number type, the second is to exclude `std::complex<T>` but not try to define a "noncomplex number" constraint, and the third is to impose a precondition that the imaginary part of `alpha` is zero.
 
-The BLAS solves this problem by having the Hermitian rank-1 update routines `xHER` and rank-k update routines `xHERK` take the scaling factor $\alpha$ as a noncomplex number.  This suggests a fix: For all `hermitian_rank_1_update` and `hermitian_rank_k_update` overloads that take `Scalar alpha`, constrain `Scalar` so that it is noncomplex.  We can avoid introducing new undefined behavior (or "valid but unspecified" elements of the output matrix) by making "noncomplex" a constraint on the `Scalar` type of `alpha`.  "Noncomplex" should follow the definition of "noncomplex" used by _`conj-if-needed`_: either an arithmetic type, or `conj(E)` is not ADL-findable for an expression `E` of type `Scalar`.
+### Justification: Scaling factor needs to be noncomplex, else update may be non-Hermitian
+
+The C++ Working Draft already has `Scalar alpha` overloads of `hermitian_rank_k_update`.  The `Scalar` type currently can be complex.  However, if `alpha` has nonzero imaginary part, then $\alpha A A^H$ may no longer be a Hermitian matrix, even though $A A^H$ is mathematically always Hermitian.  For example, if $A$ is the identity matrix (with ones on the diagonal and zeros elsewhere) and $\alpha = i$ (the imaginary unit, which is the square root of negative one), then $\alpha A A^H$ is the diagonal matrix whose diagonal elements are all $i$.  While that matrix is symmetric, it is not Hermitian, because all elements on the diagonal of a Hermitian matrix must have nonzero imaginary part.  The rank-1 update function `hermitian_rank_1_update` has the analogous issue.
+
+### Alternatives
+
+We can think of at least four different ways to solve this problem, and will explain why we did not choose those solutions.
+
+1. Constrain `alpha` by defining a generic "noncomplex number type" constraint
+
+2. Only constrain `alpha` not to be `std::complex<T>`; do not try to define a generic "noncomplex number" constraint
+
+3. Constrain `alpha` by default using a generic "noncomplex number type" constraint, but let users specialize an "opt-out trait" to tell the library that their number type is noncomplex
+
+4. Impose a precondition that the imaginary part of `alpha` is zero
+
+If we had to pick one of these solutions, we would favor first (4), then (3), and then (1).  We would object most to (2).
+
+#### Alternative: Constrain `alpha` via generic "noncomplex" constraint
+
+The BLAS solves this problem by having the Hermitian rank-1 update routines `xHER` and rank-k update routines `xHERK` take the scaling factor $\alpha$ as a noncomplex number.  This suggests constraining `alpha`'s type to be noncomplex.  However, [linalg] accepts user-defined number types, including user-defined complex number types.  How do we define a "noncomplex number type"?  If we get it wrong and say that a number type is complex when its "imaginary part" is always zero, we end up excluding a perfectly valid custom number type.
+
+For number types that have an additive identity (like zero for the integers and reals), it's mathematically correct to treat those as "complex numbers" whose imaginary parts are always zero.  This is what `conjugated_accessor` does if you give it a number type for which ADL cannot find `conj`.  P3050 optimizes `conjugated` for such number types by bypassing `conjugated_accessor` and using `default_accessor` instead, but this is just a code optimization.  Therefore, it can afford to be conservative: if a number type _might_ be complex, then `conjugated` needs to use `conjugated_accessor`.  This is why P3050's approach doesn't apply here.  If a number type has ADL-findable `conj`, `real`, and `imag`, then it _might_ be complex.  However, if we define the opposite of that as "noncomplex," then we might be preventing users from using otherwise reasonable number types.  
+
+The following `MyRealNumber` example always has zero imaginary part, but nevertheless has ADL-findable `conj`, `real`, and `imag`.  Furthermore, it has a constructor for which `MyRealNumber(1.2, 3.4)` is well-formed.  (This is an unfortunate design choice; making `precision` have class type that is not implicitly convertible from `double` would be wiser, so that users would have to type `MyRealNumber(1.2, Precision(42))`.)  As a result, there is no reasonable way to tell at compile time if `MyRealNumber` might represent a complex number.
+
+```c++
+class MyRealNumber {
+public:
+  explicit MyRealNumber(double initial_value);
+  // precision represents the amount of storage
+  // used by an arbitrary-precision real number object
+  explicit MyRealNumber(double initial_value, int precision);
+
+  MyRealNumber(); // result is the additive identity "zero"
+
+  // ... other members to make MyRealNumber regular ...
+  // ... hidden friend overloaded arithmetic operators ...
+
+  friend MyRealNumber conj(MyRealNumber x) { return  x; }
+  friend MyRealNumber real(MyRealNumber x) { return  x; }
+  friend MyRealNumber imag(MyRealNumber)   { return {}; }
+};
+```
+
+It's reasonable to write custom noncomplex number types that define ADL-findable `conj`, `real`, and `imag`.  First, users may want to write or use libraries of generic numerical algorithms that work for both complex and noncomplex number types.  P1673 argues that defining `conj` to be type-preserving (unlike `std::conj` in the C++ Standard Library) makes this possible.  For example, Appendix A below shows how to implement a generic two-norm absolute value (or magnitude, for complex numbers) function, using this interface.  Second, the Standard Library might lead users to write a type like this.  `std::conj` accepts arguments of any integer or floating-point type, none of which represent complex numbers.  The Standard makes the unfortunate choice for `std::conj` of an integer type to return `std::complex<double>`.  However, users who try to make `conj(MyRealNumber)` return `std::complex<MyRealNumber>` would find out that `std::complex<MyRealNumber>` does not compile, because `std::complex<T>` requires that `T` be a floating-point type.  The least-effort next step would be to make `conj(MyRealNumber)` return `MyRealNumber`.
+
+We want rank-1 and rank-k Hermitian matrix updates to work with types like `MyRealNumber`, but any reasonable way to constrain the type of `alpha` would exclude `MyRealNumber`.
+
+#### Alternative: Only constrain `alpha` not to be `std::complex`
+
+A variant of this suggestion would be only to constrain `alpha` not to be `std::complex<T>`, and not try to define a generic "noncomplex number" constraint.  However, this would break generic numerical algorithms by making valid code for the non-Standard complex number case invalid code for `std::complex<T>`.  We do not want [linalg] to treat custom complex number types differently than `std::complex`.
+
+#### Alternative: Constrain `alpha` by default, but let users "opt out"
+
+Another option would be to constrain `alpha` by default using the same generic "noncomplex number type" constraint as in Option (1), but let users specialize an "opt-out trait" to tell the library that their number type is noncomplex.  We would add a new "tag" type trait `is_noncomplex` that users can specialize.  By default, `is_noncomplex<T>::value` is `false` for any type `T`.  This does _not_ mean that the type is complex, just that the user declares their type to be noncomplex.  The distinction matters, because a noncomplex number type might still provide ADL-findable `conj`, `real`, and `imag`, as we showed above.  Users must take positive action to declare their type `U` as "not a complex number type," by specializing `is_noncomplex<U>` so that `is_noncomplex<U>::value` is `true`.  If users do that, then the library will ignore any ADL-findable functions `conj`, `real`, and `imag` (whether or not they exist), and will assume that the number type is noncomplex.
+
+Standard Library precedent for this approach is in heterogeneous lookup for associative containers (see N3657 for ordered associative containers, and P0919 and P1690 for unordered containers).  User-defined hash functions and key equality comparison functions can tell the container to provide heterogeneous comparisons by exposing a `static constexpr bool is_transparent` whose value is `true`.  Default behavior does not expose heterogeneous comparisons.  Thus, users must opt in at compile time to assert something about their user-defined types.
+
+Of the three constraint-based approaches discussed in this proposal, we favor this one the most.  It still treats types "as they are" and does not permit users to claim that a type is complex when it lacks the needed operations, but it lets users optimize by giving the Standard Library a single bit of compile-time information.  By default, any linear algebra value type (see [linalg.reqs.val]) that meets the `maybe_complex` concept below would be considered "possibly complex."  Types that do not meet this concept would result in compilation errors; users would then be able to search documentation or web pages to find out that they need to specialize `is_noncomplex`.
+
+```c++
+template<class T>
+concept maybe_complex =
+  std::semiregular<T> &&
+  requires(T t) {
+    {conj(t)} -> T;
+    {real(t)} -> std::convertible_to<T>;
+    {imag(t)} -> std::convertible_to<T>;
+```
+
+P1673 generally avoids approaches based on specializing traits.  Its design philosophy favors treating types as they are.  Users should not need to do something to get correct behavior.  We based this off our past experiences in generic numerical algorithms development.  In the 2010's, one of the authors maintained a generic mathematical algorithms library called Trilinos.  The Teuchos (pronounced "TEFF-os") package of Trilinos provides a monolithic `ScalarTraits` class template that defines different properties of a number type.  It combines the features of `std::numeric_limits` with generic complex arithmetic operations like `conjugate`, `real`, and `imag`.  Trilinos' generic algorithms assume that number types are regular and define overloaded `+`, `-`, `*`, and `/`, but use `ScalarTraits<T>::conjugate`, `ScalarTraits<T>::real`, and `ScalarTraits<T>::imag`.  As a result, users with a custom complex number type had to specialize `ScalarTraits` and provide all these operations.  Even if users had imitated `std::complex`'s interface perfectly and provided ADL-findable `conj`, `real`, and `imag`, users had to do extra work to make Trilinos compile and run correctly for their numbers.  With P1673, we decided instead that users who define a custom complex number type with an interface sufficiently like `std::complex` should get reasonable behavior without needing to do anything else.
+
+As a tangent, we would like to comment on the monolithic design of `Teuchos::ScalarTraits`.  The monolithic design was partly an imitation of `std::numeric_limits`, and partly a side effect of a requirement to support pre-C++11 compilers that did not permit partial specialization of function templates.  (The typical pre-C++11 work-around is to define an unspecialized function template that dispatches to a possibly specialized class template.)  C++11 permits partial specialization of function templates and C++14 introduces variable templates; these features have encouraged "breaking up" monolithic traits classes into separate traits.  Our paper P1370R1 ("Generic numerical algorithm development with(out) `numeric_limits`") aligns with this trend.
+
+#### Alternative: Impose precondition on `alpha`
+
+Another option would be to impose a precondition that _`imag-if-needed`_`(alpha)` is zero.  However, this would be inconsistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part".  WG21 members have expressed wanting _fewer_ preconditions and _less_ undefined behavior in the Standard Library.
+
+If users call Hermitian matrix rank-1 or rank-k updates with `alpha` being `std::complex<float>` or `std::complex<double>`, implementations of [linalg] that call an underlying C or Fortran BLAS would have to get the real part of `alpha` anyway, because these BLAS routines only take `alpha` as a real type.  Thus, our proposed solution -- to _define_ the behavior of the update algorithms as using _`real-if-needed`_`(alpha)` -- would not add overhead.
+
+## Things relating to scaling factors that we do not propose changing
 
 ### Nothing wrong with rank-2 or rank-2k updates
 
-This issue does *not* arise with the rank-2 or rank-2k updates.  In the BLAS, the rank-2 updates `xHER2` and the rank-2k updates `xHER2K` all take `alpha` as a complex number.  The matrix $\alpha A B^H + \bar{\alpha} B A^H$ is Hermitian by construction, so there's no need to impose a precondition on the value of $\alpha$.
+This issue does *not* arise with the rank-2 or rank-2k updates.  In the BLAS, the rank-2 updates `xHER2` and the rank-2k updates `xHER2K` all take `alpha` as a complex number.  The corresponding [linalg] functions do not take a separate `alpha` parameter, because users can pass it in via `scaled`, attached either to `A` or `B`: e.g., `scaled(alpha, A)`.  The matrix $\alpha A B^H + \bar{\alpha} B A^H$ is Hermitian by construction, no matter the value of $\alpha$.
 
 ### Nothing wrong with scaling factor beta
 
@@ -214,7 +299,7 @@ The current [linalg] wording requires that the input matrix be Hermitian.  This 
 auto alpha = std::complex{0.0, 1.0};
 hermitian_matrix_vector_product(scaled(alpha, A), upper_triangle, x, y);
 ```
-Note that the behavior of this is still well defined, at least after applying the fix proposed in LWG4136 for diagonal elements with nonzero imaginary part.  It does not violate a precondition.  Therefore, the Standard has no way to tell the user that they did something wrong.
+Note that the behavior of this is still otherwise well defined, at least after applying the fix proposed in LWG4136 for diagonal elements with nonzero imaginary part.  It does not violate a precondition.  Therefore, the Standard has no way to tell the user that they did something wrong.
 
 #### Status quo permits scaling via the input vector
 
@@ -247,7 +332,7 @@ auto alpha = user_complex<user_noncommutative>{something, something_else};
 hermitian_matrix_vector_product(N, upper_triangle, scaled(alpha, x), y);
 ```
 
-The [linalg] library was designed to support element types with noncommutative multiplication.  On the other hand, generally, if we speak of Hermitian matrices or even of inner products (which are used to define Hermitian matrices), we're working in a vector space.  This means that multiplication of the matrix's elements is commutative.  Anything more general than that is far beyond what the BLAS can do.  Thus, we think restricting use of `alpha` with nonzero imaginary part to `scaled(alpha, x)` is not so onerous.  
+The [linalg] library was designed to support element types with noncommutative multiplication.  On the other hand, generally, if we speak of Hermitian matrices or even of inner products (which are used to define Hermitian matrices), we're working in a vector space.  This means that multiplication of the matrix's elements is commutative.  Anything more general than that is far beyond what the BLAS can do.  Thus, we think restricting use of `alpha` with nonzero imaginary part to `scaled(alpha, x)` is not so onerous.
 
 #### Scaling via the input vector is weird, but the least bad choice
 
@@ -310,27 +395,7 @@ We do not support this approach.  First, it would introduce many overloads, with
 
 Second, `alpha` overloads would not prevent users from *also* supplying `scaled(gamma, A)` as the matrix for some other scaling factor `gamma`.  Thus, instead of solving the problem, the overloads would introduce more possibilities for errors.
 
-### What if `Scalar` is noncomplex but `conj` is ADL-findable?
-
-Our proposed change defines a "noncomplex number" at compile time.  We say that complex numbers have `conj` that is findable by ADL, and noncomplex numbers are either arithmetic types or do not have an ADL-findable `conj`.  We choose this definition because it is the same one that we use to define the behavior of `conjugated_accessor` (and also `conjugated`, if P3050 is adopted).  It also is the C++ analog of what the BLAS does, namely specify the type of the `alpha` argument as real instead of complex.
-
-This definition is conservative, because it excludes complex numbers with zero imaginary part.  For `conjugated_accessor` and `conjugated`, this does not matter; the class and function behave the same from the user's perspective.  The exposition-only function _`conj-if-needed`_ specifically exists so that `conjugated_accessor` and `conjugated` do not change their input `mdspan`'s `value_type`.  However, for the rank-1 and rank-k Hermitian update functions affected by this proposal, constraining `Scalar alpha` at compile time to be noncomplex prevents users from calling those functions with a "complex" number `alpha` whose imaginary part is zero.
-
-This matters if the user defines a number type `Real` that is meant to represent noncomplex numbers, but nevertheless has an ADL-findable `conj`, thus making it a "complex" number type from the perspective of [linalg] functions.  There are two ways users might define `conj(Real)`.
-
-1. *Imitating* `std::complex`: Users might define a complex number type `UserComplex` whose real and imaginary parts have type `Real`, and then imitate the behavior of `std::conj(double)` by defining `UserComplex conj(Real x)` to return a `UserComplex` number with real part `x` and imaginary part zero.
-
-2. *Type-preserving*: `Real conj(Real x)` returns `x`.
-
-Option (1) would be an unfortunate choice.  [linalg] defines _`conj-if-needed`_ specifically to fix the problem that `std::conj(double)` returns `std::complex<double>` instead of `double`.  However, Option (2) would be a reasonable thing for users to do, especially if they have designed custom number types without [linalg] in mind.  One could accommodate such users by relaxing the constraint on `Scalar` and taking one of the following two approaches.
-
-1. Adding a precondition that _`imag-if-needed`_`(alpha)` equals `Scalar{}`
-
-2. Imitating <a href="https://cplusplus.github.io/LWG/issue4136">LWG 4136</a>, by defining the scaling factor to be _`real-if-needed`_`(alpha)` instead of `alpha`
-
-We did not take Approach (1), because adding a precondition decreases safety by adding undefined behavior.  It also forces users to add run-time checks.  Defining those checks correctly for generic, possibly but not necessarily complex number types would be challenging.  We did not take Approach (2) because its behavior would deviate from the BLAS, which requires the scaling factor `alpha` to be noncomplex at compile time.
-
-## Triangular matrix products, unit diagonals, and scaling factors
+### Triangular matrix products, unit diagonals, and scaling factors
 
 1. In BLAS, triangular matrix-vector and matrix-matrix products apply `alpha` scaling to the implicit unit diagonal.  In [linalg], the scaling factor `alpha` is not applied to the implicit unit diagonal.  This is because the library does not interpret `scaled(alpha, A)` differently than any other `mdspan`.
 
@@ -342,19 +407,19 @@ We did not take Approach (1), because adding a precondition decreases safety by 
 
 5. Therefore, we do not consider fixing this a high-priority issue, and we do not propose a fix for it in this paper.
 
-### BLAS applies alpha after unit diagonal; linalg applies it before
+#### BLAS applies alpha after unit diagonal; linalg applies it before
 
 The `triangular_matrix_vector_product` and `triangular_matrix_product` algorithms have an `implicit_unit_diagonal` option.  This makes the algorithm not access the diagonal of the matrix, and compute as if the diagonal were all ones.  The option corresponds to the BLAS's "Unit" flag.  BLAS routines that take both a "Unit" flag and an `alpha` scaling factor apply "Unit" *before* scaling by `alpha`, so that the matrix is treated as if it has a diagonal of all `alpha` values.  In contrast, [linalg] follows the general principle that `scaled(alpha, A)` should be treated like any other kind of `mdspan`.  As a result, algorithms interpret `implicit_unit_diagonal` as applied to the matrix *after* scaling by `alpha`, so that the matrix still has a diagonal of all ones.
 
-### Triangular solve algorithms not affected
+#### Triangular solve algorithms not affected
 
 The triangular solve algorithms in std::linalg are not affected, because their BLAS analogs either do not take an `alpha` argument (as with `xTRSV`), or the `alpha` argument does not affect the triangular matrix (with `xTRSM`, `alpha` affects the right-hand sides `B`, not the triangular matrix `A`).
 
-### Triangular matrix-vector product work-around
+#### Triangular matrix-vector product work-around
 
 This issue only reduces functionality of `triangular_matrix_product`.  Users of `triangular_matrix_vector_product` who wish to replicate the original BLAS functionality can scale the input matrix (by supplying `scaled(alpha, x)` instead of `x` as the input argument) instead of the triangular matrix.
 
-### Triangular matrix-matrix product example
+#### Triangular matrix-matrix product example
 
 The following example computes $A := 2 A B$ where $A$ is a lower triangular matrix, but it makes the diagonal of $A$ all ones on the input (right-hand) side.
 ```c++
@@ -371,7 +436,7 @@ scale(2.0, A);
 ```
 This is counterintuitive, and may also affect performance.  Performance of `scale` is typically bound by memory bandwidth and/or latency, but if the work done by `scale` could be fused with the work done by the `triangular_matrix_product`, then `scale`'s memory operations could be "hidden" in the cost of the matrix product. 
 
-### LAPACK never calls `xTRMM` with the implicit unit diagonal option and `alpha` not equal to one
+#### LAPACK never calls `xTRMM` with the implicit unit diagonal option and `alpha` not equal to one
 
 How much might users care about this missing [linalg] feature?  P1673R13 explains that the BLAS was codesigned with LAPACK and that every reference BLAS routine is used by some LAPACK routine.  "The BLAS does not aim to provide a complete set of mathematical operations.  Every function in the BLAS exists because some LINPACK or LAPACK algorithm needs it" (Section 10.6.1).  Therefore, to judge the urgency of adding new functionality to [linalg], we can ask whether the functionality would be needed by a C++ re-implementation of LAPACK.  We think not much, because the highest-priority target audience of the BLAS is LAPACK developers, and LAPACK routines (other than testing routines) never use a scaling factor alpha other than one.  
 
@@ -389,11 +454,11 @@ We survey calls to `xTRMM` in the latest version of LAPACK as of the publication
 
 The only routines that call `DTRMM` with `alpha` equal to anything other than one or negative one are the testing routines.  Some calls in `DGELQT3` and `DLARFB_GETT` use negative one, but these calls never specify an implicit unit diagonal (they use the explicit diagonal option).  The only routine that might possibly call `DTRMM` with both negative one as alpha and the implicit unit diagonal is `DTFTRI`.  (This routine "computes the inverse of a triangular matrix A stored in RFP [Rectangular Full Packed] format."  RFP format was introduced to LAPACK in the late 2000's, well after the BLAS Standard was published.  See <a href="http://www.netlib.org/lapack/lawnspdf/lawn199.pdf">LAPACK Working Note 199</a>, which was published in 2008.)  `DTFTRI` passes its caller's `diag` argument (which specifies either implicit unit diagonal or explicit diagonal) to `DTRMM`.  The only two LAPACK routines that call `DTFTRI` are `DERRRFP` (a testing routine) and `DPFTRI`.  `DPFTRI` only ever calls `DTFTRI` with `diag` *not* specifying the implicit unit diagonal option.  Therefore, LAPACK never needs both `alpha` not equal to one and the implicit unit diagonal option, so adding the ability to "scale the implicit diagonal" in [linalg] is a low-priority feature.
 
-### Fixes would not break backwards compatibility
+#### Fixes would not break backwards compatibility
 
 We can think of two ways to fix this issue.  First, we could add an `alpha` scaling parameter, analogous to the symmetric and Hermitian rank-1 and rank-k update functions.  Second, we could add a new kind of `Diagonal` template parameter type that expresses a "diagonal value."  For example, `implicit_diagonal_t{alpha}` (or a function form, `implicit_diagonal(alpha)`) would tell the algorithm not to access the diagonal elements, but instead to assume that their value is `alpha`.  Both of these solutions would let users specify the diagonal's scaling factor separately from the scaling factor for the rest of the matrix.  Those two scaling factors could differ, which is new functionality not offered by the BLAS.  More importantly, both of these solutions could be added later, after C++26, without breaking backwards compatibility.
 
-## Triangular solves, unit diagonals, and scaling factors
+### Triangular solves, unit diagonals, and scaling factors
 
 1. In BLAS, triangular solves with possibly multiple right-hand sides (`xTRSM`) apply `alpha` scaling to the implicit unit diagonal.  In [linalg], the scaling factor `alpha` is not applied to the implicit unit diagonal.  This is because the library does not interpret `scaled(alpha, A)` differently than any other `mdspan`.
 
@@ -405,13 +470,13 @@ We can think of two ways to fix this issue.  First, we could add an `alpha` scal
 
 5. Therefore, we do not consider fixing this a high-priority issue, and we do not propose a fix for it in this paper.
 
-### BLAS applies alpha after unit diagonal; linalg applies it before
+#### BLAS applies alpha after unit diagonal; linalg applies it before
 
 Triangular solves have a similar issue to the one explained in the previous section.  The BLAS routine `xTRSM` applies `alpha` "after" the implicit unit diagonal, while std::linalg applies `alpha` "before."  (`xTRSV` does not take an `alpha` scaling factor.)  As a result, the BLAS solves with a different matrix than std::linalg.
 
 In mathematical terms, `xTRSM` solves the equation $\alpha (A + I) X = B$ for $X$, where $A$ is the user's input matrix (without implicit unit diagonal) and $I$ is the identity matrix (with ones on the diagonal and zeros everywhere else).  `triangular_matrix_matrix_left_solve` solves the equation $(\alpha A + I) Y = B$ for $Y$.  The two results $X$ and $Y$ are not equal in general.
 
-### Work-around requires changing all elements of the matrix
+#### Work-around requires changing all elements of the matrix
 
 Users could work around this problem by first scaling the matrix $A$ by $\alpha$, and then solving for $Y$.  In the common case where the "other triangle" of $A$ holds another triangular matrix, users could not call `scale(alpha, A)`.  They would instead need to iterate over the elements of $A$ manually.  Users might also need to "unscale" the matrix after the solve.  Another option would be to copy the matrix $A$ before scaling.
 ```c++
@@ -429,11 +494,11 @@ for (size_t i = 0; i < A.extent(0); ++i) {
 ```
 Users cannot solve this problem by scaling $B$ (either with `scaled(1.0 / alpha, B)` or with `scale(1.0 / alpha, B)`).  Transforming $X$ into $Y$ or vice versa is mathematically nontrivial in general, and may introduce new failure conditions.  This issue occurs with both the in-place and out-of-place triangular solves.
 
-### Unsupported case occurs in LAPACK
+#### Unsupported case occurs in LAPACK
 
 The common case in LAPACK is calling `xTRSM` with `alpha` equal to one, but other values of `alpha` occur.  For example, `xTRTRI` calls `xTRSM` with `alpha` equal to $-1$.  Thus, we cannot dismiss this issue, as we could with `xTRMM`.
 
-### Fixes would not break backwards compatibility
+#### Fixes would not break backwards compatibility
 
 As with triangular matrix products above, we can think of two ways to fix this issue.  First, we could add an `alpha` scaling parameter, analogous to the symmetric and Hermitian rank-1 and rank-k update functions.  Second, we could add a new kind of `Diagonal` template parameter type that expresses a "diagonal value."  For example, `implicit_diagonal_t{alpha}` (or a function form, `implicit_diagonal(alpha)`) would tell the algorithm not to access the diagonal elements, but instead to assume that their value is `alpha`.  Both of these solutions would let users specify the diagonal's scaling factor separately from the scaling factor for the rest of the matrix.  Those two scaling factors could differ, which is new functionality not offered by the BLAS.  More importantly, both of these solutions could be added later, after C++26, without breaking backwards compatibility.
 
@@ -452,6 +517,28 @@ We also have two outstanding LWG issues.
 * <a href="https://cplusplus.github.io/LWG/lwg-active.html#4136">LWG4136</a> specifies the behavior of Hermitian algorithms on diagonal matrix elements with nonzero imaginary part.  (As the BLAS Standard specifies and the Reference BLAS implements, the Hermitian algorithms do not access the imaginary parts of diagonal elements, and assume they are zero.)  In our view, P3371 does not conflict with LWG4136.
 
 * <a href="https://cplusplus.github.io/LWG/lwg-active.html#4137">LWG4137</a>, "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms," affects several sections touched by this proposal, including [linalg.algs.blas3.rankk] and [linalg.algs.blas3.rank2k].  We consider P3371 rebased atop the wording changes proposed by LWG4137.  While the wording changes may conflict in a formal ("diff") sense, it is our view that they do not conflict in a mathematical or specification sense.
+
+# Implementation status
+
+The following function overload sets need changing.
+
+* `matrix_rank_1_update`
+* `matrix_rank_1_update_c`
+* `symmetric_matrix_rank_1_update`
+* `hermitian_matrix_rank_1_update`
+* `symmetric_matrix_rank_2_update`
+* `hermitian_matrix_rank_2_update`
+* `symmetric_matrix_rank_k_update`
+* `hermitian_matrix_rank_k_update`
+* `symmetric_matrix_rank_2k_update`
+* `hermitian_matrix_rank_2k_update`
+
+As of 2024/10/04, <a href="https://github.com/kokkos/stdBLAS/pull/293">Pull request 293</a> in the reference std::linalg implementation implements changes to the following functions, and adds tests to ensure test coverage of the new overloads.
+
+* `matrix_rank_1_update`
+* `matrix_rank_1_update_c`
+* `symmetric_matrix_rank_1_update`
+* `hermitian_matrix_rank_1_update`
 
 # Acknowledgments
 
@@ -506,48 +593,17 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
 > Then, remove the definition of the exposition-only concept _`possibly-packed-inout-matrix`_ from **[linalg.helpers.concepts]**.
 
-## New exposition-only concept for noncomplex numbers
+> Then, in [linalg.helpers.concepts], change paragraph 3 to read as follows (new content "or _`possibly-packed-out-matrix`_" in green; removed content "or _`possibly-packed-inout-matrix`_" in red).
 
-> In the Header `<linalg>` synopsis [linalg.syn], at the end of the section
-> started by the following comment:
->
-> `// [linalg.helpers.concepts], linear algebra argument concepts`,
->
-> add the following declaration of the exposition-only concept _`noncomplex`_.
-> <i>[Editorial Note:</i> This addition is not shown in green, becuase the authors could not convince Markdown to format the code correctly. <i>-- end note]</i>
-
-```c++
-template<class T>
-  concept @_noncomplex_@ = @_see below_@; // exposition only
-```
-
-> In [linalg.helpers.concepts], change paragraph 3 to read as follows (new content in green).
-
-Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-object`_, _`out-vector`_, _`out-matrix`_, _`out-object`_, <span style="color: green;">_`possibly-packed-out-matrix`_</span>, or _`possibly-packed-inout-matrix`_ parameter of a function in [linalg] shall not overlap any other `mdspan` parameter of the function.
-
-> Append the following to the end of [linalg.helpers.concepts].
-> <i>[Editorial Note:</i> These additions are not shown in green, becuase the authors could not convince Markdown to format the code correctly. <i>-- end note]</i>
-
-```c++
-template<class T>
-  concept @_noncomplex_@ = @_see below_@;
-```
-
-[4]{.pnum} A type `T` models _`noncomplex`_ if `T` is a linear algebra value type, and either
-
-[4.1]{.pnum} `T` is not an arithmetic type, or
-
-[4.2]{.pnum} the expression `conj(E)` is not valid, with overload resolution performed in a context that includes the declaration `template<class T> T conj(const T&) = delete;`.
+Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-object`_, _`out-vector`_, _`out-matrix`_, _`out-object`_, <span style="color: green;">or _`possibly-packed-out-matrix`_</span><span style="color: red;">, or _`possibly-packed-inout-matrix`_</span> parameter of a function in [linalg] shall not overlap any other `mdspan` parameter of the function.
 
 ## Rank-1 update functions in synopsis
 
 > In the header `<linalg>` synopsis **[linalg.syn]**, replace all the declarations of all the `matrix_rank_1_update`, `matrix_rank_1_update_c`, `symmetric_matrix_rank_1_update`, and `hermitian_matrix_rank_1_update` overloads to read as follows.
 > <i>[Editorial Note:</i> 
-> There are three changes here.
+> There are two changes here.
 > First, the existing overloads become "overwriting" overloads.
 > Second, new "updating" overloads are added.
-> Third, the `hermitian_rank_1_update` functions that take an `alpha` parameter
-> now constrain `alpha` to be _`noncomplex`_.
 >
 > Changes do not use red or green highlighting, becuase the authors could not convince Markdown to format the code correctly.
 > <i>-- end note]</i>
@@ -612,10 +668,10 @@ template<class T>
                                         InVec x, InMat E, OutMat A, Triangle t);
 
   // overwriting Hermitian rank-1 matrix update 
-  template<@_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+  template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, OutMat A, Triangle t);
   template<class ExecutionPolicy,
-           @_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+           class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                         Scalar alpha, InVec x, OutMat A, Triangle t);
   template<@_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -626,10 +682,10 @@ template<class T>
                                         InVec x, OutMat A, Triangle t);
 
   // updating Hermitian rank-1 matrix update 
-  template<@_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+  template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
   template<class ExecutionPolicy,
-           @_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+           class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                         Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
   template<@_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -755,13 +811,13 @@ template<class T>
       InMat1 A, InMat2 E, OutMat C, Triangle t);
 
   // overwriting rank-k Hermitian matrix update
-  template<@_noncomplex_@ Scalar,
+  template<class Scalar,
            @_in-matrix_@ InMat,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void hermitian_matrix_rank_k_update(
       Scalar alpha, InMat A, OutMat C, Triangle t);
-  template<class ExecutionPolicy, @_noncomplex_@ Scalar,
+  template<class ExecutionPolicy, class Scalar,
            @_in-matrix_@ InMat,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
@@ -780,7 +836,7 @@ template<class T>
       ExecutionPolicy&& exec, InMat A, OutMat C, Triangle t);
 
   // updating rank-k Hermitian matrix update
-  template<@_noncomplex_@ Scalar,
+  template<class Scalar,
            @_in-matrix_@ InMat1,
            @_possibly-packed-in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
@@ -788,7 +844,7 @@ template<class T>
     void hermitian_matrix_rank_k_update(
       Scalar alpha,
       InMat1 A, InMat2 E, OutMat C, Triangle t);
-  template<class ExecutionPolicy, @_noncomplex_@ Scalar,
+  template<class ExecutionPolicy, class Scalar,
            @_in-matrix_@ InMat1,
            @_possibly-packed-in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
@@ -1017,7 +1073,7 @@ template<class ExecutionPolicy,
 
 [11]{.pnum} These functions perform an updating symmetric rank-1 update of the symmetric matrix `A` using the symmetric matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
 
-[12]{.pnum} *Effects*: Computes $A = E + \alpha x x^T$, where the scalar $\alpha$ is `alpha`.
+[12]{.pnum} *Effects*: Computes $A = E + \alpha x x^T$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -1033,17 +1089,17 @@ template<class ExecutionPolicy,
 [14]{.pnum} *Effects*: Computes $A = E + x x^T$.
 
 ```c++
-template<@_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         @_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                       Scalar alpha, InVec x, OutMat A, Triangle t);
 ```
 
 [15]{.pnum} These functions perform an overwriting Hermitian rank-1 update of the Hermitian matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
 
-[16]{.pnum} *Effects*: Computes $A = \alpha x x^H$, where the scalar $\alpha$ is `alpha`.
+[16]{.pnum} *Effects*: Computes $A = \alpha x x^H$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -1058,17 +1114,17 @@ template<class ExecutionPolicy,
 [18]{.pnum} *Effects*: Computes $A = x x^T$.
 
 ```c++
-template<@_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         @_noncomplex_@ Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                       Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 ```
 
 [19]{.pnum} These functions perform an updating Hermitian rank-1 update of the Hermitian matrix `A` using the Hermitian matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
 
-[20]{.pnum} *Effects*: Computes $A = E + \alpha x x^H$, where the scalar $\alpha$ is `alpha`.
+[20]{.pnum} *Effects*: Computes $A = E + \alpha x x^H$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -1270,7 +1326,7 @@ void symmetric_matrix_rank_k_update(
 Computes $C = A A^T$.
 
 ```c++
-template<@_noncomplex_@ Scalar,
+template<class Scalar,
          @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
@@ -1280,7 +1336,7 @@ void hermitian_matrix_rank_k_update(
   OutMat C,
   Triangle t);
 template<class ExecutionPolicy,
-         @_noncomplex_@ Scalar,
+         class Scalar,
          @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
@@ -1294,7 +1350,7 @@ void hermitian_matrix_rank_k_update(
 
 [7]{.pnum} *Effects:*
 Computes $C = \alpha A A^H$,
-where the scalar $\alpha$ is `alpha`.
+where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-matrix_@ InMat,
@@ -1347,7 +1403,7 @@ void symmetric_matrix_rank_k_update(
 
 [9]{.pnum} *Effects:*
 Computes $C = E + \alpha A A^T$,
-where the scalar $\alpha$ is `alpha`.
+where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-matrix_@ InMat1,
@@ -1376,7 +1432,7 @@ void symmetric_matrix_rank_k_update(
 Computes $C = E + A A^T$.
 
 ```c++
-template<@_noncomplex_@ Scalar,
+template<class Scalar,
          @_in-matrix_@ InMat1,
          @_possibly-packed-in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
@@ -1388,7 +1444,7 @@ void hermitian_matrix_rank_k_update(
   OutMat C,
   Triangle t);
 template<class ExecutionPolicy,
-         @_noncomplex_@ Scalar,
+         class Scalar,
          @_in-matrix_@ InMat1,
          @_possibly-packed-in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
@@ -1404,7 +1460,7 @@ void hermitian_matrix_rank_k_update(
 
 [11]{.pnum} *Effects:*
 Computes $C = E + \alpha A A^H$,
-where the scalar $\alpha$ is `alpha`.
+where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-matrix_@ InMat1,
@@ -1583,3 +1639,121 @@ void hermitian_matrix_rank_2k_update(
 ```
 
 [8]{.pnum} *Effects:* Computes $C = E + A B^H + B A^H$.
+
+# Appendix A: Example of a generic numerical algorithm
+
+The following example shows how to implement a generic numerical algorithm, `two_norm_abs`.  This algorithm computes the absolute value of a variety of number types.  For complex numbers, it returns the magnitude, which is the same as the two-norm of the two-element vector composed of the real and imaginary parts of the complex number.  <a href="https://godbolt.org/z/KcGPdjPvP">This Compiler Explorer link</a> demonstrates the implementation.  This is not meant to show an ideal implementation.  (A better one would use rescaling, in the manner of `std::hypot`,  to avoid undue overflow or underflow.)  Instead, it illustrates generic numerical algorithm development.  Commenting out the `#define DEFINE_CONJ_REAL_IMAG_FOR_REAL 1` line shows that without ADL-findable `conj`, `real`, and `imag`, users' generic numerical algorithms would need more special cases and more assumptions on number types.
+
+```c++
+#include <cassert>
+#include <cmath>
+#include <complex>
+#include <concepts>
+#include <type_traits>
+
+#define DEFINE_CONJ_REAL_IMAG_FOR_REAL 1
+
+template<class T>
+constexpr bool is_std_complex = false;
+template<class R>
+constexpr bool is_std_complex<std::complex<R>> = true;
+
+template<class T>
+auto two_norm_abs(T t) {
+  if constexpr (std::is_unsigned_v<T>) {
+    return t;
+  }
+  else if constexpr (std::is_arithmetic_v<T> || is_std_complex<T>) {
+    return std::abs(t);
+  }
+#if ! defined(DEFINE_CONJ_REAL_IMAG_FOR_REAL)
+  else if constexpr (requires(T x) {
+      {abs(x)} -> std::convertible_to<T>;
+    }) {
+    return T{abs(t)};
+  }
+#endif
+  else if constexpr (requires(T x) {
+      {sqrt(real(x * conj(x)))} -> std::same_as<decltype(real(x))>;
+    }) {
+    return sqrt(real(t * conj(t)));
+  }
+  else {
+    static_assert(false, "No reasonable way to implement abs(t)");
+  }
+}
+
+struct MyRealNumber {
+  MyRealNumber() = default;
+  MyRealNumber(double value) : value_(value) {}
+
+  double value() const {
+    return value_;
+  }
+
+  friend bool operator==(MyRealNumber, MyRealNumber) = default;
+  friend MyRealNumber operator-(MyRealNumber x) {
+    return {-x.value_};
+  }
+  friend MyRealNumber operator+(MyRealNumber x, MyRealNumber y) {
+    return {x.value_ + y.value_};
+  }
+  friend MyRealNumber operator-(MyRealNumber x, MyRealNumber y) {
+    return {x.value_ - y.value_};
+  }
+  friend MyRealNumber operator*(MyRealNumber x, MyRealNumber y) {
+    return x.value_ * y.value_;
+  }
+
+#if defined(DEFINE_CONJ_REAL_IMAG_FOR_REAL)
+  friend MyRealNumber conj(MyRealNumber x) { return x; }
+  friend MyRealNumber real(MyRealNumber x) { return x; }
+  friend MyRealNumber imag(MyRealNumber x) { return {}; }
+#else
+  friend MyRealNumber abs(MyRealNumber x) { return std::abs(x.value_); }
+#endif
+  friend MyRealNumber sqrt(MyRealNumber x) { return std::sqrt(x.value_); }
+
+private:
+  double value_{};
+};
+
+class MyComplexNumber {
+public:
+  MyComplexNumber(MyRealNumber re, MyRealNumber im = {}) : re_(re), im_(im) {}
+  MyComplexNumber() = default;
+
+  std::complex<double> value() const {
+    return {re_.value(), im_.value()};
+  }
+
+  friend bool operator==(MyComplexNumber, MyComplexNumber) = default;
+  friend MyComplexNumber operator*(MyComplexNumber z, MyComplexNumber w) {
+    return {real(z) * real(w) - imag(z) * imag(w),
+      real(z) * imag(w) + imag(z) * real(w)};
+  }
+  friend MyComplexNumber conj(MyComplexNumber z) { return {real(z), -imag(z)}; }
+  friend MyRealNumber real(MyComplexNumber z) { return z.re_; }
+  friend MyRealNumber imag(MyComplexNumber z) { return z.im_; }
+
+private:
+  MyRealNumber re_{};
+  MyRealNumber im_{};
+};
+
+int main() {
+  [[maybe_unused]] double x1 = two_norm_abs(-4.2);
+  assert(x1 == 4.2);
+
+  [[maybe_unused]] float y0 = two_norm_abs(std::complex<float>{-3.0f, 4.0f});
+  assert(y0 == 5.0f);
+
+  [[maybe_unused]] MyRealNumber r = two_norm_abs(MyRealNumber{-6.7});
+  assert(r == MyRealNumber{6.7});
+
+  [[maybe_unused]] MyRealNumber z = two_norm_abs(MyComplexNumber{-3, 4});
+  assert(z.value() == 5.0);
+ 
+  return 0;
+}
+```
