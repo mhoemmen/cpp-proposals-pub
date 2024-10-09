@@ -65,7 +65,17 @@ Items (2) and (3) are breaking changes to the current Working Draft.  Thus, we m
 
 ## Support both overwriting and updating rank-k and rank-2k updates
 
-### BLAS supports scaling factor beta; std::linalg currently does not
+1. For rank-k and rank-2k updates (general, symmetric, and Hermitian), BLAS routines support both overwriting and updating behavior by exposing a scaling factor `beta`.  The corresponding [linalg] algorithms currently do not expose the equivalent functionality.  Instead, they are unconditionally updating, as if `beta` is one.
+
+2. The rank-k and rank-2k updates are special cases of `matrix_product`, but as a result of (1), their behavior is not consistent with `matrix_product`.
+
+3. Therefore, we need to add updating overloads of the rank-k and rank-2k updates, and change the existing overloads to be overwriting.
+
+4. The change to existing overloads is a breaking change and thus must be finished before C++26.
+
+5. To simplify wording, we add new exposition-only concepts _`possibly-packed-in-matrix`_ and _`possibly-packed-out-matrix`_ for symmetric and Hermitian matrix update algorithms.
+
+### For rank-k and rank-2k updates, BLAS supports scaling factor beta, while std::linalg currently does not
 
 Each function in any section whose label begins with "linalg.algs" generally corresponds to one or more routines or functions in the original BLAS (Basic Linear Algebra Subroutines).  Every computation that the BLAS can do, a function in the C++ Standard Library should be able to do.
 
@@ -128,11 +138,11 @@ Both sets of overloads still only write to the specified triangle (lower or uppe
 
 ## Change rank-1 and rank-2 updates to be consistent with rank-k and rank-2k
 
-1. Rank-1 and rank-2 updates currently unconditionally update and do not take a $\beta$ scaling factor.
+1. Currently, the rank-1 and rank-2 updates unconditionally update and do not take a $\beta$ scaling factor.  This behavior deviates from the BLAS Standard and is inconsistent with the rank-k and rank-2k updates.
 
 2. We propose making all the rank-1 and rank-2 update functions consistent with the proposed change to the rank-k and rank-2k updates.  This means both changing the meaning of the current overloads to be overwriting, and adding new overloads that are updating.  This includes general (nonsymmetric), symmetric, and Hermitian rank-1 update functions, as well as symmetric and Hermitian rank-2 update functions.
 
-3. As a result, the exposition-only concept _`possibly-packed-inout-matrix`_ is no longer needed.  We propose removing it.
+3. The exposition-only concept _`possibly-packed-inout-matrix`_ is no longer needed.  We propose removing it.
 
 ### Current std::linalg behavior
 
@@ -181,25 +191,126 @@ Note that this would not eliminate all uses of the exposition-only concept _`ino
 
 ## Use only the real part of scaling factor `alpha` for Hermitian matrix rank-1 and rank-k updates
 
-For Hermitian rank-1 and rank-k matrix updates, if users provide a scaling factor `alpha`, it must have zero imaginary part.  Otherwise, the matrix update will not be Hermitian.  Neither the C++ Working Draft nor any other proposal in flight requires this.  We propose fixing it by making these update algorithms only use the real part of `alpha`, as in _`real-if-needed`_`(alpha)`.  This solution is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part," where we make Hermitian rank-1 and rank-k matrix updates use only the real part of matrices' diagonals.
+For Hermitian rank-1 and rank-k matrix updates, if users provide a scaling factor `alpha`, it must have zero imaginary part.  Otherwise, the matrix update will not be Hermitian, because all elements on the diagonal of a Hermitian matrix must have nonzero imaginary part.  Even though $A A^H$ is mathematically always Hermitian, if $\alpha$ has nonzero imaginary part, then $\alpha A A^H$ may no longer be a Hermitian matrix.  For example, if $A$ is the identity matrix (with ones on the diagonal and zeros elsewhere) and $\alpha = i$ (the imaginary unit, which is the square root of negative one), then $\alpha A A^H$ is the diagonal matrix whose diagonal elements are all $i$, and thus has nonzero imaginary part.
 
-We can think of at least three alternative solutions, and will explain here why we did not choose them.  The first is to constrain `alpha` to have a noncomplex number type, the second is to exclude `std::complex<T>` but not try to define a "noncomplex number" constraint, and the third is to impose a precondition that the imaginary part of `alpha` is zero.
+The specification of `hermitian_matrix_rank_1_update` and `hermitian_matrix_rank_k_update` does not currently require that `alpha` have nonzero imaginary part.  We propose fixing this by making these update algorithms only use the real part of `alpha`, as in _`real-if-needed`_`(alpha)`.  This solution is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part," where we make Hermitian rank-1 and rank-k matrix updates use only the real part of matrices' diagonals.
 
-### Justification: Scaling factor needs to be noncomplex, else update may be non-Hermitian
+We begin with a summary of all the Hermitian matrix BLAS routines, how scaling factors influence their mathematical correctness.  Then, we explain how these scaling factor concerns translate into [linalg] function concerns.  Finally, we discuss alternative solutions.
 
-The C++ Working Draft already has `Scalar alpha` overloads of `hermitian_rank_k_update`.  The `Scalar` type currently can be complex.  However, if `alpha` has nonzero imaginary part, then $\alpha A A^H$ may no longer be a Hermitian matrix, even though $A A^H$ is mathematically always Hermitian.  For example, if $A$ is the identity matrix (with ones on the diagonal and zeros elsewhere) and $\alpha = i$ (the imaginary unit, which is the square root of negative one), then $\alpha A A^H$ is the diagonal matrix whose diagonal elements are all $i$.  While that matrix is symmetric, it is not Hermitian, because all elements on the diagonal of a Hermitian matrix must have nonzero imaginary part.  The rank-1 update function `hermitian_rank_1_update` has the analogous issue.
+### Survey of scaling factors in Hermitian matrix BLAS routines
 
-### Alternatives
+The BLAS's Hermitian matrix routines take `alpha` and `beta` scaling factors.  The BLAS addresses the resulting correctness concerns in different ways, depending on what each routine computes.  For routines where a nonzero imaginary part could make the result incorrect, the routine restricts the scaling factor to have a noncomplex number type.  Otherwise, the routine takes the scaling factor as a complex number type.  We discuss all the Hermitian routines here.
+
+#### `HEMM`: Hermitian matrix-matrix multiply
+
+`HEMM` (HErmitian Matrix-matrix Multiply) computes either $C := \alpha A B + \beta C$ or $C := \alpha B A + \beta C$, where $A$ is a Hermitian matrix, and neither $B$ nor $C$ need to be Hermitian.  The products $A B$ and $B A$ thus need not be Hermitian, so the scaling factors $\alpha$ and $\beta$ can have nonzero imaginary parts.  The BLAS takes them both as complex numbers.
+
+#### `HEMV`: HErmitian Matrix-Vector multiply
+
+`HEMV` (HErmitian Matrix-Vector multiply) computes $y := \alpha A x + \beta y$, where $A$ is a Hermitian matrix and $x$ and $y$ are vectors.  The scaled matrix $\alpha A$ does not need to be Hermitian.  Thus, $\alpha$ and $\beta$ can have nonzero imaginary parts.  The BLAS takes them both as complex numbers.
+
+#### `HER`: HErmitian Rank-1 update
+
+`HER` (HErmitian Rank-1 update) differs between the Reference BLAS (which computes $A := \alpha x x^H + A$) and the BLAS Standard (which computes $A := \alpha x x^H + \beta A$).  The matrix $A$ must be Hermitian, and the rank-1 matrix $x x^H$ is always mathematically Hermitian, so both $\alpha$ and $\beta$ need to have zero imaginary part in order for the update to preserve $A$'s Hermitian property.  The BLAS takes them both as real (noncomplex) numbers.
+
+#### `HER2`: HErmitian Rank-2 update
+
+`HER2` (HErmitian Rank-2 update) differs between the Reference BLAS (which computes $A := \alpha x y^H + \bar{\alpha} y x^H + A$, where $\bar{\alpha}$ denotes the complex conjugate of $\alpha$) and the BLAS Standard (which computes $A := \alpha x y^H + \bar{\alpha} y x^H + \beta A$).  The matrix $A$ must be Hermitian, and the rank-2 matrix $\alpha x y^H + \bar{\alpha} y x^H$ is always mathematically Hermitian, no matter the value of $\alpha$.  Thus, $\alpha$ can have nonzero imaginary part, but $\beta$ cannot.  The BLAS thus takes `alpha` as a complex number, but `beta` as a real (noncomplex) number.  (There is likely a typo in the BLAS Standard's description of the Fortran 95 binding.  It says that both `alpha` and `beta` are complex (have type `COMPLEX(<wp>)`), even though in the Fortran 77 binding, `beta` is real (`<rtype>`).  The BLAS Standard's description of `HER2K` (see below) says that `alpha` is complex but `beta` is real.  `HER2` needs to be consistent with `HER2K`.)
+
+#### `HERK`: HErmitian Rank-K update
+
+`HERK` (HErmitian Rank-K update) computes either $C := \alpha A A^H + \beta C$ or $C := \alpha A^H A + \beta C$, where $C$ must be Hermitian.  This is a generalization of `HER` and thus both $\alpha$ and $\beta$ need to have zero imaginary part.  The BLAS takes them both as real (noncomplex) numbers.
+
+#### `HER2K`: HErmitian Rank-2k update
+
+`HER2K` (HErmitian Rank-2k update) computes either $C := \alpha A B^H + \bar{\alpha} B A^H + \beta C$ or $C := \alpha A^H B + \bar{\alpha} B^H A + \beta C$.  This is a generalization of `HER2`: $\alpha$ can have nonzero imaginary part, but $\beta$ cannot.  The BLAS thus takes `alpha` as a complex number, but `beta` as a real (noncomplex) number.
+
+#### Summary of BLAS routine restrictions
+
+The following table lists, for all the Hermitian matrix update BLAS routines, whether the routine restricts `alpha` and/or `beta` to have zero imaginary part, and whether the routine is a generalization of some other routine in the list (N/A, "not applicable," means that it is not).
+
+<table>
+  <tr>
+    <th> BLAS routine      </th>
+    <th> Restricts `alpha` </th>
+    <th> Restricts `beta`  </th>
+    <th> Generalizes       </th>
+  </tr>
+  <tr>
+    <th> `HEMM`  </th>
+    <th> No      </th>
+    <th> No      </th>
+    <th> N/A     </th>
+  </tr>
+  <tr>
+    <th> `HER`   </th>
+    <th> Yes     </th>
+    <th> Yes     </th>
+    <th> N/A     </th>
+  </tr>
+  <tr>
+    <th> `HER2`  </th>
+    <th> No      </th>
+    <th> Yes     </th>
+    <th> N/A     </th>
+  </tr>
+  <tr>
+    <th> `HERK`  </th>
+    <th> Yes     </th>
+    <th> Yes     </th>
+    <th> `HER`   </th>
+  </tr>
+  <tr>
+    <th> `HER2K` </th>
+    <th> No      </th>
+    <th> Yes     </th>
+    <th> `HER2`  </th>
+  </tr>
+</table>
+
+### Translation of Hermitian BLAS concerns to std::linalg
+
+#### Assume changes proposed in previous sections
+
+We assume here the changes proposed in previous sections that remove inout matrix parameters from the rank-1, rank-2, rank-k, and rank-2k algorithms, and separate these algorithms into overwriting and updating overloads.  This lets us only consider input matrix and vector parameters.
+
+#### std::linalg and the BLAS treat scaling factors differently
+
+The [linalg] library and the BLAS treat scaling factors in different ways.  First, [linalg] treats the result of `scaled` just like any other matrix or vector parameter.  It applies any mathematical requirements (like being Hermitian) to the parameter, regardless of whether the corresponding argument results from `scaled`.  It also does not forbid any input argument from being the result of `scaled`.  Second, the BLAS always exposes `alpha` and `beta` scaling factor parameters separately from the matrix or vector parameters to which they are applied.  In contrast, [linalg] only exposes a separate `alpha` scaling factor (never `beta`) if it would otherwise be mathematically impossible to express an operation that the BLAS can express.  For example, for matrices and scaling factors that are noncomplex, `symmetric_matrix_rank_1_update` cannot express $A := A - x x^T$ with a noncomplex scaling factor (because the square root of $-1$ is $i$).
+
+#### Defer fixing places where the BLAS can do what std::linalg cannot
+
+In some cases, [linalg] does not expose a separate scaling factor parameter, even when this prevents [linalg] from doing some things that the BLAS can do.  We give an example below of triangular matrix solves with multiple right-hand sides and `alpha` scaling not equal to one, where the matrix has an implicit unit diagonal.
+
+Even though this means that the BLAS can do some things that [linalg] cannot do, it does not cause [linalg] to violate mathematical consistency.  More importantly, as we show later, [linalg] can be extended to do whatever the BLAS can do without breaking backwards compatibility.  Thus, we consider the status quo acceptable for C++26.
+
+#### Scaling factor `beta` is not a concern
+
+The [linalg] library never exposes a scaling factor `beta`.  For BLAS routines that perform an update with `beta` times an inout matrix or vector parameter (e.g., $\beta y$ or $\beta C$), [linalg] instead takes an input matrix or vector parameter (e.g., `E`) that can be separate from the output matrix or vector (e.g., `C`).  For Hermitian BLAS routines where `beta` needs to have zero imaginary part, [linalg] simply requires that `E` be Hermitian -- a strictly more general requirement.  For example, for the new updating overloads of `hermitian_rank_1_update` and `hermitian_rank_k_update` proposed above, [linalg] expresses a `beta` scaling factor by letting users supply `scaled(beta, C)` as the argument for `E`.  The wording only requires that `E` be Hermitian.  If `E` is `scaled(beta, C)`, this concerns only the product of `beta` and `C`.  It would be incorrect to constrain `beta` or `C` separately.  For example, if $\beta = -i$ and $C$ is the matrix whose elements are all $i$, then $C$ is not Hermitian but $\beta C$ (and therefore `scaled(beta, C)`) is Hermitian.  The same reasoning applies for the rank-2 and rank-2k updates.
+
+#### What this section proposes to fix, and the proposed solution
+
+The above arguments help us restrict our concerns.  This section of our proposal concerns itself with Hermitian matrix update algorithms where
+
+* the algorithm exposes a separate scaling factor parameter `alpha`, and
+
+* `alpha` needs to have zero imaginary part, but
+
+* nothing in the wording currently prevents `alpha` from having nonzero imaginary part.
+
+These correspond exactly to the BLAS's Hermitian matrix update routines where the type of `alpha` is real: `HER` and `HERK`.  This strongly suggests solving the problem in [linalg] by constraining the type of `alpha` to be noncomplex.  However, as we explain in "Alternative solutions" below, it is hard to define a "noncomplex number" constraint that works well for user-defined number types.  Instead, we propose fixing this in a way that is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part."  That is, the Hermitian rank-1 and rank-k update algorithms will simply use _`real-if-needed`_`(alpha)` and ignore any nonzero imaginary part of `alpha`.
+
+### Alternative solutions
 
 We can think of at least four different ways to solve this problem, and will explain why we did not choose those solutions.
 
-1. Constrain `alpha` by defining a generic "noncomplex number type" constraint
+1. Constrain `alpha` by defining a generic "noncomplex number type" constraint.
 
-2. Only constrain `alpha` not to be `std::complex<T>`; do not try to define a generic "noncomplex number" constraint
+2. Only constrain `alpha` not to be `std::complex<T>`; do not try to define a generic "noncomplex number" constraint.
 
-3. Constrain `alpha` by default using a generic "noncomplex number type" constraint, but let users specialize an "opt-out trait" to tell the library that their number type is noncomplex
+3. Constrain `alpha` by default using a generic "noncomplex number type" constraint, but let users specialize an "opt-out trait" to tell the library that their number type is noncomplex.
 
-4. Impose a precondition that the imaginary part of `alpha` is zero
+4. Impose a precondition that the imaginary part of `alpha` is zero.
 
 If we had to pick one of these solutions, we would favor first (4), then (3), and then (1).  We would object most to (2).
 
@@ -242,7 +353,7 @@ A variant of this suggestion would be only to constrain `alpha` not to be `std::
 
 Another option would be to constrain `alpha` by default using the same generic "noncomplex number type" constraint as in Option (1), but let users specialize an "opt-out trait" to tell the library that their number type is noncomplex.  We would add a new "tag" type trait `is_noncomplex` that users can specialize.  By default, `is_noncomplex<T>::value` is `false` for any type `T`.  This does _not_ mean that the type is complex, just that the user declares their type to be noncomplex.  The distinction matters, because a noncomplex number type might still provide ADL-findable `conj`, `real`, and `imag`, as we showed above.  Users must take positive action to declare their type `U` as "not a complex number type," by specializing `is_noncomplex<U>` so that `is_noncomplex<U>::value` is `true`.  If users do that, then the library will ignore any ADL-findable functions `conj`, `real`, and `imag` (whether or not they exist), and will assume that the number type is noncomplex.
 
-Standard Library precedent for this approach is in heterogeneous lookup for associative containers (see N3657 for ordered associative containers, and P0919 and P1690 for unordered containers).  User-defined hash functions and key equality comparison functions can tell the container to provide heterogeneous comparisons by exposing a `static constexpr bool is_transparent` whose value is `true`.  Default behavior does not expose heterogeneous comparisons.  Thus, users must opt in at compile time to assert something about their user-defined types.
+Standard Library precedent for this approach is in heterogeneous lookup for associative containers (see N3657 for ordered associative containers, and P0919 and P1690 for unordered containers).  User-defined hash functions and key equality comparison functions can tell the container to provide heterogeneous comparisons by exposing a `static constexpr bool is_transparent` whose value is `true`.  Default behavior does not expose heterogeneous comparisons.  Thus, users must opt in at compile time to assert something about their user-defined types.  Another example is `uses_allocator<T, alloc>`, whose `value` member defaults to `false` unless `T` has a nested type `allocator_type` that is convertible from `Alloc`.  Standard Library types like `tuple` use `uses_allocator` to determine if a user-defined type `T` is allocator-aware.
 
 Of the three constraint-based approaches discussed in this proposal, we favor this one the most.  It still treats types "as they are" and does not permit users to claim that a type is complex when it lacks the needed operations, but it lets users optimize by giving the Standard Library a single bit of compile-time information.  By default, any linear algebra value type (see [linalg.reqs.val]) that meets the `maybe_complex` concept below would be considered "possibly complex."  Types that do not meet this concept would result in compilation errors; users would then be able to search documentation or web pages to find out that they need to specialize `is_noncomplex`.
 
@@ -256,7 +367,7 @@ concept maybe_complex =
     {imag(t)} -> std::convertible_to<T>;
 ```
 
-P1673 generally avoids approaches based on specializing traits.  Its design philosophy favors treating types as they are.  Users should not need to do something to get correct behavior.  We based this off our past experiences in generic numerical algorithms development.  In the 2010's, one of the authors maintained a generic mathematical algorithms library called Trilinos.  The Teuchos (pronounced "TEFF-os") package of Trilinos provides a monolithic `ScalarTraits` class template that defines different properties of a number type.  It combines the features of `std::numeric_limits` with generic complex arithmetic operations like `conjugate`, `real`, and `imag`.  Trilinos' generic algorithms assume that number types are regular and define overloaded `+`, `-`, `*`, and `/`, but use `ScalarTraits<T>::conjugate`, `ScalarTraits<T>::real`, and `ScalarTraits<T>::imag`.  As a result, users with a custom complex number type had to specialize `ScalarTraits` and provide all these operations.  Even if users had imitated `std::complex`'s interface perfectly and provided ADL-findable `conj`, `real`, and `imag`, users had to do extra work to make Trilinos compile and run correctly for their numbers.  With P1673, we decided instead that users who define a custom complex number type with an interface sufficiently like `std::complex` should get reasonable behavior without needing to do anything else.
+P1673 generally avoids approaches based on specializing traits.  Its design philosophy favors treating types as they are.  Users should not need to do something to get correct behavior.  We based this on our past experiences in generic numerical algorithms development.  In the 2010's, one of the authors maintained a generic mathematical algorithms library called Trilinos.  The Teuchos (pronounced "TEFF-os") package of Trilinos provides a monolithic `ScalarTraits` class template that defines different properties of a number type.  It combines the features of `std::numeric_limits` with generic complex arithmetic operations like `conjugate`, `real`, and `imag`.  Trilinos' generic algorithms assume that number types are regular and define overloaded `+`, `-`, `*`, and `/`, but use `ScalarTraits<T>::conjugate`, `ScalarTraits<T>::real`, and `ScalarTraits<T>::imag`.  As a result, users with a custom complex number type had to specialize `ScalarTraits` and provide all these operations.  Even if users had imitated `std::complex`'s interface perfectly and provided ADL-findable `conj`, `real`, and `imag`, users had to do extra work to make Trilinos compile and run correctly for their numbers.  With P1673, we decided instead that users who define a custom complex number type with an interface sufficiently like `std::complex` should get reasonable behavior without needing to do anything else.
 
 As a tangent, we would like to comment on the monolithic design of `Teuchos::ScalarTraits`.  The monolithic design was partly an imitation of `std::numeric_limits`, and partly a side effect of a requirement to support pre-C++11 compilers that did not permit partial specialization of function templates.  (The typical pre-C++11 work-around is to define an unspecialized function template that dispatches to a possibly specialized class template.)  C++11 permits partial specialization of function templates and C++14 introduces variable templates; these features have encouraged "breaking up" monolithic traits classes into separate traits.  Our paper P1370R1 ("Generic numerical algorithm development with(out) `numeric_limits`") aligns with this trend.
 
@@ -268,27 +379,14 @@ If users call Hermitian matrix rank-1 or rank-k updates with `alpha` being `std:
 
 ## Things relating to scaling factors that we do not propose changing
 
-### Nothing wrong with rank-2 or rank-2k updates
+### Hermitian matrix-vector and matrix-matrix products
 
-This issue does *not* arise with the rank-2 or rank-2k updates.  In the BLAS, the rank-2 updates `xHER2` and the rank-2k updates `xHER2K` all take `alpha` as a complex number.  The corresponding [linalg] functions do not take a separate `alpha` parameter, because users can pass it in via `scaled`, attached either to `A` or `B`: e.g., `scaled(alpha, A)`.  The matrix $\alpha A B^H + \bar{\alpha} B A^H$ is Hermitian by construction, no matter the value of $\alpha$.
-
-### Nothing wrong with scaling factor beta
-
-Both the current wording and the proposed changes to all these update functions behave correctly with respect to `beta`.
-
-For the new updating overloads of `hermitian_rank_1_update` and `hermitian_rank_k_update`, [linalg] expresses a `beta` scaling factor by letting users supply `scaled(beta, C)` as the argument for `E`.  The wording only requires that `E` be Hermitian.  If `E` is `scaled(beta, C)`, this concerns only the product of `beta` and `C`.  It would be incorrect to constrain `beta` or `C` separately.  For example, if $\beta = -i$ and $C$ is the matrix whose elements are all $i$, then $C$ is not Hermitian but $\beta C$ (and therefore `scaled(beta, C)`) is Hermitian.
-
-This issue does *not* arise with the rank-2k updates.  For example, the BLAS routine `xHER2K` takes `beta` as a real number.  The previous paragraph's reasoning for `beta` applies here as well.
-
-This issue also does not arise with the rank-2 updates.  In the Reference BLAS, the rank-2 update routines `xHER2` do not have a way to supply `beta`, while in the BLAS Standard, `xHER2` *does* take `beta`.  The BLAS Standard says that "$\alpha$ is a complex scalar and and [sic] $\beta$ is a real scalar."  The Fortran 77 and C bindings specify the type of `beta` as real (`<rtype>` resp. `RSCALAR_IN`), but the Fortran 95 binding lists both `alpha` and `beta` as `COMPLEX(<wp>)`.  The type of `beta` in the Fortran 95 is likely a typo, considering the wording.
-
-### Nothing wrong with Hermitian matrix-vector and matrix-matrix products
-
-In our view, the current behavior of `hermitian_matrix_vector_product` and `hermitian_matrix_product` is correct with respect to the `alpha` scaling factor.  These functions do not need extra overloads that take `Scalar alpha`.  Users who want to supply `alpha` with nonzero imaginary part should *not* scale the matrix `A` (as in `scaled(alpha, A)`).  Instead, they should scale the input vector `x`, as in the following.
+We pointed out above that `hermitian_matrix_vector_product` and `hermitian_matrix_product` expect that the (possibly scaled) input matrix is Hermitian, while the corresponding BLAS routines `HEMV` and `HEMM` expect that the unscaled input matrix is Hermitian and permit the scaling factor `alpha` to have nonzero imaginary part.  However, this does not affect the ability of these [linalg] algorithms to compute what the BLAS can compute.  Users who want to supply `alpha` with nonzero imaginary part should *not* scale the matrix `A` (as in `scaled(alpha, A)`).  Instead, they should scale the input vector `x`, as in the following.
 ```c++
 auto alpha = std::complex{0.0, 1.0};
 hermitian_matrix_vector_product(A, upper_triangle, scaled(alpha, x), y);
 ```
+Therefore, `hermitian_matrix_vector_product` and `hermitian_matrix_product` do *not* need extra overloads with a scaling factor `alpha` parameter.
 
 #### In BLAS, matrix is Hermitian, but scaled matrix need not be
 
@@ -395,7 +493,7 @@ We do not support this approach.  First, it would introduce many overloads, with
 
 Second, `alpha` overloads would not prevent users from *also* supplying `scaled(gamma, A)` as the matrix for some other scaling factor `gamma`.  Thus, instead of solving the problem, the overloads would introduce more possibilities for errors.
 
-### Triangular matrix products, unit diagonals, and scaling factors
+### Triangular matrix products with implicit unit diagonals
 
 1. In BLAS, triangular matrix-vector and matrix-matrix products apply `alpha` scaling to the implicit unit diagonal.  In [linalg], the scaling factor `alpha` is not applied to the implicit unit diagonal.  This is because the library does not interpret `scaled(alpha, A)` differently than any other `mdspan`.
 
@@ -458,7 +556,7 @@ The only routines that call `DTRMM` with `alpha` equal to anything other than on
 
 We can think of two ways to fix this issue.  First, we could add an `alpha` scaling parameter, analogous to the symmetric and Hermitian rank-1 and rank-k update functions.  Second, we could add a new kind of `Diagonal` template parameter type that expresses a "diagonal value."  For example, `implicit_diagonal_t{alpha}` (or a function form, `implicit_diagonal(alpha)`) would tell the algorithm not to access the diagonal elements, but instead to assume that their value is `alpha`.  Both of these solutions would let users specify the diagonal's scaling factor separately from the scaling factor for the rest of the matrix.  Those two scaling factors could differ, which is new functionality not offered by the BLAS.  More importantly, both of these solutions could be added later, after C++26, without breaking backwards compatibility.
 
-### Triangular solves, unit diagonals, and scaling factors
+### Triangular solves with implicit unit diagonals
 
 1. In BLAS, triangular solves with possibly multiple right-hand sides (`xTRSM`) apply `alpha` scaling to the implicit unit diagonal.  In [linalg], the scaling factor `alpha` is not applied to the implicit unit diagonal.  This is because the library does not interpret `scaled(alpha, A)` differently than any other `mdspan`.
 
@@ -595,7 +693,7 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
 > Then, in [linalg.helpers.concepts], change paragraph 3 to read as follows (new content "or _`possibly-packed-out-matrix`_" in green; removed content "or _`possibly-packed-inout-matrix`_" in red).
 
-Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-object`_, _`out-vector`_, _`out-matrix`_, _`out-object`_, <span style="color: green;">or _`possibly-packed-out-matrix`_</span><span style="color: red;">, or _`possibly-packed-inout-matrix`_</span> parameter of a function in [linalg] shall not overlap any other `mdspan` parameter of the function.
+Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-object`_, _`out-vector`_, _`out-matrix`_, _`out-object`_, <span style="color: green;">or _`possibly-packed-out-matrix`_</span>~~<span style="color: red;">, or _`possibly-packed-inout-matrix`_</span>~~ parameter of a function in [linalg] shall not overlap any other `mdspan` parameter of the function.
 
 ## Rank-1 update functions in synopsis
 

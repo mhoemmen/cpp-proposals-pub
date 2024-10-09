@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2024-10-07" />
+  <meta name="dcterms.date" content="2024-10-09" />
   <title>Fix C++26 by making the rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS</title>
   <style>
 code{white-space: pre-wrap;}
@@ -426,7 +426,7 @@ BLAS</h1>
   </tr>
   <tr>
     <td>Date: </td>
-    <td>2024-10-07</td>
+    <td>2024-10-09</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project: </td>
@@ -456,8 +456,9 @@ BLAS</h1>
 <li><a href="#support-both-overwriting-and-updating-rank-k-and-rank-2k-updates" id="toc-support-both-overwriting-and-updating-rank-k-and-rank-2k-updates"><span class="toc-section-number">4.1</span> Support both overwriting and
 updating rank-k and rank-2k updates</a>
 <ul>
-<li><a href="#blas-supports-scaling-factor-beta-stdlinalg-currently-does-not" id="toc-blas-supports-scaling-factor-beta-stdlinalg-currently-does-not"><span class="toc-section-number">4.1.1</span> BLAS supports scaling factor
-beta; std::linalg currently does not</a></li>
+<li><a href="#for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not" id="toc-for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not"><span class="toc-section-number">4.1.1</span> For rank-k and rank-2k updates,
+BLAS supports scaling factor beta, while std::linalg currently does
+not</a></li>
 <li><a href="#make-these-functions-consistent-with-general-matrix-product" id="toc-make-these-functions-consistent-with-general-matrix-product"><span class="toc-section-number">4.1.2</span> Make these functions consistent
 with general matrix product</a></li>
 <li><a href="#fix-requires-changing-behavior-of-existing-overloads" id="toc-fix-requires-changing-behavior-of-existing-overloads"><span class="toc-section-number">4.1.3</span> Fix requires changing behavior
@@ -481,23 +482,21 @@ longer needed</a></li>
 factor <code>alpha</code> for Hermitian matrix rank-1 and rank-k
 updates</a>
 <ul>
-<li><a href="#justification-scaling-factor-needs-to-be-noncomplex-else-update-may-be-non-hermitian" id="toc-justification-scaling-factor-needs-to-be-noncomplex-else-update-may-be-non-hermitian"><span class="toc-section-number">4.3.1</span> Justification: Scaling factor
-needs to be noncomplex, else update may be non-Hermitian</a></li>
-<li><a href="#alternatives" id="toc-alternatives"><span class="toc-section-number">4.3.2</span> Alternatives</a></li>
+<li><a href="#survey-of-scaling-factors-in-hermitian-matrix-blas-routines" id="toc-survey-of-scaling-factors-in-hermitian-matrix-blas-routines"><span class="toc-section-number">4.3.1</span> Survey of scaling factors in
+Hermitian matrix BLAS routines</a></li>
+<li><a href="#translation-of-hermitian-blas-concerns-to-stdlinalg" id="toc-translation-of-hermitian-blas-concerns-to-stdlinalg"><span class="toc-section-number">4.3.2</span> Translation of Hermitian BLAS
+concerns to std::linalg</a></li>
+<li><a href="#alternative-solutions" id="toc-alternative-solutions"><span class="toc-section-number">4.3.3</span> Alternative solutions</a></li>
 </ul></li>
 <li><a href="#things-relating-to-scaling-factors-that-we-do-not-propose-changing" id="toc-things-relating-to-scaling-factors-that-we-do-not-propose-changing"><span class="toc-section-number">4.4</span> Things relating to scaling factors
 that we do not propose changing</a>
 <ul>
-<li><a href="#nothing-wrong-with-rank-2-or-rank-2k-updates" id="toc-nothing-wrong-with-rank-2-or-rank-2k-updates"><span class="toc-section-number">4.4.1</span> Nothing wrong with rank-2 or
-rank-2k updates</a></li>
-<li><a href="#nothing-wrong-with-scaling-factor-beta" id="toc-nothing-wrong-with-scaling-factor-beta"><span class="toc-section-number">4.4.2</span> Nothing wrong with scaling
-factor beta</a></li>
-<li><a href="#nothing-wrong-with-hermitian-matrix-vector-and-matrix-matrix-products" id="toc-nothing-wrong-with-hermitian-matrix-vector-and-matrix-matrix-products"><span class="toc-section-number">4.4.3</span> Nothing wrong with Hermitian
-matrix-vector and matrix-matrix products</a></li>
-<li><a href="#triangular-matrix-products-unit-diagonals-and-scaling-factors" id="toc-triangular-matrix-products-unit-diagonals-and-scaling-factors"><span class="toc-section-number">4.4.4</span> Triangular matrix products, unit
-diagonals, and scaling factors</a></li>
-<li><a href="#triangular-solves-unit-diagonals-and-scaling-factors" id="toc-triangular-solves-unit-diagonals-and-scaling-factors"><span class="toc-section-number">4.4.5</span> Triangular solves, unit
-diagonals, and scaling factors</a></li>
+<li><a href="#hermitian-matrix-vector-and-matrix-matrix-products" id="toc-hermitian-matrix-vector-and-matrix-matrix-products"><span class="toc-section-number">4.4.1</span> Hermitian matrix-vector and
+matrix-matrix products</a></li>
+<li><a href="#triangular-matrix-products-with-implicit-unit-diagonals" id="toc-triangular-matrix-products-with-implicit-unit-diagonals"><span class="toc-section-number">4.4.2</span> Triangular matrix products with
+implicit unit diagonals</a></li>
+<li><a href="#triangular-solves-with-implicit-unit-diagonals" id="toc-triangular-solves-with-implicit-unit-diagonals"><span class="toc-section-number">4.4.3</span> Triangular solves with implicit
+unit diagonals</a></li>
 </ul></li>
 </ul></li>
 <li><a href="#ordering-with-respect-to-other-proposals-and-lwg-issues" id="toc-ordering-with-respect-to-other-proposals-and-lwg-issues"><span class="toc-section-number">5</span> Ordering with respect to other
@@ -619,8 +618,29 @@ Thus, we must finish this before finalization of C++26.</p>
 <h1 data-number="4" id="discussion-of-proposed-changes"><span class="header-section-number">4</span> Discussion of proposed changes<a href="#discussion-of-proposed-changes" class="self-link"></a></h1>
 <h2 data-number="4.1" id="support-both-overwriting-and-updating-rank-k-and-rank-2k-updates"><span class="header-section-number">4.1</span> Support both overwriting and
 updating rank-k and rank-2k updates<a href="#support-both-overwriting-and-updating-rank-k-and-rank-2k-updates" class="self-link"></a></h2>
-<h3 data-number="4.1.1" id="blas-supports-scaling-factor-beta-stdlinalg-currently-does-not"><span class="header-section-number">4.1.1</span> BLAS supports scaling factor
-beta; std::linalg currently does not<a href="#blas-supports-scaling-factor-beta-stdlinalg-currently-does-not" class="self-link"></a></h3>
+<ol type="1">
+<li><p>For rank-k and rank-2k updates (general, symmetric, and
+Hermitian), BLAS routines support both overwriting and updating behavior
+by exposing a scaling factor <code>beta</code>. The corresponding
+[linalg] algorithms currently do not expose the equivalent
+functionality. Instead, they are unconditionally updating, as if
+<code>beta</code> is one.</p></li>
+<li><p>The rank-k and rank-2k updates are special cases of
+<code>matrix_product</code>, but as a result of (1), their behavior is
+not consistent with <code>matrix_product</code>.</p></li>
+<li><p>Therefore, we need to add updating overloads of the rank-k and
+rank-2k updates, and change the existing overloads to be
+overwriting.</p></li>
+<li><p>The change to existing overloads is a breaking change and thus
+must be finished before C++26.</p></li>
+<li><p>To simplify wording, we add new exposition-only concepts
+<em><code>possibly-packed-in-matrix</code></em> and
+<em><code>possibly-packed-out-matrix</code></em> for symmetric and
+Hermitian matrix update algorithms.</p></li>
+</ol>
+<h3 data-number="4.1.1" id="for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not"><span class="header-section-number">4.1.1</span> For rank-k and rank-2k
+updates, BLAS supports scaling factor beta, while std::linalg currently
+does not<a href="#for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not" class="self-link"></a></h3>
 <p>Each function in any section whose label begins with “linalg.algs”
 generally corresponds to one or more routines or functions in the
 original BLAS (Basic Linear Algebra Subroutines). Every computation that
@@ -757,9 +777,10 @@ interpret and access <code>E</code>.</p>
 <h2 data-number="4.2" id="change-rank-1-and-rank-2-updates-to-be-consistent-with-rank-k-and-rank-2k"><span class="header-section-number">4.2</span> Change rank-1 and rank-2
 updates to be consistent with rank-k and rank-2k<a href="#change-rank-1-and-rank-2-updates-to-be-consistent-with-rank-k-and-rank-2k" class="self-link"></a></h2>
 <ol type="1">
-<li><p>Rank-1 and rank-2 updates currently unconditionally update and do
-not take a <span class="math inline"><em>β</em></span> scaling
-factor.</p></li>
+<li><p>Currently, the rank-1 and rank-2 updates unconditionally update
+and do not take a <span class="math inline"><em>β</em></span> scaling
+factor. This behavior deviates from the BLAS Standard and is
+inconsistent with the rank-k and rank-2k updates.</p></li>
 <li><p>We propose making all the rank-1 and rank-2 update functions
 consistent with the proposed change to the rank-k and rank-2k updates.
 This means both changing the meaning of the current overloads to be
@@ -767,7 +788,7 @@ overwriting, and adding new overloads that are updating. This includes
 general (nonsymmetric), symmetric, and Hermitian rank-1 update
 functions, as well as symmetric and Hermitian rank-2 update
 functions.</p></li>
-<li><p>As a result, the exposition-only concept
+<li><p>The exposition-only concept
 <em><code>possibly-packed-inout-matrix</code></em> is no longer needed.
 We propose removing it.</p></li>
 </ol>
@@ -866,9 +887,20 @@ scaling factor <code>alpha</code> for Hermitian matrix rank-1 and rank-k
 updates<a href="#use-only-the-real-part-of-scaling-factor-alpha-for-hermitian-matrix-rank-1-and-rank-k-updates" class="self-link"></a></h2>
 <p>For Hermitian rank-1 and rank-k matrix updates, if users provide a
 scaling factor <code>alpha</code>, it must have zero imaginary part.
-Otherwise, the matrix update will not be Hermitian. Neither the C++
-Working Draft nor any other proposal in flight requires this. We propose
-fixing it by making these update algorithms only use the real part of
+Otherwise, the matrix update will not be Hermitian, because all elements
+on the diagonal of a Hermitian matrix must have nonzero imaginary part.
+Even though <span class="math inline"><em>A</em><em>A</em><sup><em>H</em></sup></span> is
+mathematically always Hermitian, if <span class="math inline"><em>α</em></span> has nonzero imaginary part, then
+<span class="math inline"><em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+may no longer be a Hermitian matrix. For example, if <span class="math inline"><em>A</em></span> is the identity matrix (with ones
+on the diagonal and zeros elsewhere) and <span class="math inline"><em>α</em> = <em>i</em></span> (the imaginary unit,
+which is the square root of negative one), then <span class="math inline"><em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+is the diagonal matrix whose diagonal elements are all <span class="math inline"><em>i</em></span>, and thus has nonzero imaginary
+part.</p>
+<p>The specification of <code>hermitian_matrix_rank_1_update</code> and
+<code>hermitian_matrix_rank_k_update</code> does not currently require
+that <code>alpha</code> have nonzero imaginary part. We propose fixing
+this by making these update algorithms only use the real part of
 <code>alpha</code>, as in
 <em><code>real-if-needed</code></em><code>(alpha)</code>. This solution
 is consistent with our proposed resolution of
@@ -876,45 +908,285 @@ is consistent with our proposed resolution of
 “Specify behavior of [linalg] Hermitian algorithms on diagonal with
 nonzero imaginary part,” where we make Hermitian rank-1 and rank-k
 matrix updates use only the real part of matrices’ diagonals.</p>
-<p>We can think of at least three alternative solutions, and will
-explain here why we did not choose them. The first is to constrain
-<code>alpha</code> to have a noncomplex number type, the second is to
-exclude <code>std::complex&lt;T&gt;</code> but not try to define a
-“noncomplex number” constraint, and the third is to impose a
-precondition that the imaginary part of <code>alpha</code> is zero.</p>
-<h3 data-number="4.3.1" id="justification-scaling-factor-needs-to-be-noncomplex-else-update-may-be-non-hermitian"><span class="header-section-number">4.3.1</span> Justification: Scaling factor
-needs to be noncomplex, else update may be non-Hermitian<a href="#justification-scaling-factor-needs-to-be-noncomplex-else-update-may-be-non-hermitian" class="self-link"></a></h3>
-<p>The C++ Working Draft already has <code>Scalar alpha</code> overloads
-of <code>hermitian_rank_k_update</code>. The <code>Scalar</code> type
-currently can be complex. However, if <code>alpha</code> has nonzero
-imaginary part, then <span class="math inline"><em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
-may no longer be a Hermitian matrix, even though <span class="math inline"><em>A</em><em>A</em><sup><em>H</em></sup></span> is
-mathematically always Hermitian. For example, if <span class="math inline"><em>A</em></span> is the identity matrix (with ones
-on the diagonal and zeros elsewhere) and <span class="math inline"><em>α</em> = <em>i</em></span> (the imaginary unit,
-which is the square root of negative one), then <span class="math inline"><em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
-is the diagonal matrix whose diagonal elements are all <span class="math inline"><em>i</em></span>. While that matrix is symmetric,
-it is not Hermitian, because all elements on the diagonal of a Hermitian
-matrix must have nonzero imaginary part. The rank-1 update function
-<code>hermitian_rank_1_update</code> has the analogous issue.</p>
-<h3 data-number="4.3.2" id="alternatives"><span class="header-section-number">4.3.2</span> Alternatives<a href="#alternatives" class="self-link"></a></h3>
+<p>We begin with a summary of all the Hermitian matrix BLAS routines,
+how scaling factors influence their mathematical correctness. Then, we
+explain how these scaling factor concerns translate into [linalg]
+function concerns. Finally, we discuss alternative solutions.</p>
+<h3 data-number="4.3.1" id="survey-of-scaling-factors-in-hermitian-matrix-blas-routines"><span class="header-section-number">4.3.1</span> Survey of scaling factors in
+Hermitian matrix BLAS routines<a href="#survey-of-scaling-factors-in-hermitian-matrix-blas-routines" class="self-link"></a></h3>
+<p>The BLAS’s Hermitian matrix routines take <code>alpha</code> and
+<code>beta</code> scaling factors. The BLAS addresses the resulting
+correctness concerns in different ways, depending on what each routine
+computes. For routines where a nonzero imaginary part could make the
+result incorrect, the routine restricts the scaling factor to have a
+noncomplex number type. Otherwise, the routine takes the scaling factor
+as a complex number type. We discuss all the Hermitian routines
+here.</p>
+<h4 data-number="4.3.1.1" id="hemm-hermitian-matrix-matrix-multiply"><span class="header-section-number">4.3.1.1</span> <code>HEMM</code>:
+Hermitian matrix-matrix multiply<a href="#hemm-hermitian-matrix-matrix-multiply" class="self-link"></a></h4>
+<p><code>HEMM</code> (HErmitian Matrix-matrix Multiply) computes either
+<span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>B</em> + <em>β</em><em>C</em></span>
+or <span class="math inline"><em>C</em> := <em>α</em><em>B</em><em>A</em> + <em>β</em><em>C</em></span>,
+where <span class="math inline"><em>A</em></span> is a Hermitian matrix,
+and neither <span class="math inline"><em>B</em></span> nor <span class="math inline"><em>C</em></span> need to be Hermitian. The products
+<span class="math inline"><em>A</em><em>B</em></span> and <span class="math inline"><em>B</em><em>A</em></span> thus need not be
+Hermitian, so the scaling factors <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> can have nonzero imaginary parts.
+The BLAS takes them both as complex numbers.</p>
+<h4 data-number="4.3.1.2" id="hemv-hermitian-matrix-vector-multiply"><span class="header-section-number">4.3.1.2</span> <code>HEMV</code>:
+HErmitian Matrix-Vector multiply<a href="#hemv-hermitian-matrix-vector-multiply" class="self-link"></a></h4>
+<p><code>HEMV</code> (HErmitian Matrix-Vector multiply) computes <span class="math inline"><em>y</em> := <em>α</em><em>A</em><em>x</em> + <em>β</em><em>y</em></span>,
+where <span class="math inline"><em>A</em></span> is a Hermitian matrix
+and <span class="math inline"><em>x</em></span> and <span class="math inline"><em>y</em></span> are vectors. The scaled matrix
+<span class="math inline"><em>α</em><em>A</em></span> does not need to
+be Hermitian. Thus, <span class="math inline"><em>α</em></span> and
+<span class="math inline"><em>β</em></span> can have nonzero imaginary
+parts. The BLAS takes them both as complex numbers.</p>
+<h4 data-number="4.3.1.3" id="her-hermitian-rank-1-update"><span class="header-section-number">4.3.1.3</span> <code>HER</code>: HErmitian
+Rank-1 update<a href="#her-hermitian-rank-1-update" class="self-link"></a></h4>
+<p><code>HER</code> (HErmitian Rank-1 update) differs between the
+Reference BLAS (which computes <span class="math inline"><em>A</em> := <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup> + <em>A</em></span>)
+and the BLAS Standard (which computes <span class="math inline"><em>A</em> := <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup> + <em>β</em><em>A</em></span>).
+The matrix <span class="math inline"><em>A</em></span> must be
+Hermitian, and the rank-1 matrix <span class="math inline"><em>x</em><em>x</em><sup><em>H</em></sup></span> is
+always mathematically Hermitian, so both <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> need to have zero imaginary part
+in order for the update to preserve <span class="math inline"><em>A</em></span>’s Hermitian property. The BLAS
+takes them both as real (noncomplex) numbers.</p>
+<h4 data-number="4.3.1.4" id="her2-hermitian-rank-2-update"><span class="header-section-number">4.3.1.4</span> <code>HER2</code>:
+HErmitian Rank-2 update<a href="#her2-hermitian-rank-2-update" class="self-link"></a></h4>
+<p><code>HER2</code> (HErmitian Rank-2 update) differs between the
+Reference BLAS (which computes <span class="math inline"><em>A</em> := <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>y</em><em>x</em><sup><em>H</em></sup> + <em>A</em></span>,
+where <span class="math inline"><em>ᾱ</em></span> denotes the complex
+conjugate of <span class="math inline"><em>α</em></span>) and the BLAS
+Standard (which computes <span class="math inline"><em>A</em> := <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>y</em><em>x</em><sup><em>H</em></sup> + <em>β</em><em>A</em></span>).
+The matrix <span class="math inline"><em>A</em></span> must be
+Hermitian, and the rank-2 matrix <span class="math inline"><em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>y</em><em>x</em><sup><em>H</em></sup></span>
+is always mathematically Hermitian, no matter the value of <span class="math inline"><em>α</em></span>. Thus, <span class="math inline"><em>α</em></span> can have nonzero imaginary part,
+but <span class="math inline"><em>β</em></span> cannot. The BLAS thus
+takes <code>alpha</code> as a complex number, but <code>beta</code> as a
+real (noncomplex) number. (There is likely a typo in the BLAS Standard’s
+description of the Fortran 95 binding. It says that both
+<code>alpha</code> and <code>beta</code> are complex (have type
+<code>COMPLEX(&lt;wp&gt;)</code>), even though in the Fortran 77
+binding, <code>beta</code> is real (<code>&lt;rtype&gt;</code>). The
+BLAS Standard’s description of <code>HER2K</code> (see below) says that
+<code>alpha</code> is complex but <code>beta</code> is real.
+<code>HER2</code> needs to be consistent with <code>HER2K</code>.)</p>
+<h4 data-number="4.3.1.5" id="herk-hermitian-rank-k-update"><span class="header-section-number">4.3.1.5</span> <code>HERK</code>:
+HErmitian Rank-K update<a href="#herk-hermitian-rank-k-update" class="self-link"></a></h4>
+<p><code>HERK</code> (HErmitian Rank-K update) computes either <span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup> + <em>β</em><em>C</em></span>
+or <span class="math inline"><em>C</em> := <em>α</em><em>A</em><sup><em>H</em></sup><em>A</em> + <em>β</em><em>C</em></span>,
+where <span class="math inline"><em>C</em></span> must be Hermitian.
+This is a generalization of <code>HER</code> and thus both <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> need to have zero imaginary part.
+The BLAS takes them both as real (noncomplex) numbers.</p>
+<h4 data-number="4.3.1.6" id="her2k-hermitian-rank-2k-update"><span class="header-section-number">4.3.1.6</span> <code>HER2K</code>:
+HErmitian Rank-2k update<a href="#her2k-hermitian-rank-2k-update" class="self-link"></a></h4>
+<p><code>HER2K</code> (HErmitian Rank-2k update) computes either <span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup> + <em>β</em><em>C</em></span>
+or <span class="math inline"><em>C</em> := <em>α</em><em>A</em><sup><em>H</em></sup><em>B</em> + <em>ᾱ</em><em>B</em><sup><em>H</em></sup><em>A</em> + <em>β</em><em>C</em></span>.
+This is a generalization of <code>HER2</code>: <span class="math inline"><em>α</em></span> can have nonzero imaginary part,
+but <span class="math inline"><em>β</em></span> cannot. The BLAS thus
+takes <code>alpha</code> as a complex number, but <code>beta</code> as a
+real (noncomplex) number.</p>
+<h4 data-number="4.3.1.7" id="summary-of-blas-routine-restrictions"><span class="header-section-number">4.3.1.7</span> Summary of BLAS routine
+restrictions<a href="#summary-of-blas-routine-restrictions" class="self-link"></a></h4>
+<p>The following table lists, for all the Hermitian matrix update BLAS
+routines, whether the routine restricts <code>alpha</code> and/or
+<code>beta</code> to have zero imaginary part, and whether the routine
+is a generalization of some other routine in the list (N/A, “not
+applicable,” means that it is not).</p>
+<table>
+<tr>
+<th>
+BLAS routine
+</th>
+<th>
+Restricts <code>alpha</code>
+</th>
+<th>
+Restricts <code>beta</code>
+</th>
+<th>
+Generalizes
+</th>
+</tr>
+<tr>
+<th>
+<code>HEMM</code>
+</th>
+<th>
+No
+</th>
+<th>
+No
+</th>
+<th>
+N/A
+</th>
+</tr>
+<tr>
+<th>
+<code>HER</code>
+</th>
+<th>
+Yes
+</th>
+<th>
+Yes
+</th>
+<th>
+N/A
+</th>
+</tr>
+<tr>
+<th>
+<code>HER2</code>
+</th>
+<th>
+No
+</th>
+<th>
+Yes
+</th>
+<th>
+N/A
+</th>
+</tr>
+<tr>
+<th>
+<code>HERK</code>
+</th>
+<th>
+Yes
+</th>
+<th>
+Yes
+</th>
+<th>
+<code>HER</code>
+</th>
+</tr>
+<tr>
+<th>
+<code>HER2K</code>
+</th>
+<th>
+No
+</th>
+<th>
+Yes
+</th>
+<th>
+<code>HER2</code>
+</th>
+</tr>
+</table>
+<h3 data-number="4.3.2" id="translation-of-hermitian-blas-concerns-to-stdlinalg"><span class="header-section-number">4.3.2</span> Translation of Hermitian BLAS
+concerns to std::linalg<a href="#translation-of-hermitian-blas-concerns-to-stdlinalg" class="self-link"></a></h3>
+<h4 data-number="4.3.2.1" id="assume-changes-proposed-in-previous-sections"><span class="header-section-number">4.3.2.1</span> Assume changes proposed in
+previous sections<a href="#assume-changes-proposed-in-previous-sections" class="self-link"></a></h4>
+<p>We assume here the changes proposed in previous sections that remove
+inout matrix parameters from the rank-1, rank-2, rank-k, and rank-2k
+algorithms, and separate these algorithms into overwriting and updating
+overloads. This lets us only consider input matrix and vector
+parameters.</p>
+<h4 data-number="4.3.2.2" id="stdlinalg-and-the-blas-treat-scaling-factors-differently"><span class="header-section-number">4.3.2.2</span> std::linalg and the BLAS
+treat scaling factors differently<a href="#stdlinalg-and-the-blas-treat-scaling-factors-differently" class="self-link"></a></h4>
+<p>The [linalg] library and the BLAS treat scaling factors in different
+ways. First, [linalg] treats the result of <code>scaled</code> just like
+any other matrix or vector parameter. It applies any mathematical
+requirements (like being Hermitian) to the parameter, regardless of
+whether the corresponding argument results from <code>scaled</code>. It
+also does not forbid any input argument from being the result of
+<code>scaled</code>. Second, the BLAS always exposes <code>alpha</code>
+and <code>beta</code> scaling factor parameters separately from the
+matrix or vector parameters to which they are applied. In contrast,
+[linalg] only exposes a separate <code>alpha</code> scaling factor
+(never <code>beta</code>) if it would otherwise be mathematically
+impossible to express an operation that the BLAS can express. For
+example, for matrices and scaling factors that are noncomplex,
+<code>symmetric_matrix_rank_1_update</code> cannot express <span class="math inline"><em>A</em> := <em>A</em> − <em>x</em><em>x</em><sup><em>T</em></sup></span>
+with a noncomplex scaling factor (because the square root of <span class="math inline"> − 1</span> is <span class="math inline"><em>i</em></span>).</p>
+<h4 data-number="4.3.2.3" id="defer-fixing-places-where-the-blas-can-do-what-stdlinalg-cannot"><span class="header-section-number">4.3.2.3</span> Defer fixing places where
+the BLAS can do what std::linalg cannot<a href="#defer-fixing-places-where-the-blas-can-do-what-stdlinalg-cannot" class="self-link"></a></h4>
+<p>In some cases, [linalg] does not expose a separate scaling factor
+parameter, even when this prevents [linalg] from doing some things that
+the BLAS can do. We give an example below of triangular matrix solves
+with multiple right-hand sides and <code>alpha</code> scaling not equal
+to one, where the matrix has an implicit unit diagonal.</p>
+<p>Even though this means that the BLAS can do some things that [linalg]
+cannot do, it does not cause [linalg] to violate mathematical
+consistency. More importantly, as we show later, [linalg] can be
+extended to do whatever the BLAS can do without breaking backwards
+compatibility. Thus, we consider the status quo acceptable for
+C++26.</p>
+<h4 data-number="4.3.2.4" id="scaling-factor-beta-is-not-a-concern"><span class="header-section-number">4.3.2.4</span> Scaling factor
+<code>beta</code> is not a concern<a href="#scaling-factor-beta-is-not-a-concern" class="self-link"></a></h4>
+<p>The [linalg] library never exposes a scaling factor
+<code>beta</code>. For BLAS routines that perform an update with
+<code>beta</code> times an inout matrix or vector parameter (e.g., <span class="math inline"><em>β</em><em>y</em></span> or <span class="math inline"><em>β</em><em>C</em></span>), [linalg] instead takes
+an input matrix or vector parameter (e.g., <code>E</code>) that can be
+separate from the output matrix or vector (e.g., <code>C</code>). For
+Hermitian BLAS routines where <code>beta</code> needs to have zero
+imaginary part, [linalg] simply requires that <code>E</code> be
+Hermitian – a strictly more general requirement. For example, for the
+new updating overloads of <code>hermitian_rank_1_update</code> and
+<code>hermitian_rank_k_update</code> proposed above, [linalg] expresses
+a <code>beta</code> scaling factor by letting users supply
+<code>scaled(beta, C)</code> as the argument for <code>E</code>. The
+wording only requires that <code>E</code> be Hermitian. If
+<code>E</code> is <code>scaled(beta, C)</code>, this concerns only the
+product of <code>beta</code> and <code>C</code>. It would be incorrect
+to constrain <code>beta</code> or <code>C</code> separately. For
+example, if <span class="math inline"><em>β</em> =  − <em>i</em></span>
+and <span class="math inline"><em>C</em></span> is the matrix whose
+elements are all <span class="math inline"><em>i</em></span>, then <span class="math inline"><em>C</em></span> is not Hermitian but <span class="math inline"><em>β</em><em>C</em></span> (and therefore
+<code>scaled(beta, C)</code>) is Hermitian. The same reasoning applies
+for the rank-2 and rank-2k updates.</p>
+<h4 data-number="4.3.2.5" id="what-this-section-proposes-to-fix-and-the-proposed-solution"><span class="header-section-number">4.3.2.5</span> What this section proposes
+to fix, and the proposed solution<a href="#what-this-section-proposes-to-fix-and-the-proposed-solution" class="self-link"></a></h4>
+<p>The above arguments help us restrict our concerns. This section of
+our proposal concerns itself with Hermitian matrix update algorithms
+where</p>
+<ul>
+<li><p>the algorithm exposes a separate scaling factor parameter
+<code>alpha</code>, and</p></li>
+<li><p><code>alpha</code> needs to have zero imaginary part,
+but</p></li>
+<li><p>nothing in the wording currently prevents <code>alpha</code> from
+having nonzero imaginary part.</p></li>
+</ul>
+<p>These correspond exactly to the BLAS’s Hermitian matrix update
+routines where the type of <code>alpha</code> is real: <code>HER</code>
+and <code>HERK</code>. This strongly suggests solving the problem in
+[linalg] by constraining the type of <code>alpha</code> to be
+noncomplex. However, as we explain in “Alternative solutions” below, it
+is hard to define a “noncomplex number” constraint that works well for
+user-defined number types. Instead, we propose fixing this in a way that
+is consistent with our proposed resolution of
+<a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>,
+“Specify behavior of [linalg] Hermitian algorithms on diagonal with
+nonzero imaginary part.” That is, the Hermitian rank-1 and rank-k update
+algorithms will simply use
+<em><code>real-if-needed</code></em><code>(alpha)</code> and ignore any
+nonzero imaginary part of <code>alpha</code>.</p>
+<h3 data-number="4.3.3" id="alternative-solutions"><span class="header-section-number">4.3.3</span> Alternative solutions<a href="#alternative-solutions" class="self-link"></a></h3>
 <p>We can think of at least four different ways to solve this problem,
 and will explain why we did not choose those solutions.</p>
 <ol type="1">
 <li><p>Constrain <code>alpha</code> by defining a generic “noncomplex
-number type” constraint</p></li>
+number type” constraint.</p></li>
 <li><p>Only constrain <code>alpha</code> not to be
 <code>std::complex&lt;T&gt;</code>; do not try to define a generic
-“noncomplex number” constraint</p></li>
+“noncomplex number” constraint.</p></li>
 <li><p>Constrain <code>alpha</code> by default using a generic
 “noncomplex number type” constraint, but let users specialize an
 “opt-out trait” to tell the library that their number type is
-noncomplex</p></li>
+noncomplex.</p></li>
 <li><p>Impose a precondition that the imaginary part of
-<code>alpha</code> is zero</p></li>
+<code>alpha</code> is zero.</p></li>
 </ol>
 <p>If we had to pick one of these solutions, we would favor first (4),
 then (3), and then (1). We would object most to (2).</p>
-<h4 data-number="4.3.2.1" id="alternative-constrain-alpha-via-generic-noncomplex-constraint"><span class="header-section-number">4.3.2.1</span> Alternative: Constrain
+<h4 data-number="4.3.3.1" id="alternative-constrain-alpha-via-generic-noncomplex-constraint"><span class="header-section-number">4.3.3.1</span> Alternative: Constrain
 <code>alpha</code> via generic “noncomplex” constraint<a href="#alternative-constrain-alpha-via-generic-noncomplex-constraint" class="self-link"></a></h4>
 <p>The BLAS solves this problem by having the Hermitian rank-1 update
 routines <code>xHER</code> and rank-k update routines <code>xHERK</code>
@@ -989,7 +1261,7 @@ floating-point type. The least-effort next step would be to make
 <p>We want rank-1 and rank-k Hermitian matrix updates to work with types
 like <code>MyRealNumber</code>, but any reasonable way to constrain the
 type of <code>alpha</code> would exclude <code>MyRealNumber</code>.</p>
-<h4 data-number="4.3.2.2" id="alternative-only-constrain-alpha-not-to-be-stdcomplex"><span class="header-section-number">4.3.2.2</span> Alternative: Only constrain
+<h4 data-number="4.3.3.2" id="alternative-only-constrain-alpha-not-to-be-stdcomplex"><span class="header-section-number">4.3.3.2</span> Alternative: Only constrain
 <code>alpha</code> not to be <code>std::complex</code><a href="#alternative-only-constrain-alpha-not-to-be-stdcomplex" class="self-link"></a></h4>
 <p>A variant of this suggestion would be only to constrain
 <code>alpha</code> not to be <code>std::complex&lt;T&gt;</code>, and not
@@ -999,7 +1271,7 @@ non-Standard complex number case invalid code for
 <code>std::complex&lt;T&gt;</code>. We do not want [linalg] to treat
 custom complex number types differently than
 <code>std::complex</code>.</p>
-<h4 data-number="4.3.2.3" id="alternative-constrain-alpha-by-default-but-let-users-opt-out"><span class="header-section-number">4.3.2.3</span> Alternative: Constrain
+<h4 data-number="4.3.3.3" id="alternative-constrain-alpha-by-default-but-let-users-opt-out"><span class="header-section-number">4.3.3.3</span> Alternative: Constrain
 <code>alpha</code> by default, but let users “opt out”<a href="#alternative-constrain-alpha-by-default-but-let-users-opt-out" class="self-link"></a></h4>
 <p>Another option would be to constrain <code>alpha</code> by default
 using the same generic “noncomplex number type” constraint as in Option
@@ -1026,7 +1298,13 @@ container to provide heterogeneous comparisons by exposing a
 <code>static constexpr bool is_transparent</code> whose value is
 <code>true</code>. Default behavior does not expose heterogeneous
 comparisons. Thus, users must opt in at compile time to assert something
-about their user-defined types.</p>
+about their user-defined types. Another example is
+<code>uses_allocator&lt;T, alloc&gt;</code>, whose <code>value</code>
+member defaults to <code>false</code> unless <code>T</code> has a nested
+type <code>allocator_type</code> that is convertible from
+<code>Alloc</code>. Standard Library types like <code>tuple</code> use
+<code>uses_allocator</code> to determine if a user-defined type
+<code>T</code> is allocator-aware.</p>
 <p>Of the three constraint-based approaches discussed in this proposal,
 we favor this one the most. It still treats types “as they are” and does
 not permit users to claim that a type is complex when it lacks the
@@ -1047,7 +1325,7 @@ web pages to find out that they need to specialize
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>imag<span class="op">(</span>t<span class="op">)}</span> <span class="op">-&gt;</span> std<span class="op">::</span>convertible_to<span class="op">&lt;</span>T<span class="op">&gt;</span>;</span></code></pre></div>
 <p>P1673 generally avoids approaches based on specializing traits. Its
 design philosophy favors treating types as they are. Users should not
-need to do something to get correct behavior. We based this off our past
+need to do something to get correct behavior. We based this on our past
 experiences in generic numerical algorithms development. In the 2010’s,
 one of the authors maintained a generic mathematical algorithms library
 called Trilinos. The Teuchos (pronounced “TEFF-os”) package of Trilinos
@@ -1082,7 +1360,7 @@ variable templates; these features have encouraged “breaking up”
 monolithic traits classes into separate traits. Our paper P1370R1
 (“Generic numerical algorithm development with(out)
 <code>numeric_limits</code>”) aligns with this trend.</p>
-<h4 data-number="4.3.2.4" id="alternative-impose-precondition-on-alpha"><span class="header-section-number">4.3.2.4</span> Alternative: Impose
+<h4 data-number="4.3.3.4" id="alternative-impose-precondition-on-alpha"><span class="header-section-number">4.3.3.4</span> Alternative: Impose
 precondition on <code>alpha</code><a href="#alternative-impose-precondition-on-alpha" class="self-link"></a></h4>
 <p>Another option would be to impose a precondition that
 <em><code>imag-if-needed</code></em><code>(alpha)</code> is zero.
@@ -1103,63 +1381,26 @@ part of <code>alpha</code> anyway, because these BLAS routines only take
 overhead.</p>
 <h2 data-number="4.4" id="things-relating-to-scaling-factors-that-we-do-not-propose-changing"><span class="header-section-number">4.4</span> Things relating to scaling
 factors that we do not propose changing<a href="#things-relating-to-scaling-factors-that-we-do-not-propose-changing" class="self-link"></a></h2>
-<h3 data-number="4.4.1" id="nothing-wrong-with-rank-2-or-rank-2k-updates"><span class="header-section-number">4.4.1</span> Nothing wrong with rank-2 or
-rank-2k updates<a href="#nothing-wrong-with-rank-2-or-rank-2k-updates" class="self-link"></a></h3>
-<p>This issue does <em>not</em> arise with the rank-2 or rank-2k
-updates. In the BLAS, the rank-2 updates <code>xHER2</code> and the
-rank-2k updates <code>xHER2K</code> all take <code>alpha</code> as a
-complex number. The corresponding [linalg] functions do not take a
-separate <code>alpha</code> parameter, because users can pass it in via
-<code>scaled</code>, attached either to <code>A</code> or
-<code>B</code>: e.g., <code>scaled(alpha, A)</code>. The matrix <span class="math inline"><em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
-is Hermitian by construction, no matter the value of <span class="math inline"><em>α</em></span>.</p>
-<h3 data-number="4.4.2" id="nothing-wrong-with-scaling-factor-beta"><span class="header-section-number">4.4.2</span> Nothing wrong with scaling
-factor beta<a href="#nothing-wrong-with-scaling-factor-beta" class="self-link"></a></h3>
-<p>Both the current wording and the proposed changes to all these update
-functions behave correctly with respect to <code>beta</code>.</p>
-<p>For the new updating overloads of
-<code>hermitian_rank_1_update</code> and
-<code>hermitian_rank_k_update</code>, [linalg] expresses a
-<code>beta</code> scaling factor by letting users supply
-<code>scaled(beta, C)</code> as the argument for <code>E</code>. The
-wording only requires that <code>E</code> be Hermitian. If
-<code>E</code> is <code>scaled(beta, C)</code>, this concerns only the
-product of <code>beta</code> and <code>C</code>. It would be incorrect
-to constrain <code>beta</code> or <code>C</code> separately. For
-example, if <span class="math inline"><em>β</em> =  − <em>i</em></span>
-and <span class="math inline"><em>C</em></span> is the matrix whose
-elements are all <span class="math inline"><em>i</em></span>, then <span class="math inline"><em>C</em></span> is not Hermitian but <span class="math inline"><em>β</em><em>C</em></span> (and therefore
-<code>scaled(beta, C)</code>) is Hermitian.</p>
-<p>This issue does <em>not</em> arise with the rank-2k updates. For
-example, the BLAS routine <code>xHER2K</code> takes <code>beta</code> as
-a real number. The previous paragraph’s reasoning for <code>beta</code>
-applies here as well.</p>
-<p>This issue also does not arise with the rank-2 updates. In the
-Reference BLAS, the rank-2 update routines <code>xHER2</code> do not
-have a way to supply <code>beta</code>, while in the BLAS Standard,
-<code>xHER2</code> <em>does</em> take <code>beta</code>. The BLAS
-Standard says that “<span class="math inline"><em>α</em></span> is a
-complex scalar and and [sic] <span class="math inline"><em>β</em></span>
-is a real scalar.” The Fortran 77 and C bindings specify the type of
-<code>beta</code> as real (<code>&lt;rtype&gt;</code> resp.
-<code>RSCALAR_IN</code>), but the Fortran 95 binding lists both
-<code>alpha</code> and <code>beta</code> as
-<code>COMPLEX(&lt;wp&gt;)</code>. The type of <code>beta</code> in the
-Fortran 95 is likely a typo, considering the wording.</p>
-<h3 data-number="4.4.3" id="nothing-wrong-with-hermitian-matrix-vector-and-matrix-matrix-products"><span class="header-section-number">4.4.3</span> Nothing wrong with Hermitian
-matrix-vector and matrix-matrix products<a href="#nothing-wrong-with-hermitian-matrix-vector-and-matrix-matrix-products" class="self-link"></a></h3>
-<p>In our view, the current behavior of
+<h3 data-number="4.4.1" id="hermitian-matrix-vector-and-matrix-matrix-products"><span class="header-section-number">4.4.1</span> Hermitian matrix-vector and
+matrix-matrix products<a href="#hermitian-matrix-vector-and-matrix-matrix-products" class="self-link"></a></h3>
+<p>We pointed out above that
 <code>hermitian_matrix_vector_product</code> and
-<code>hermitian_matrix_product</code> is correct with respect to the
-<code>alpha</code> scaling factor. These functions do not need extra
-overloads that take <code>Scalar alpha</code>. Users who want to supply
-<code>alpha</code> with nonzero imaginary part should <em>not</em> scale
-the matrix <code>A</code> (as in <code>scaled(alpha, A)</code>).
-Instead, they should scale the input vector <code>x</code>, as in the
-following.</p>
+<code>hermitian_matrix_product</code> expect that the (possibly scaled)
+input matrix is Hermitian, while the corresponding BLAS routines
+<code>HEMV</code> and <code>HEMM</code> expect that the unscaled input
+matrix is Hermitian and permit the scaling factor <code>alpha</code> to
+have nonzero imaginary part. However, this does not affect the ability
+of these [linalg] algorithms to compute what the BLAS can compute. Users
+who want to supply <code>alpha</code> with nonzero imaginary part should
+<em>not</em> scale the matrix <code>A</code> (as in
+<code>scaled(alpha, A)</code>). Instead, they should scale the input
+vector <code>x</code>, as in the following.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> alpha <span class="op">=</span> std<span class="op">::</span>complex<span class="op">{</span><span class="fl">0.0</span>, <span class="fl">1.0</span><span class="op">}</span>;</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>hermitian_matrix_vector_product<span class="op">(</span>A, upper_triangle, scaled<span class="op">(</span>alpha, x<span class="op">)</span>, y<span class="op">)</span>;</span></code></pre></div>
-<h4 data-number="4.4.3.1" id="in-blas-matrix-is-hermitian-but-scaled-matrix-need-not-be"><span class="header-section-number">4.4.3.1</span> In BLAS, matrix is
+<p>Therefore, <code>hermitian_matrix_vector_product</code> and
+<code>hermitian_matrix_product</code> do <em>not</em> need extra
+overloads with a scaling factor <code>alpha</code> parameter.</p>
+<h4 data-number="4.4.1.1" id="in-blas-matrix-is-hermitian-but-scaled-matrix-need-not-be"><span class="header-section-number">4.4.1.1</span> In BLAS, matrix is
 Hermitian, but scaled matrix need not be<a href="#in-blas-matrix-is-hermitian-but-scaled-matrix-need-not-be" class="self-link"></a></h4>
 <p>In Chapter 2 of the BLAS Standard, both <code>xHEMV</code> and
 <code>xHEMM</code> take the scaling factors <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> as complex numbers
@@ -1182,7 +1423,7 @@ least after applying the fix proposed in LWG4136 for diagonal elements
 with nonzero imaginary part. It does not violate a precondition.
 Therefore, the Standard has no way to tell the user that they did
 something wrong.</p>
-<h4 data-number="4.4.3.2" id="status-quo-permits-scaling-via-the-input-vector"><span class="header-section-number">4.4.3.2</span> Status quo permits scaling
+<h4 data-number="4.4.1.2" id="status-quo-permits-scaling-via-the-input-vector"><span class="header-section-number">4.4.1.2</span> Status quo permits scaling
 via the input vector<a href="#status-quo-permits-scaling-via-the-input-vector" class="self-link"></a></h4>
 <p>The current wording permits introducing the scaling factor
 <code>alpha</code> through the input vector.</p>
@@ -1224,7 +1465,7 @@ that multiplication of the matrix’s elements is commutative. Anything
 more general than that is far beyond what the BLAS can do. Thus, we
 think restricting use of <code>alpha</code> with nonzero imaginary part
 to <code>scaled(alpha, x)</code> is not so onerous.</p>
-<h4 data-number="4.4.3.3" id="scaling-via-the-input-vector-is-weird-but-the-least-bad-choice"><span class="header-section-number">4.4.3.3</span> Scaling via the input
+<h4 data-number="4.4.1.3" id="scaling-via-the-input-vector-is-weird-but-the-least-bad-choice"><span class="header-section-number">4.4.1.3</span> Scaling via the input
 vector is weird, but the least bad choice<a href="#scaling-via-the-input-vector-is-weird-but-the-least-bad-choice" class="self-link"></a></h4>
 <p>Many users may not like the status quo of needing to scale
 <code>x</code> instead of <code>A</code>. First, it differs from the
@@ -1251,7 +1492,7 @@ below. The second is not incorrect, but could only catch some errors.
 The third is likewise not incorrect, but would add a lot of overloads
 for an uncommon use case, and would still not prevent users from scaling
 the matrix in mathematically incorrect ways.</p>
-<h5 data-number="4.4.3.3.1" id="bad-choice-special-cases-for-scaling-the-matrix"><span class="header-section-number">4.4.3.3.1</span> Bad choice: Special cases
+<h5 data-number="4.4.1.3.1" id="bad-choice-special-cases-for-scaling-the-matrix"><span class="header-section-number">4.4.1.3.1</span> Bad choice: Special cases
 for scaling the matrix<a href="#bad-choice-special-cases-for-scaling-the-matrix" class="self-link"></a></h5>
 <p>“Treat <code>scaled(alpha, A)</code> as a special case” actually
 means three special cases, given some nested accessor type
@@ -1290,7 +1531,7 @@ might have <code>scaled_accessor</code> somewhere in that nesting, or
 they might have the <em>effect</em> of <code>scaled_accessor</code>
 without being called that. Thus, we can’t detect all possible ways that
 the matrix might be scaled.</p>
-<h5 data-number="4.4.3.3.2" id="not-so-good-choice-forbid-scaling-the-matrix-at-compile-time"><span class="header-section-number">4.4.3.3.2</span> Not-so-good choice:
+<h5 data-number="4.4.1.3.2" id="not-so-good-choice-forbid-scaling-the-matrix-at-compile-time"><span class="header-section-number">4.4.1.3.2</span> Not-so-good choice:
 Forbid scaling the matrix at compile time<a href="#not-so-good-choice-forbid-scaling-the-matrix-at-compile-time" class="self-link"></a></h5>
 <p>Hermitian matrix-matrix and matrix-vector product functions could
 instead <em>forbid</em> scaling the matrix at compile time, at least for
@@ -1308,7 +1549,7 @@ scale the matrix. Furthermore, scaling the matrix might still be
 mathematically correct. A scaling factor with nonzero imaginary part
 might even <em>make</em> the matrix Hermitian. Applying <span class="math inline"><em>i</em></span> as a scaling factor twice would
 give a perfectly valid scaling factor of <span class="math inline"> − 1</span>.</p>
-<h5 data-number="4.4.3.3.3" id="not-so-good-choice-add-alpha-overloads"><span class="header-section-number">4.4.3.3.3</span> Not-so-good choice: Add
+<h5 data-number="4.4.1.3.3" id="not-so-good-choice-add-alpha-overloads"><span class="header-section-number">4.4.1.3.3</span> Not-so-good choice: Add
 alpha overloads<a href="#not-so-good-choice-add-alpha-overloads" class="self-link"></a></h5>
 <p>One could imagine adding overloads that take <code>alpha</code>,
 analogous to the rank-1 and rank-k update overloads that take
@@ -1341,8 +1582,8 @@ with the same scaling factor for both vectors is <span class="math inline">(<em>
 some other scaling factor <code>gamma</code>. Thus, instead of solving
 the problem, the overloads would introduce more possibilities for
 errors.</p>
-<h3 data-number="4.4.4" id="triangular-matrix-products-unit-diagonals-and-scaling-factors"><span class="header-section-number">4.4.4</span> Triangular matrix products,
-unit diagonals, and scaling factors<a href="#triangular-matrix-products-unit-diagonals-and-scaling-factors" class="self-link"></a></h3>
+<h3 data-number="4.4.2" id="triangular-matrix-products-with-implicit-unit-diagonals"><span class="header-section-number">4.4.2</span> Triangular matrix products
+with implicit unit diagonals<a href="#triangular-matrix-products-with-implicit-unit-diagonals" class="self-link"></a></h3>
 <ol type="1">
 <li><p>In BLAS, triangular matrix-vector and matrix-matrix products
 apply <code>alpha</code> scaling to the implicit unit diagonal. In
@@ -1361,7 +1602,7 @@ backwards compatibility.</p></li>
 <li><p>Therefore, we do not consider fixing this a high-priority issue,
 and we do not propose a fix for it in this paper.</p></li>
 </ol>
-<h4 data-number="4.4.4.1" id="blas-applies-alpha-after-unit-diagonal-linalg-applies-it-before"><span class="header-section-number">4.4.4.1</span> BLAS applies alpha after
+<h4 data-number="4.4.2.1" id="blas-applies-alpha-after-unit-diagonal-linalg-applies-it-before"><span class="header-section-number">4.4.2.1</span> BLAS applies alpha after
 unit diagonal; linalg applies it before<a href="#blas-applies-alpha-after-unit-diagonal-linalg-applies-it-before" class="self-link"></a></h4>
 <p>The <code>triangular_matrix_vector_product</code> and
 <code>triangular_matrix_product</code> algorithms have an
@@ -1377,7 +1618,7 @@ other kind of <code>mdspan</code>. As a result, algorithms interpret
 <code>implicit_unit_diagonal</code> as applied to the matrix
 <em>after</em> scaling by <code>alpha</code>, so that the matrix still
 has a diagonal of all ones.</p>
-<h4 data-number="4.4.4.2" id="triangular-solve-algorithms-not-affected"><span class="header-section-number">4.4.4.2</span> Triangular solve algorithms
+<h4 data-number="4.4.2.2" id="triangular-solve-algorithms-not-affected"><span class="header-section-number">4.4.2.2</span> Triangular solve algorithms
 not affected<a href="#triangular-solve-algorithms-not-affected" class="self-link"></a></h4>
 <p>The triangular solve algorithms in std::linalg are not affected,
 because their BLAS analogs either do not take an <code>alpha</code>
@@ -1385,7 +1626,7 @@ argument (as with <code>xTRSV</code>), or the <code>alpha</code>
 argument does not affect the triangular matrix (with <code>xTRSM</code>,
 <code>alpha</code> affects the right-hand sides <code>B</code>, not the
 triangular matrix <code>A</code>).</p>
-<h4 data-number="4.4.4.3" id="triangular-matrix-vector-product-work-around"><span class="header-section-number">4.4.4.3</span> Triangular matrix-vector
+<h4 data-number="4.4.2.3" id="triangular-matrix-vector-product-work-around"><span class="header-section-number">4.4.2.3</span> Triangular matrix-vector
 product work-around<a href="#triangular-matrix-vector-product-work-around" class="self-link"></a></h4>
 <p>This issue only reduces functionality of
 <code>triangular_matrix_product</code>. Users of
@@ -1393,7 +1634,7 @@ product work-around<a href="#triangular-matrix-vector-product-work-around" class
 original BLAS functionality can scale the input matrix (by supplying
 <code>scaled(alpha, x)</code> instead of <code>x</code> as the input
 argument) instead of the triangular matrix.</p>
-<h4 data-number="4.4.4.4" id="triangular-matrix-matrix-product-example"><span class="header-section-number">4.4.4.4</span> Triangular matrix-matrix
+<h4 data-number="4.4.2.4" id="triangular-matrix-matrix-product-example"><span class="header-section-number">4.4.2.4</span> Triangular matrix-matrix
 product example<a href="#triangular-matrix-matrix-product-example" class="self-link"></a></h4>
 <p>The following example computes <span class="math inline"><em>A</em> := 2<em>A</em><em>B</em></span> where
 <span class="math inline"><em>A</em></span> is a lower triangular
@@ -1413,7 +1654,7 @@ and/or latency, but if the work done by <code>scale</code> could be
 fused with the work done by the <code>triangular_matrix_product</code>,
 then <code>scale</code>’s memory operations could be “hidden” in the
 cost of the matrix product.</p>
-<h4 data-number="4.4.4.5" id="lapack-never-calls-xtrmm-with-the-implicit-unit-diagonal-option-and-alpha-not-equal-to-one"><span class="header-section-number">4.4.4.5</span> LAPACK never calls
+<h4 data-number="4.4.2.5" id="lapack-never-calls-xtrmm-with-the-implicit-unit-diagonal-option-and-alpha-not-equal-to-one"><span class="header-section-number">4.4.2.5</span> LAPACK never calls
 <code>xTRMM</code> with the implicit unit diagonal option and
 <code>alpha</code> not equal to one<a href="#lapack-never-calls-xtrmm-with-the-implicit-unit-diagonal-option-and-alpha-not-equal-to-one" class="self-link"></a></h4>
 <p>How much might users care about this missing [linalg] feature?
@@ -1478,7 +1719,7 @@ only two LAPACK routines that call <code>DTFTRI</code> are
 option. Therefore, LAPACK never needs both <code>alpha</code> not equal
 to one and the implicit unit diagonal option, so adding the ability to
 “scale the implicit diagonal” in [linalg] is a low-priority feature.</p>
-<h4 data-number="4.4.4.6" id="fixes-would-not-break-backwards-compatibility"><span class="header-section-number">4.4.4.6</span> Fixes would not break
+<h4 data-number="4.4.2.6" id="fixes-would-not-break-backwards-compatibility"><span class="header-section-number">4.4.2.6</span> Fixes would not break
 backwards compatibility<a href="#fixes-would-not-break-backwards-compatibility" class="self-link"></a></h4>
 <p>We can think of two ways to fix this issue. First, we could add an
 <code>alpha</code> scaling parameter, analogous to the symmetric and
@@ -1493,8 +1734,8 @@ scaling factor for the rest of the matrix. Those two scaling factors
 could differ, which is new functionality not offered by the BLAS. More
 importantly, both of these solutions could be added later, after C++26,
 without breaking backwards compatibility.</p>
-<h3 data-number="4.4.5" id="triangular-solves-unit-diagonals-and-scaling-factors"><span class="header-section-number">4.4.5</span> Triangular solves, unit
-diagonals, and scaling factors<a href="#triangular-solves-unit-diagonals-and-scaling-factors" class="self-link"></a></h3>
+<h3 data-number="4.4.3" id="triangular-solves-with-implicit-unit-diagonals"><span class="header-section-number">4.4.3</span> Triangular solves with
+implicit unit diagonals<a href="#triangular-solves-with-implicit-unit-diagonals" class="self-link"></a></h3>
 <ol type="1">
 <li><p>In BLAS, triangular solves with possibly multiple right-hand
 sides (<code>xTRSM</code>) apply <code>alpha</code> scaling to the
@@ -1511,7 +1752,7 @@ backwards compatibility.</p></li>
 <li><p>Therefore, we do not consider fixing this a high-priority issue,
 and we do not propose a fix for it in this paper.</p></li>
 </ol>
-<h4 data-number="4.4.5.1" id="blas-applies-alpha-after-unit-diagonal-linalg-applies-it-before-1"><span class="header-section-number">4.4.5.1</span> BLAS applies alpha after
+<h4 data-number="4.4.3.1" id="blas-applies-alpha-after-unit-diagonal-linalg-applies-it-before-1"><span class="header-section-number">4.4.3.1</span> BLAS applies alpha after
 unit diagonal; linalg applies it before<a href="#blas-applies-alpha-after-unit-diagonal-linalg-applies-it-before-1" class="self-link"></a></h4>
 <p>Triangular solves have a similar issue to the one explained in the
 previous section. The BLAS routine <code>xTRSM</code> applies
@@ -1526,7 +1767,7 @@ on the diagonal and zeros everywhere else).
 <code>triangular_matrix_matrix_left_solve</code> solves the equation
 <span class="math inline">(<em>α</em><em>A</em>+<em>I</em>)<em>Y</em> = <em>B</em></span>
 for <span class="math inline"><em>Y</em></span>. The two results <span class="math inline"><em>X</em></span> and <span class="math inline"><em>Y</em></span> are not equal in general.</p>
-<h4 data-number="4.4.5.2" id="work-around-requires-changing-all-elements-of-the-matrix"><span class="header-section-number">4.4.5.2</span> Work-around requires
+<h4 data-number="4.4.3.2" id="work-around-requires-changing-all-elements-of-the-matrix"><span class="header-section-number">4.4.3.2</span> Work-around requires
 changing all elements of the matrix<a href="#work-around-requires-changing-all-elements-of-the-matrix" class="self-link"></a></h4>
 <p>Users could work around this problem by first scaling the matrix
 <span class="math inline"><em>A</em></span> by <span class="math inline"><em>α</em></span>, and then solving for <span class="math inline"><em>Y</em></span>. In the common case where the
@@ -1553,14 +1794,14 @@ option would be to copy the matrix <span class="math inline"><em>A</em></span> b
 nontrivial in general, and may introduce new failure conditions. This
 issue occurs with both the in-place and out-of-place triangular
 solves.</p>
-<h4 data-number="4.4.5.3" id="unsupported-case-occurs-in-lapack"><span class="header-section-number">4.4.5.3</span> Unsupported case occurs in
+<h4 data-number="4.4.3.3" id="unsupported-case-occurs-in-lapack"><span class="header-section-number">4.4.3.3</span> Unsupported case occurs in
 LAPACK<a href="#unsupported-case-occurs-in-lapack" class="self-link"></a></h4>
 <p>The common case in LAPACK is calling <code>xTRSM</code> with
 <code>alpha</code> equal to one, but other values of <code>alpha</code>
 occur. For example, <code>xTRTRI</code> calls <code>xTRSM</code> with
 <code>alpha</code> equal to <span class="math inline"> − 1</span>. Thus,
 we cannot dismiss this issue, as we could with <code>xTRMM</code>.</p>
-<h4 data-number="4.4.5.4" id="fixes-would-not-break-backwards-compatibility-1"><span class="header-section-number">4.4.5.4</span> Fixes would not break
+<h4 data-number="4.4.3.4" id="fixes-would-not-break-backwards-compatibility-1"><span class="header-section-number">4.4.3.4</span> Fixes would not break
 backwards compatibility<a href="#fixes-would-not-break-backwards-compatibility-1" class="self-link"></a></h4>
 <p>As with triangular matrix products above, we can think of two ways to
 fix this issue. First, we could add an <code>alpha</code> scaling
@@ -1712,10 +1953,10 @@ red).</p>
 <em><code>inout-matrix</code></em>, <em><code>inout-object</code></em>,
 <em><code>out-vector</code></em>, <em><code>out-matrix</code></em>,
 <em><code>out-object</code></em>, <span style="color: green;">or
-<em><code>possibly-packed-out-matrix</code></em></span><span style="color: red;">, or
-<em><code>possibly-packed-inout-matrix</code></em></span> parameter of a
-function in [linalg] shall not overlap any other <code>mdspan</code>
-parameter of the function.</p>
+<em><code>possibly-packed-out-matrix</code></em></span><del><span style="color: red;">, or
+<em><code>possibly-packed-inout-matrix</code></em></span></del>
+parameter of a function in [linalg] shall not overlap any other
+<code>mdspan</code> parameter of the function.</p>
 <h2 data-number="8.2" id="rank-1-update-functions-in-synopsis"><span class="header-section-number">8.2</span> Rank-1 update functions in
 synopsis<a href="#rank-1-update-functions-in-synopsis" class="self-link"></a></h2>
 <blockquote>
