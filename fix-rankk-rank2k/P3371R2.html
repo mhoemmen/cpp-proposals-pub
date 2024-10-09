@@ -664,15 +664,16 @@ but the corresponding <code>std::linalg</code> function
 That is, <code>std::linalg</code> currently has no way to express this
 BLAS operation with a general <span class="math inline"><em>β</em></span> scaling factor.</p>
 <p>This issue applies to all of the symmetric and Hermitian rank-k and
-rank-2k update functions. The following table lists these functions,
-what they compute now, and the two things we propose making them able to
-compute. <span class="math inline"><em>A</em></span> and <span class="math inline"><em>B</em></span> denote general matrices, <span class="math inline"><em>C</em></span> and <span class="math inline"><em>E</em></span> denote symmetric or Hermitian
-matrices (depending on the algorithm’s name), the superscript
+rank-2k update functions. The following table lists these functions and
+what they compute now. <span class="math inline"><em>A</em></span> and
+<span class="math inline"><em>B</em></span> denote general matrices,
+<span class="math inline"><em>C</em></span> denotes a symmetric or
+Hermitian matrix (depending on the algorithm’s name), the superscript
 <code>T</code> denotes the transpose, the superscript <code>H</code>
 denotes the Hermitian transpose, <span class="math inline"><em>α</em></span> denotes a scaling factor, and
 <span class="math inline"><em>ᾱ</em></span> denotes the complex
 conjugate of <span class="math inline"><em>α</em></span>. Making the
-functions have overloads that take an input matrix <span class="math inline"><em>E</em></span> would permit <span class="math inline"><em>E</em> = <em>β</em><em>C</em></span>, and thus
+functions have “updating” overloads that take an input matrix <span class="math inline"><em>E</em></span> would permit <span class="math inline"><em>E</em> = <em>β</em><em>C</em></span>, and thus
 make [linalg] able to compute what the BLAS can compute.</p>
 <table>
 <tr>
@@ -682,12 +683,6 @@ make [linalg] able to compute what the BLAS can compute.</p>
 <th>
 What it computes now
 </th>
-<th>
-Change (overwriting)
-</th>
-<th>
-Add (updating)
-</th>
 </tr>
 <tr>
 <td>
@@ -695,12 +690,6 @@ Add (updating)
 </td>
 <td>
 <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
-</td>
-<td>
-<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
-</td>
-<td>
-<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
 </td>
 </tr>
 <tr>
@@ -710,12 +699,6 @@ Add (updating)
 <td>
 <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
 </td>
-<td>
-<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
-</td>
-<td>
-<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
-</td>
 </tr>
 <tr>
 <td>
@@ -724,12 +707,6 @@ Add (updating)
 <td>
 <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
 </td>
-<td>
-<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
-</td>
-<td>
-<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
-</td>
 </tr>
 <tr>
 <td>
@@ -737,12 +714,6 @@ Add (updating)
 </td>
 <td>
 <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
-</td>
-<td>
-<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
-</td>
-<td>
-<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
 </td>
 </tr>
 </table>
@@ -1247,7 +1218,7 @@ updates<a href="#use-only-the-real-part-of-scaling-factor-alpha-for-hermitian-ma
 <p>For Hermitian rank-1 and rank-k matrix updates, if users provide a
 scaling factor <code>alpha</code>, it must have zero imaginary part.
 Otherwise, the matrix update will not be Hermitian, because all elements
-on the diagonal of a Hermitian matrix must have nonzero imaginary part.
+on the diagonal of a Hermitian matrix must have zero imaginary part.
 Even though <span class="math inline"><em>A</em><em>A</em><sup><em>H</em></sup></span> is
 mathematically always Hermitian, if <span class="math inline"><em>α</em></span> has nonzero imaginary part, then
 <span class="math inline"><em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
@@ -1258,8 +1229,8 @@ is the diagonal matrix whose diagonal elements are all <span class="math inline"
 part.</p>
 <p>The specification of <code>hermitian_matrix_rank_1_update</code> and
 <code>hermitian_matrix_rank_k_update</code> does not currently require
-that <code>alpha</code> have nonzero imaginary part. We propose fixing
-this by making these update algorithms only use the real part of
+that <code>alpha</code> have zero imaginary part. We propose fixing this
+by making these update algorithms only use the real part of
 <code>alpha</code>, as in
 <em><code>real-if-needed</code></em><code>(alpha)</code>. This solution
 is consistent with our proposed resolution of

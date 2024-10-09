@@ -83,38 +83,28 @@ Each function in any section whose label begins with "linalg.algs" generally cor
 
 One `std::linalg` user <a href="https://github.com/kokkos/stdBLAS/issues/272#issuecomment-2248273146">reported</a> an exception to this rule.  The BLAS routines `xSYRK` (SYmmetric Rank-K update) computes $C := \beta C + \alpha A A^T$, but the corresponding `std::linalg` function `symmetric_matrix_rank_k_update` only computes $C := C + \alpha A A^T$.  That is, `std::linalg` currently has no way to express this BLAS operation with a general $\beta$ scaling factor.
 
-This issue applies to all of the symmetric and Hermitian rank-k and rank-2k update functions.  The following table lists these functions, what they compute now, and the two things we propose making them able to compute.  $A$ and $B$ denote general matrices, $C$ and $E$ denote symmetric or Hermitian matrices (depending on the algorithm's name), the superscript `T` denotes the transpose, the superscript `H` denotes the Hermitian transpose, $\alpha$ denotes a scaling factor, and $\bar{\alpha}$ denotes the complex conjugate of $\alpha$.  Making the functions have overloads that take an input matrix $E$ would permit $E = \beta C$, and thus make [linalg] able to compute what the BLAS can compute.
+This issue applies to all of the symmetric and Hermitian rank-k and rank-2k update functions.  The following table lists these functions and what they compute now.  $A$ and $B$ denote general matrices, $C$ denotes a symmetric or Hermitian matrix (depending on the algorithm's name), the superscript `T` denotes the transpose, the superscript `H` denotes the Hermitian transpose, $\alpha$ denotes a scaling factor, and $\bar{\alpha}$ denotes the complex conjugate of $\alpha$.  Making the functions have "updating" overloads that take an input matrix $E$ would permit $E = \beta C$, and thus make [linalg] able to compute what the BLAS can compute.
 
 <table>
   <tr>
     <th> [linalg] algorithm </th>
     <th> What it computes now </th>
-    <th> Change (overwriting) </th>
-    <th> Add (updating) </th>
   </tr>
   <tr>
     <td> `symmetric_matrix_rank_k_update` </td>
     <td> $C := C + \alpha A A^T$ </td>
-    <td> $C = \alpha A A^T$ </td>
-    <td> $C = E + \alpha A A^T$ </td>
   </tr>
   <tr>
     <td> `hermitian_matrix_rank_k_update` </td>
     <td> $C := C + \alpha A A^H$ </td>
-    <td> $C = \alpha A A^H$ </td>
-    <td> $C = E + \alpha A A^H$ </td>
   </tr>
   <tr>
     <td> `symmetric_matrix_rank_2k_update` </td>
     <td> $C := C + \alpha A B^T + \alpha B A^T$ </td>
-    <td> $C = \alpha A B^T + \alpha B A^T$ </td>
-    <td> $C = E + \alpha A B^T + \alpha B A^T$ </td>
   </tr>
   <tr>
     <td> `hermitian_matrix_rank_2k_update` </td>
     <td> $C := C + \alpha A B^H + \bar{\alpha} B A^H$ </td>
-    <td> $C = \alpha A B^H + \bar{\alpha} B A^H$ </td>
-    <td> $C = E + \alpha A B^H + \bar{\alpha} B A^H$ </td>
   </tr>
 </table>
 
@@ -361,9 +351,9 @@ Note that this would not eliminate all uses of the exposition-only concept _`ino
 
 ## Use only the real part of scaling factor `alpha` for Hermitian matrix rank-1 and rank-k updates
 
-For Hermitian rank-1 and rank-k matrix updates, if users provide a scaling factor `alpha`, it must have zero imaginary part.  Otherwise, the matrix update will not be Hermitian, because all elements on the diagonal of a Hermitian matrix must have nonzero imaginary part.  Even though $A A^H$ is mathematically always Hermitian, if $\alpha$ has nonzero imaginary part, then $\alpha A A^H$ may no longer be a Hermitian matrix.  For example, if $A$ is the identity matrix (with ones on the diagonal and zeros elsewhere) and $\alpha = i$ (the imaginary unit, which is the square root of negative one), then $\alpha A A^H$ is the diagonal matrix whose diagonal elements are all $i$, and thus has nonzero imaginary part.
+For Hermitian rank-1 and rank-k matrix updates, if users provide a scaling factor `alpha`, it must have zero imaginary part.  Otherwise, the matrix update will not be Hermitian, because all elements on the diagonal of a Hermitian matrix must have zero imaginary part.  Even though $A A^H$ is mathematically always Hermitian, if $\alpha$ has nonzero imaginary part, then $\alpha A A^H$ may no longer be a Hermitian matrix.  For example, if $A$ is the identity matrix (with ones on the diagonal and zeros elsewhere) and $\alpha = i$ (the imaginary unit, which is the square root of negative one), then $\alpha A A^H$ is the diagonal matrix whose diagonal elements are all $i$, and thus has nonzero imaginary part.
 
-The specification of `hermitian_matrix_rank_1_update` and `hermitian_matrix_rank_k_update` does not currently require that `alpha` have nonzero imaginary part.  We propose fixing this by making these update algorithms only use the real part of `alpha`, as in _`real-if-needed`_`(alpha)`.  This solution is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part," where we make Hermitian rank-1 and rank-k matrix updates use only the real part of matrices' diagonals.
+The specification of `hermitian_matrix_rank_1_update` and `hermitian_matrix_rank_k_update` does not currently require that `alpha` have zero imaginary part.  We propose fixing this by making these update algorithms only use the real part of `alpha`, as in _`real-if-needed`_`(alpha)`.  This solution is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part," where we make Hermitian rank-1 and rank-k matrix updates use only the real part of matrices' diagonals.
 
 We begin with a summary of all the Hermitian matrix BLAS routines, how scaling factors influence their mathematical correctness.  Then, we explain how these scaling factor concerns translate into [linalg] function concerns.  Finally, we discuss alternative solutions.
 
