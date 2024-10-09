@@ -457,14 +457,16 @@ BLAS</h1>
 updating rank-k and rank-2k updates</a>
 <ul>
 <li><a href="#for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not" id="toc-for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not"><span class="toc-section-number">4.1.1</span> For rank-k and rank-2k updates,
-BLAS supports scaling factor beta, while std::linalg currently does
-not</a></li>
+BLAS supports scaling factor <code>beta</code>, while std::linalg
+currently does not</a></li>
 <li><a href="#make-these-functions-consistent-with-general-matrix-product" id="toc-make-these-functions-consistent-with-general-matrix-product"><span class="toc-section-number">4.1.2</span> Make these functions consistent
 with general matrix product</a></li>
 <li><a href="#fix-requires-changing-behavior-of-existing-overloads" id="toc-fix-requires-changing-behavior-of-existing-overloads"><span class="toc-section-number">4.1.3</span> Fix requires changing behavior
 of existing overloads</a></li>
 <li><a href="#add-new-updating-overloads-make-existing-ones-overwriting" id="toc-add-new-updating-overloads-make-existing-ones-overwriting"><span class="toc-section-number">4.1.4</span> Add new updating overloads; make
 existing ones overwriting</a></li>
+<li><a href="#summary-of-proposed-changes" id="toc-summary-of-proposed-changes"><span class="toc-section-number">4.1.5</span> Summary of proposed
+changes</a></li>
 </ul></li>
 <li><a href="#change-rank-1-and-rank-2-updates-to-be-consistent-with-rank-k-and-rank-2k" id="toc-change-rank-1-and-rank-2-updates-to-be-consistent-with-rank-k-and-rank-2k"><span class="toc-section-number">4.2</span> Change rank-1 and rank-2 updates
 to be consistent with rank-k and rank-2k</a>
@@ -477,6 +479,8 @@ with BLAS Standard and rank-k and rank-2k updates</a></li>
 special case in std::linalg’s design</a></li>
 <li><a href="#exposition-only-concept-no-longer-needed" id="toc-exposition-only-concept-no-longer-needed"><span class="toc-section-number">4.2.4</span> Exposition-only concept no
 longer needed</a></li>
+<li><a href="#summary-of-proposed-changes-1" id="toc-summary-of-proposed-changes-1"><span class="toc-section-number">4.2.5</span> Summary of proposed
+changes</a></li>
 </ul></li>
 <li><a href="#use-only-the-real-part-of-scaling-factor-alpha-for-hermitian-matrix-rank-1-and-rank-k-updates" id="toc-use-only-the-real-part-of-scaling-factor-alpha-for-hermitian-matrix-rank-1-and-rank-k-updates"><span class="toc-section-number">4.3</span> Use only the real part of scaling
 factor <code>alpha</code> for Hermitian matrix rank-1 and rank-k
@@ -487,6 +491,8 @@ Hermitian matrix BLAS routines</a></li>
 <li><a href="#translation-of-hermitian-blas-concerns-to-stdlinalg" id="toc-translation-of-hermitian-blas-concerns-to-stdlinalg"><span class="toc-section-number">4.3.2</span> Translation of Hermitian BLAS
 concerns to std::linalg</a></li>
 <li><a href="#alternative-solutions" id="toc-alternative-solutions"><span class="toc-section-number">4.3.3</span> Alternative solutions</a></li>
+<li><a href="#summary-of-proposed-changes-2" id="toc-summary-of-proposed-changes-2"><span class="toc-section-number">4.3.4</span> Summary of proposed
+changes</a></li>
 </ul></li>
 <li><a href="#things-relating-to-scaling-factors-that-we-do-not-propose-changing" id="toc-things-relating-to-scaling-factors-that-we-do-not-propose-changing"><span class="toc-section-number">4.4</span> Things relating to scaling factors
 that we do not propose changing</a>
@@ -573,11 +579,15 @@ approach</p></li>
 </ul></li>
 <li><p>Revision 2 to be submitted 2024-10-15</p>
 <ul>
-<li>For Hermitian matrix rank-1 and rank-k updates, do not constrain the
-type of the scaling factor <code>alpha</code>, as R1 did. Instead,
+<li><p>For Hermitian matrix rank-1 and rank-k updates, do not constrain
+the type of the scaling factor <code>alpha</code>, as R1 did. Instead,
 define the algorithms to use
 <em><code>real-if-needed</code></em><code>(alpha)</code>. Remove
-exposition-only concept <em><code>noncomplex</code></em>.</li>
+exposition-only concept <em><code>noncomplex</code></em>.</p></li>
+<li><p>Remove the exposition-only concept
+<em><code>possibly-packed-in-matrix</code></em> that was introduced in
+R1, as it is overly restrictive. (Input matrices never need to have
+unique layout, even if they are not packed.)</p></li>
 </ul></li>
 </ul>
 <h1 data-number="3" id="abstract"><span class="header-section-number">3</span> Abstract<a href="#abstract" class="self-link"></a></h1>
@@ -633,14 +643,13 @@ rank-2k updates, and change the existing overloads to be
 overwriting.</p></li>
 <li><p>The change to existing overloads is a breaking change and thus
 must be finished before C++26.</p></li>
-<li><p>To simplify wording, we add new exposition-only concepts
-<em><code>possibly-packed-in-matrix</code></em> and
+<li><p>To simplify wording, we add the new exposition-only concept
 <em><code>possibly-packed-out-matrix</code></em> for symmetric and
 Hermitian matrix update algorithms.</p></li>
 </ol>
 <h3 data-number="4.1.1" id="for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not"><span class="header-section-number">4.1.1</span> For rank-k and rank-2k
-updates, BLAS supports scaling factor beta, while std::linalg currently
-does not<a href="#for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not" class="self-link"></a></h3>
+updates, BLAS supports scaling factor <code>beta</code>, while
+std::linalg currently does not<a href="#for-rank-k-and-rank-2k-updates-blas-supports-scaling-factor-beta-while-stdlinalg-currently-does-not" class="self-link"></a></h3>
 <p>Each function in any section whose label begins with “linalg.algs”
 generally corresponds to one or more routines or functions in the
 original BLAS (Basic Linear Algebra Subroutines). Every computation that
@@ -648,22 +657,95 @@ the BLAS can do, a function in the C++ Standard Library should be able
 to do.</p>
 <p>One <code>std::linalg</code> user
 <a href="https://github.com/kokkos/stdBLAS/issues/272#issuecomment-2248273146">reported</a>
-an exception to this rule. The BLAS routine <code>DSYRK</code>
-(Double-precision SYmmetric Rank-K update) computes <span class="math inline"><em>C</em> := <em>β</em><em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>,
+an exception to this rule. The BLAS routines <code>xSYRK</code>
+(SYmmetric Rank-K update) computes <span class="math inline"><em>C</em> := <em>β</em><em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>,
 but the corresponding <code>std::linalg</code> function
 <code>symmetric_matrix_rank_k_update</code> only computes <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>.
 That is, <code>std::linalg</code> currently has no way to express this
-BLAS operation with a general <span class="math inline"><em>β</em></span> scaling factor. This issue applies
-to all of the symmetric and Hermitian rank-k and rank-2k update
-functions.</p>
-<ul>
-<li><code>symmetric_matrix_rank_k_update</code>: computes <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span></li>
-<li><code>hermitian_matrix_rank_k_update</code>: computes <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span></li>
-<li><code>symmetric_matrix_rank_2k_update</code>: computes <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>H</em></sup></span></li>
-<li><code>hermitian_matrix_rank_2k_update</code>: computes <span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>,
-where <span class="math inline"><em>ᾱ</em></span> denotes the complex
-conjugate of <span class="math inline"><em>α</em></span></li>
-</ul>
+BLAS operation with a general <span class="math inline"><em>β</em></span> scaling factor.</p>
+<p>This issue applies to all of the symmetric and Hermitian rank-k and
+rank-2k update functions. The following table lists these functions,
+what they compute now, and the two things we propose making them able to
+compute. <span class="math inline"><em>A</em></span> and <span class="math inline"><em>B</em></span> denote general matrices, <span class="math inline"><em>C</em></span> and <span class="math inline"><em>E</em></span> denote symmetric or Hermitian
+matrices (depending on the algorithm’s name), the superscript
+<code>T</code> denotes the transpose, the superscript <code>H</code>
+denotes the Hermitian transpose, <span class="math inline"><em>α</em></span> denotes a scaling factor, and
+<span class="math inline"><em>ᾱ</em></span> denotes the complex
+conjugate of <span class="math inline"><em>α</em></span>. Making the
+functions have overloads that take an input matrix <span class="math inline"><em>E</em></span> would permit <span class="math inline"><em>E</em> = <em>β</em><em>C</em></span>, and thus
+make [linalg] able to compute what the BLAS can compute.</p>
+<table>
+<tr>
+<th>
+[linalg] algorithm
+</th>
+<th>
+What it computes now
+</th>
+<th>
+Change (overwriting)
+</th>
+<th>
+Add (updating)
+</th>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_2k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_2k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+</table>
 <h3 data-number="4.1.2" id="make-these-functions-consistent-with-general-matrix-product"><span class="header-section-number">4.1.2</span> Make these functions
 consistent with general matrix product<a href="#make-these-functions-consistent-with-general-matrix-product" class="self-link"></a></h3>
 <p>These functions implement special cases of matrix-matrix products.
@@ -718,11 +800,10 @@ make existing ones overwriting<a href="#add-new-updating-overloads-make-existing
 <code>matrix_vector_product</code> or <code>matrix_product</code>. This
 entails three changes.</p>
 <ol type="1">
-<li><p>Add two new exposition-only concepts
-<em><code>possibly-packed-in-matrix</code></em> and
-<em><code>possibly-packed-out-matrix</code></em> for constraining input
-and output parameters of the changed or new symmetric and Hermitian
-update functions.</p></li>
+<li><p>Add two new exposition-only concept
+<em><code>possibly-packed-out-matrix</code></em> for constraining output
+parameters of the changed or new symmetric and Hermitian update
+functions.</p></li>
 <li><p>Add “updating” overloads of the symmetric and Hermitian rank-k
 and rank-2k update functions.</p>
 <ol type="a">
@@ -735,9 +816,9 @@ computes <span class="math inline"><em>C</em> = <em>E</em> + <em>A</em><
 <li><p>Explicitly permit <code>C</code> and <code>E</code> to alias,
 thus permitting the desired case where <code>E</code> is
 <code>scaled(beta, C)</code>.</p></li>
-<li><p>The updating overloads take <code>E</code> as a
-<em><code>possibly-packed-in-matrix</code></em>, and take <code>C</code>
-as a <em><code>possibly-packed-out-matrix</code></em> (instead of a
+<li><p>The updating overloads take <code>E</code> as an
+<em><code>in-matrix</code></em>, and take <code>C</code> as a
+<em><code>possibly-packed-out-matrix</code></em> (instead of a
 <em><code>possibly-packed-inout-matrix</code></em>).</p></li>
 <li><p><code>E</code> must be accessed as a symmetric or Hermitian
 matrix (depending on the function name) and such accesses must use the
@@ -774,13 +855,87 @@ in the same way that they interpret <code>C</code> as symmetric, and the
 in the same way that they interpret <code>C</code> as Hermitian.
 Nevertheless, we do need new wording to explain how the functions may
 interpret and access <code>E</code>.</p>
+<h3 data-number="4.1.5" id="summary-of-proposed-changes"><span class="header-section-number">4.1.5</span> Summary of proposed changes<a href="#summary-of-proposed-changes" class="self-link"></a></h3>
+<table>
+<tr>
+<th>
+[linalg] algorithm
+</th>
+<th>
+What it computes now
+</th>
+<th>
+Change (overwriting)
+</th>
+<th>
+Add (updating)
+</th>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_2k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>B</em><sup><em>T</em></sup> + <em>α</em><em>B</em><em>A</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_2k_update</code>
+</td>
+<td>
+<span class="math inline"><em>C</em> := <em>C</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+</table>
 <h2 data-number="4.2" id="change-rank-1-and-rank-2-updates-to-be-consistent-with-rank-k-and-rank-2k"><span class="header-section-number">4.2</span> Change rank-1 and rank-2
 updates to be consistent with rank-k and rank-2k<a href="#change-rank-1-and-rank-2-updates-to-be-consistent-with-rank-k-and-rank-2k" class="self-link"></a></h2>
 <ol type="1">
 <li><p>Currently, the rank-1 and rank-2 updates unconditionally update
-and do not take a <span class="math inline"><em>β</em></span> scaling
-factor. This behavior deviates from the BLAS Standard and is
-inconsistent with the rank-k and rank-2k updates.</p></li>
+and do not take a <code>beta</code> scaling factor.</p></li>
+<li><p>This behavior deviates from the BLAS Standard, is inconsistent
+with the rank-k and rank-2k updates, and introduces a special case in
+[linalg]’s design.</p></li>
 <li><p>We propose making all the rank-1 and rank-2 update functions
 consistent with the proposed change to the rank-k and rank-2k updates.
 This means both changing the meaning of the current overloads to be
@@ -794,39 +949,142 @@ We propose removing it.</p></li>
 </ol>
 <h3 data-number="4.2.1" id="current-stdlinalg-behavior"><span class="header-section-number">4.2.1</span> Current std::linalg
 behavior<a href="#current-stdlinalg-behavior" class="self-link"></a></h3>
-<p>The rank-k and rank-2k update functions have the following rank-1 and
-rank-2 analogs, where <span class="math inline"><em>A</em></span>
-denotes a symmetric or Hermitian matrix (depending on the function’s
-name) and <span class="math inline"><em>x</em></span> and <span class="math inline"><em>y</em></span> denote vectors.</p>
-<ul>
-<li><code>symmetric_matrix_rank_1_update</code>: computes <span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>x</em><sup><em>T</em></sup></span></li>
-<li><code>hermetian_matrix_rank_1_update</code>: computes <span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup></span></li>
-<li><code>symmetric_matrix_rank_2_update</code>: computes <span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>y</em><sup><em>T</em></sup> + <em>α</em><em>y</em><em>x</em><sup><em>T</em></sup></span></li>
-<li><code>hermitian_matrix_rank_2_update</code>: computes <span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>x</em><em>y</em><sup><em>H</em></sup></span></li>
-</ul>
+<p>The symmetric and Hermitian rank-k and rank-2k update functions have
+the following rank-1 and rank-2 analogs, <span class="math inline"><em>A</em></span> denotes a symmetric or Hermitian
+matrix (depending on the function’s name), <span class="math inline"><em>x</em></span> and <span class="math inline"><em>y</em></span> denote vectors, and <span class="math inline"><em>α</em></span> denotes a scaling factor.</p>
+<table>
+<tr>
+<th>
+[linalg] algorithm
+</th>
+<th>
+What it computes now
+</th>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_1_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_1_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_2_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>y</em><sup><em>T</em></sup> + <em>α</em><em>y</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_2_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+</table>
 <p>These functions <em>unconditionally</em> update the matrix <span class="math inline"><em>A</em></span>. They do not have an overwriting
 option. In this, they follow the “general” (not necessarily symmetric or
 Hermitian) rank-1 update functions.</p>
-<ul>
-<li><code>matrix_rank_1_update</code>: computes <span class="math inline"><em>A</em> := <em>A</em> + <em>x</em><em>y</em><sup><em>T</em></sup></span></li>
-<li><code>matrix_rank_1_update_c</code>: computes <span class="math inline"><em>A</em> := <em>A</em> + <em>x</em><em>y</em><sup><em>H</em></sup></span></li>
-</ul>
+<table>
+<tr>
+<th>
+[linalg] algorithm
+</th>
+<th>
+What it computes now
+</th>
+</tr>
+<tr>
+<td>
+<code>matrix_rank_1_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>x</em><em>y</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>matrix_rank_1_update_c</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+</table>
 <h3 data-number="4.2.2" id="current-behavior-is-inconsistent-with-blas-standard-and-rank-k-and-rank-2k-updates"><span class="header-section-number">4.2.2</span> Current behavior is
 inconsistent with BLAS Standard and rank-k and rank-2k updates<a href="#current-behavior-is-inconsistent-with-blas-standard-and-rank-k-and-rank-2k-updates" class="self-link"></a></h3>
 <p>These six rank-1 and rank-2 update functions map to BLAS routines as
 follows.</p>
-<ul>
-<li><code>matrix_rank_1_update</code>: <code>xGER</code></li>
-<li><code>matrix_rank_1_update</code>: <code>xGERC</code></li>
-<li><code>symmetric_matrix_rank_1_update</code>: <code>xSYR</code>,
-<code>xSPR</code></li>
-<li><code>hermitian_matrix_rank_1_update</code>: <code>xHER</code>,
-<code>xHPR</code></li>
-<li><code>hermitian_matrix_rank_1_update</code>: <code>xSYR2</code>,
-<code>xSPR2</code></li>
-<li><code>hermitian_matrix_rank_1_update</code>: <code>xHER2</code>,
-<code>xHPR2</code></li>
-</ul>
+<table>
+<tr>
+<th>
+[linalg] algorithm
+</th>
+<th>
+Corresponding BLAS routine(s)
+</th>
+</tr>
+<tr>
+<td>
+<code>matrix_rank_1_update</code>
+</td>
+<td>
+<code>xGER</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>matrix_rank_1_update_c</code>
+</td>
+<td>
+<code>xGERC</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_1_update</code>
+</td>
+<td>
+<code>xSYR</code>, <code>xSPR</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_1_update</code>
+</td>
+<td>
+<code>xHER</code>, <code>xHPR</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_2_update</code>
+</td>
+<td>
+<code>xSYR2</code>, <code>xSPR2</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_2_update</code>
+</td>
+<td>
+<code>xHER2</code>, <code>xHPR2</code>
+</td>
+</tr>
+</table>
 <p>The Reference BLAS and the BLAS Standard (see Chapter 2, pp. 64 - 68)
 differ here. The Reference BLAS and the original 1988 BLAS 2 paper
 specify all of the rank-1 and rank-2 update routines listed above as
@@ -848,27 +1106,27 @@ special case in std::linalg’s design<a href="#this-change-would-remove-a-speci
 translates Fortran <code>INTENT(INOUT)</code> arguments into a C++
 idiom.</p>
 <ol type="1">
-<li><p>Provide in-place and not-in-place overloads for triangular solve
-and triangular multiply.</p></li>
+<li><p>Provide both in-place and not-in-place overloads for triangular
+solve and triangular multiply.</p></li>
 <li><p>“Else, if the BLAS function unconditionally updates (like
 <code>xGER</code>), we retain read-and-write behavior for that
 argument.”</p></li>
-<li><p>“Else, if the BLAS function uses a scalar beta argument to decide
-whether to read the output argument as well as write to it (like
-<code>xGEMM</code>), we provide two versions: a write-only version (as
-if <code>beta</code> is zero), and a read-and-write version (as if
-<code>beta</code> is nonzero).”</p></li>
+<li><p>“Else, if the BLAS function uses a scalar <code>beta</code>
+argument to decide whether to read the output argument as well as write
+to it (like <code>xGEMM</code>), we provide two versions: a write-only
+version (as if <code>beta</code> is zero), and a read-and-write version
+(as if <code>beta</code> is nonzero).”</p></li>
 </ol>
 <p>Our design goal was for functions with vector or matrix output to
 imitate <code>std::transform</code> as much as possible. This favors Way
 (3) as the default approach, which turns <code>INTENT(INOUT)</code>
 arguments on the Fortran side into separate input and output parameters
 on the C++ side. Way (2) is really an awkward special case. The BLAS
-Standard effectively eliminates this special case on the Fortran side by
-making the rank-1 and rank-2 updates work just like the rank-k and
-rank-2k updates, with a <span class="math inline"><em>β</em></span>
-scaling factor. This makes it natural to eliminate the Way (2) special
-case on the C++ side as well.</p>
+Standard effectively eliminates this special case by making the rank-1
+and rank-2 updates work just like the rank-k and rank-2k updates, with a
+<span class="math inline"><em>β</em></span> scaling factor. This makes
+it natural to eliminate the Way (2) special case in [linalg] as
+well.</p>
 <h3 data-number="4.2.4" id="exposition-only-concept-no-longer-needed"><span class="header-section-number">4.2.4</span> Exposition-only concept no
 longer needed<a href="#exposition-only-concept-no-longer-needed" class="self-link"></a></h3>
 <p>These changes make the exposition-only concept
@@ -882,6 +1140,107 @@ triangular linear system solve functions
 <code>triangular_matrix_matrix_left_solve</code> and
 <code>triangular_matrix_matrix_right_solve</code> would still use
 <em><code>inout-matrix</code></em>.</p>
+<h3 data-number="4.2.5" id="summary-of-proposed-changes-1"><span class="header-section-number">4.2.5</span> Summary of proposed changes<a href="#summary-of-proposed-changes-1" class="self-link"></a></h3>
+<table>
+<tr>
+<th>
+[linalg] algorithm
+</th>
+<th>
+What it computes now
+</th>
+<th>
+Change (overwriting)
+</th>
+<th>
+Add (updating)
+</th>
+</tr>
+<tr>
+<td>
+<code>matrix_rank_1_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>x</em><em>y</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>x</em><em>y</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>E</em> + <em>x</em><em>y</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>matrix_rank_1_update_c</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>E</em> + <em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_1_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>α</em><em>x</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_1_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>symmetric_matrix_rank_2_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>y</em><sup><em>T</em></sup> + <em>α</em><em>y</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>α</em><em>x</em><em>y</em><sup><em>T</em></sup> + <em>α</em><em>y</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>y</em><sup><em>T</em></sup> + <em>α</em><em>y</em><em>x</em><sup><em>T</em></sup></span>
+</td>
+</tr>
+<tr>
+<td>
+<code>hermitian_matrix_rank_2_update</code>
+</td>
+<td>
+<span class="math inline"><em>A</em> := <em>A</em> + <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+<td>
+<span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>x</em><em>y</em><sup><em>H</em></sup></span>
+</td>
+</tr>
+</table>
 <h2 data-number="4.3" id="use-only-the-real-part-of-scaling-factor-alpha-for-hermitian-matrix-rank-1-and-rank-k-updates"><span class="header-section-number">4.3</span> Use only the real part of
 scaling factor <code>alpha</code> for Hermitian matrix rank-1 and rank-k
 updates<a href="#use-only-the-real-part-of-scaling-factor-alpha-for-hermitian-matrix-rank-1-and-rank-k-updates" class="self-link"></a></h2>
@@ -922,9 +1281,9 @@ result incorrect, the routine restricts the scaling factor to have a
 noncomplex number type. Otherwise, the routine takes the scaling factor
 as a complex number type. We discuss all the Hermitian routines
 here.</p>
-<h4 data-number="4.3.1.1" id="hemm-hermitian-matrix-matrix-multiply"><span class="header-section-number">4.3.1.1</span> <code>HEMM</code>:
-Hermitian matrix-matrix multiply<a href="#hemm-hermitian-matrix-matrix-multiply" class="self-link"></a></h4>
-<p><code>HEMM</code> (HErmitian Matrix-matrix Multiply) computes either
+<h4 data-number="4.3.1.1" id="xhemm-hermitian-matrix-matrix-multiply"><span class="header-section-number">4.3.1.1</span> <code>xHEMM</code>:
+Hermitian matrix-matrix multiply<a href="#xhemm-hermitian-matrix-matrix-multiply" class="self-link"></a></h4>
+<p><code>xHEMM</code> (HErmitian Matrix-matrix Multiply) computes either
 <span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>B</em> + <em>β</em><em>C</em></span>
 or <span class="math inline"><em>C</em> := <em>α</em><em>B</em><em>A</em> + <em>β</em><em>C</em></span>,
 where <span class="math inline"><em>A</em></span> is a Hermitian matrix,
@@ -932,18 +1291,18 @@ and neither <span class="math inline"><em>B</em></span> nor <span class="math in
 <span class="math inline"><em>A</em><em>B</em></span> and <span class="math inline"><em>B</em><em>A</em></span> thus need not be
 Hermitian, so the scaling factors <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> can have nonzero imaginary parts.
 The BLAS takes them both as complex numbers.</p>
-<h4 data-number="4.3.1.2" id="hemv-hermitian-matrix-vector-multiply"><span class="header-section-number">4.3.1.2</span> <code>HEMV</code>:
-HErmitian Matrix-Vector multiply<a href="#hemv-hermitian-matrix-vector-multiply" class="self-link"></a></h4>
-<p><code>HEMV</code> (HErmitian Matrix-Vector multiply) computes <span class="math inline"><em>y</em> := <em>α</em><em>A</em><em>x</em> + <em>β</em><em>y</em></span>,
+<h4 data-number="4.3.1.2" id="xhemv-hermitian-matrix-vector-multiply"><span class="header-section-number">4.3.1.2</span> <code>xHEMV</code>:
+HErmitian Matrix-Vector multiply<a href="#xhemv-hermitian-matrix-vector-multiply" class="self-link"></a></h4>
+<p><code>xHEMV</code> (HErmitian Matrix-Vector multiply) computes <span class="math inline"><em>y</em> := <em>α</em><em>A</em><em>x</em> + <em>β</em><em>y</em></span>,
 where <span class="math inline"><em>A</em></span> is a Hermitian matrix
 and <span class="math inline"><em>x</em></span> and <span class="math inline"><em>y</em></span> are vectors. The scaled matrix
 <span class="math inline"><em>α</em><em>A</em></span> does not need to
 be Hermitian. Thus, <span class="math inline"><em>α</em></span> and
 <span class="math inline"><em>β</em></span> can have nonzero imaginary
 parts. The BLAS takes them both as complex numbers.</p>
-<h4 data-number="4.3.1.3" id="her-hermitian-rank-1-update"><span class="header-section-number">4.3.1.3</span> <code>HER</code>: HErmitian
-Rank-1 update<a href="#her-hermitian-rank-1-update" class="self-link"></a></h4>
-<p><code>HER</code> (HErmitian Rank-1 update) differs between the
+<h4 data-number="4.3.1.3" id="xher-hermitian-rank-1-update"><span class="header-section-number">4.3.1.3</span> <code>xHER</code>:
+HErmitian Rank-1 update<a href="#xher-hermitian-rank-1-update" class="self-link"></a></h4>
+<p><code>xHER</code> (HErmitian Rank-1 update) differs between the
 Reference BLAS (which computes <span class="math inline"><em>A</em> := <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup> + <em>A</em></span>)
 and the BLAS Standard (which computes <span class="math inline"><em>A</em> := <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup> + <em>β</em><em>A</em></span>).
 The matrix <span class="math inline"><em>A</em></span> must be
@@ -951,9 +1310,9 @@ Hermitian, and the rank-1 matrix <span class="math inline"><em>x</em><em>x</em><
 always mathematically Hermitian, so both <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> need to have zero imaginary part
 in order for the update to preserve <span class="math inline"><em>A</em></span>’s Hermitian property. The BLAS
 takes them both as real (noncomplex) numbers.</p>
-<h4 data-number="4.3.1.4" id="her2-hermitian-rank-2-update"><span class="header-section-number">4.3.1.4</span> <code>HER2</code>:
-HErmitian Rank-2 update<a href="#her2-hermitian-rank-2-update" class="self-link"></a></h4>
-<p><code>HER2</code> (HErmitian Rank-2 update) differs between the
+<h4 data-number="4.3.1.4" id="xher2-hermitian-rank-2-update"><span class="header-section-number">4.3.1.4</span> <code>xHER2</code>:
+HErmitian Rank-2 update<a href="#xher2-hermitian-rank-2-update" class="self-link"></a></h4>
+<p><code>xHER2</code> (HErmitian Rank-2 update) differs between the
 Reference BLAS (which computes <span class="math inline"><em>A</em> := <em>α</em><em>x</em><em>y</em><sup><em>H</em></sup> + <em>ᾱ</em><em>y</em><em>x</em><sup><em>H</em></sup> + <em>A</em></span>,
 where <span class="math inline"><em>ᾱ</em></span> denotes the complex
 conjugate of <span class="math inline"><em>α</em></span>) and the BLAS
@@ -968,21 +1327,21 @@ description of the Fortran 95 binding. It says that both
 <code>alpha</code> and <code>beta</code> are complex (have type
 <code>COMPLEX(&lt;wp&gt;)</code>), even though in the Fortran 77
 binding, <code>beta</code> is real (<code>&lt;rtype&gt;</code>). The
-BLAS Standard’s description of <code>HER2K</code> (see below) says that
+BLAS Standard’s description of <code>xHER2K</code> (see below) says that
 <code>alpha</code> is complex but <code>beta</code> is real.
-<code>HER2</code> needs to be consistent with <code>HER2K</code>.)</p>
-<h4 data-number="4.3.1.5" id="herk-hermitian-rank-k-update"><span class="header-section-number">4.3.1.5</span> <code>HERK</code>:
-HErmitian Rank-K update<a href="#herk-hermitian-rank-k-update" class="self-link"></a></h4>
-<p><code>HERK</code> (HErmitian Rank-K update) computes either <span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup> + <em>β</em><em>C</em></span>
+<code>xHER2</code> needs to be consistent with <code>xHER2K</code>.)</p>
+<h4 data-number="4.3.1.5" id="xherk-hermitian-rank-k-update"><span class="header-section-number">4.3.1.5</span> <code>xHERK</code>:
+HErmitian Rank-K update<a href="#xherk-hermitian-rank-k-update" class="self-link"></a></h4>
+<p><code>xHERK</code> (HErmitian Rank-K update) computes either <span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup> + <em>β</em><em>C</em></span>
 or <span class="math inline"><em>C</em> := <em>α</em><em>A</em><sup><em>H</em></sup><em>A</em> + <em>β</em><em>C</em></span>,
 where <span class="math inline"><em>C</em></span> must be Hermitian.
-This is a generalization of <code>HER</code> and thus both <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> need to have zero imaginary part.
+This is a generalization of <code>xHER</code> and thus both <span class="math inline"><em>α</em></span> and <span class="math inline"><em>β</em></span> need to have zero imaginary part.
 The BLAS takes them both as real (noncomplex) numbers.</p>
-<h4 data-number="4.3.1.6" id="her2k-hermitian-rank-2k-update"><span class="header-section-number">4.3.1.6</span> <code>HER2K</code>:
-HErmitian Rank-2k update<a href="#her2k-hermitian-rank-2k-update" class="self-link"></a></h4>
-<p><code>HER2K</code> (HErmitian Rank-2k update) computes either <span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup> + <em>β</em><em>C</em></span>
+<h4 data-number="4.3.1.6" id="xher2k-hermitian-rank-2k-update"><span class="header-section-number">4.3.1.6</span> <code>xHER2K</code>:
+HErmitian Rank-2k update<a href="#xher2k-hermitian-rank-2k-update" class="self-link"></a></h4>
+<p><code>xHER2K</code> (HErmitian Rank-2k update) computes either <span class="math inline"><em>C</em> := <em>α</em><em>A</em><em>B</em><sup><em>H</em></sup> + <em>ᾱ</em><em>B</em><em>A</em><sup><em>H</em></sup> + <em>β</em><em>C</em></span>
 or <span class="math inline"><em>C</em> := <em>α</em><em>A</em><sup><em>H</em></sup><em>B</em> + <em>ᾱ</em><em>B</em><sup><em>H</em></sup><em>A</em> + <em>β</em><em>C</em></span>.
-This is a generalization of <code>HER2</code>: <span class="math inline"><em>α</em></span> can have nonzero imaginary part,
+This is a generalization of <code>xHER2</code>: <span class="math inline"><em>α</em></span> can have nonzero imaginary part,
 but <span class="math inline"><em>β</em></span> cannot. The BLAS thus
 takes <code>alpha</code> as a complex number, but <code>beta</code> as a
 real (noncomplex) number.</p>
@@ -1009,74 +1368,74 @@ Generalizes
 </th>
 </tr>
 <tr>
-<th>
-<code>HEMM</code>
-</th>
-<th>
+<td>
+<code>xHEMM</code>
+</td>
+<td>
 No
-</th>
-<th>
+</td>
+<td>
 No
-</th>
-<th>
+</td>
+<td>
 N/A
-</th>
+</td>
 </tr>
 <tr>
-<th>
-<code>HER</code>
-</th>
-<th>
+<td>
+<code>xHER</code>
+</td>
+<td>
 Yes
-</th>
-<th>
+</td>
+<td>
 Yes
-</th>
-<th>
+</td>
+<td>
 N/A
-</th>
+</td>
 </tr>
 <tr>
-<th>
-<code>HER2</code>
-</th>
-<th>
+<td>
+<code>xHER2</code>
+</td>
+<td>
 No
-</th>
-<th>
+</td>
+<td>
 Yes
-</th>
-<th>
+</td>
+<td>
 N/A
-</th>
+</td>
 </tr>
 <tr>
-<th>
-<code>HERK</code>
-</th>
-<th>
+<td>
+<code>xHERK</code>
+</td>
+<td>
 Yes
-</th>
-<th>
+</td>
+<td>
 Yes
-</th>
-<th>
-<code>HER</code>
-</th>
+</td>
+<td>
+<code>xHER</code>
+</td>
 </tr>
 <tr>
-<th>
-<code>HER2K</code>
-</th>
-<th>
+<td>
+<code>xHER2K</code>
+</td>
+<td>
 No
-</th>
-<th>
+</td>
+<td>
 Yes
-</th>
-<th>
-<code>HER2</code>
-</th>
+</td>
+<td>
+<code>xHER2</code>
+</td>
 </tr>
 </table>
 <h3 data-number="4.3.2" id="translation-of-hermitian-blas-concerns-to-stdlinalg"><span class="header-section-number">4.3.2</span> Translation of Hermitian BLAS
@@ -1155,8 +1514,8 @@ but</p></li>
 having nonzero imaginary part.</p></li>
 </ul>
 <p>These correspond exactly to the BLAS’s Hermitian matrix update
-routines where the type of <code>alpha</code> is real: <code>HER</code>
-and <code>HERK</code>. This strongly suggests solving the problem in
+routines where the type of <code>alpha</code> is real: <code>xHER</code>
+and <code>xHERK</code>. This strongly suggests solving the problem in
 [linalg] by constraining the type of <code>alpha</code> to be
 noncomplex. However, as we explain in “Alternative solutions” below, it
 is hard to define a “noncomplex number” constraint that works well for
@@ -1325,13 +1684,16 @@ web pages to find out that they need to specialize
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>imag<span class="op">(</span>t<span class="op">)}</span> <span class="op">-&gt;</span> std<span class="op">::</span>convertible_to<span class="op">&lt;</span>T<span class="op">&gt;</span>;</span></code></pre></div>
 <p>P1673 generally avoids approaches based on specializing traits. Its
 design philosophy favors treating types as they are. Users should not
-need to do something to get correct behavior. We based this on our past
-experiences in generic numerical algorithms development. In the 2010’s,
-one of the authors maintained a generic mathematical algorithms library
-called Trilinos. The Teuchos (pronounced “TEFF-os”) package of Trilinos
-provides a monolithic <code>ScalarTraits</code> class template that
-defines different properties of a number type. It combines the features
-of <code>std::numeric_limits</code> with generic complex arithmetic
+need to do something “extra” with their custom number types to get
+correct behavior, beyond what they would reasonably need to define to
+make a custom number type behave like a number.</p>
+<p>We base this principle on our past experiences in generic numerical
+algorithms development. In the 2010’s, one of the authors maintained a
+generic mathematical algorithms library called Trilinos. The Teuchos
+(pronounced “TEFF-os”) package of Trilinos provides a monolithic
+<code>ScalarTraits</code> class template that defines different
+properties of a number type. It combines the features of
+<code>std::numeric_limits</code> with generic complex arithmetic
 operations like <code>conjugate</code>, <code>real</code>, and
 <code>imag</code>. Trilinos’ generic algorithms assume that number types
 are regular and define overloaded <code>+</code>, <code>-</code>,
@@ -1354,11 +1716,10 @@ imitation of <code>std::numeric_limits</code>, and partly a side effect
 of a requirement to support pre-C++11 compilers that did not permit
 partial specialization of function templates. (The typical pre-C++11
 work-around is to define an unspecialized function template that
-dispatches to a possibly specialized class template.) C++11 permits
-partial specialization of function templates and C++14 introduces
-variable templates; these features have encouraged “breaking up”
-monolithic traits classes into separate traits. Our paper P1370R1
-(“Generic numerical algorithm development with(out)
+dispatches to a possibly specialized class template.) Partial
+specialization of function templates and C++14’s variable templates both
+encourage “breaking up” monolithic traits classes into separate traits.
+Our paper P1370R1 (“Generic numerical algorithm development with(out)
 <code>numeric_limits</code>”) aligns with this trend.</p>
 <h4 data-number="4.3.3.4" id="alternative-impose-precondition-on-alpha"><span class="header-section-number">4.3.3.4</span> Alternative: Impose
 precondition on <code>alpha</code><a href="#alternative-impose-precondition-on-alpha" class="self-link"></a></h4>
@@ -1379,6 +1740,19 @@ part of <code>alpha</code> anyway, because these BLAS routines only take
 <em>define</em> the behavior of the update algorithms as using
 <em><code>real-if-needed</code></em><code>(alpha)</code> – would not add
 overhead.</p>
+<h3 data-number="4.3.4" id="summary-of-proposed-changes-2"><span class="header-section-number">4.3.4</span> Summary of proposed changes<a href="#summary-of-proposed-changes-2" class="self-link"></a></h3>
+<p>For Hermitian matrix update algorithms where</p>
+<ul>
+<li><p>the algorithm exposes a separate scaling factor parameter
+<code>alpha</code>, and</p></li>
+<li><p><code>alpha</code> needs to have zero imaginary part,
+but</p></li>
+<li><p>nothing in the wording currently prevents <code>alpha</code> from
+having nonzero imaginary part,</p></li>
+</ul>
+<p>specify that these algorithms use
+<em><code>real-if-needed</code></em><code>(alpha)</code> and ignore any
+nonzero imaginary part of <code>alpha</code>.</p>
 <h2 data-number="4.4" id="things-relating-to-scaling-factors-that-we-do-not-propose-changing"><span class="header-section-number">4.4</span> Things relating to scaling
 factors that we do not propose changing<a href="#things-relating-to-scaling-factors-that-we-do-not-propose-changing" class="self-link"></a></h2>
 <h3 data-number="4.4.1" id="hermitian-matrix-vector-and-matrix-matrix-products"><span class="header-section-number">4.4.1</span> Hermitian matrix-vector and
@@ -1387,7 +1761,7 @@ matrix-matrix products<a href="#hermitian-matrix-vector-and-matrix-matrix-produc
 <code>hermitian_matrix_vector_product</code> and
 <code>hermitian_matrix_product</code> expect that the (possibly scaled)
 input matrix is Hermitian, while the corresponding BLAS routines
-<code>HEMV</code> and <code>HEMM</code> expect that the unscaled input
+<code>xHEMV</code> and <code>xHEMM</code> expect that the unscaled input
 matrix is Hermitian and permit the scaling factor <code>alpha</code> to
 have nonzero imaginary part. However, this does not affect the ability
 of these [linalg] algorithms to compute what the BLAS can compute. Users
@@ -1907,10 +2281,7 @@ not convince Markdown to format the code correctly. <i>– end
 note]</i></p>
 </blockquote>
 <div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> T<span class="op">&gt;</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">concept</span> <em>possibly-packed-in-matrix</em> <span class="op">=</span> <em>see below</em>;     <span class="co">// <em>exposition only</em></span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> T<span class="op">&gt;</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">concept</span> <em>possibly-packed-out-matrix</em> <span class="op">=</span> <em>see below</em>;     <span class="co">// <em>exposition only</em></span></span></code></pre></div>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">concept</span> <em>possibly-packed-out-matrix</em> <span class="op">=</span> <em>see below</em>;     <span class="co">// <em>exposition only</em></span></span></code></pre></div>
 <blockquote>
 <p>Then, remove the declaration of the exposition-only concept
 <em><code>possibly-packed-inout-matrix</code></em> from the header
@@ -1928,15 +2299,10 @@ not convince Markdown to format the code correctly. <i>– end
 note]</i></p>
 </blockquote>
 <div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> T<span class="op">&gt;</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">concept</span> <em>possibly-packed-in-matrix</em> <span class="op">=</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">concept</span> <em>possibly-packed-out-matrix</em> <span class="op">=</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>      <em>is-mdspan</em><span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">&amp;&amp;</span> T<span class="op">::</span>rank<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span> <span class="op">&amp;&amp;</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>      <span class="op">(</span>T<span class="op">::</span>is_always_unique<span class="op">()</span> <span class="op">||</span> <em>is-layout-blas-packed</em><span class="op">&lt;</span><span class="kw">typename</span> T<span class="op">::</span>layout_type<span class="op">&gt;)</span>;</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> T<span class="op">&gt;</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">concept</span> <em>possibly-packed-out-matrix</em> <span class="op">=</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>      <em>is-mdspan</em><span class="op">&lt;</span>T<span class="op">&gt;</span> <span class="op">&amp;&amp;</span> T<span class="op">::</span>rank<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span> <span class="op">&amp;&amp;</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>      is_assignable_v<span class="op">&lt;</span><span class="kw">typename</span> T<span class="op">::</span>reference, <span class="kw">typename</span> T<span class="op">::</span>element_type<span class="op">&gt;</span> <span class="op">&amp;&amp;</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>      <span class="op">(</span>T<span class="op">::</span>is_always_unique<span class="op">()</span> <span class="op">||</span> <em>is-layout-blas-packed</em><span class="op">&lt;</span><span class="kw">typename</span> T<span class="op">::</span>layout_type<span class="op">&gt;)</span>;</span></code></pre></div>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>      is_assignable_v<span class="op">&lt;</span><span class="kw">typename</span> T<span class="op">::</span>reference, <span class="kw">typename</span> T<span class="op">::</span>element_type<span class="op">&gt;</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>      <span class="op">(</span>T<span class="op">::</span>is_always_unique<span class="op">()</span> <span class="op">||</span> <em>is-layout-blas-packed</em><span class="op">&lt;</span><span class="kw">typename</span> T<span class="op">::</span>layout_type<span class="op">&gt;)</span>;</span></code></pre></div>
 <blockquote>
 <p>Then, remove the definition of the exposition-only concept
 <em><code>possibly-packed-inout-matrix</code></em> from
@@ -2017,16 +2383,16 @@ note]</i></p>
 <span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>                                        InVec x, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating symmetric rank-1 matrix update </span></span>
-<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a>                                        Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
-<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a>           <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a>           <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a>                                        InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a></span>
@@ -2045,16 +2411,16 @@ note]</i></p>
 <span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a>                                        InVec x, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating Hermitian rank-1 matrix update </span></span>
-<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a>                                        Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
-<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-81"><a href="#cb18-81" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb18-82"><a href="#cb18-82" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a>           <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a>           <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a>                                        InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
 <h2 data-number="8.3" id="rank-2-update-functions-in-synopsis"><span class="header-section-number">8.3</span> Rank-2 update functions in
@@ -2081,11 +2447,11 @@ correctly. <i>– end note]</i></p>
 <span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating symmetric rank-2 matrix update</span></span>
 <span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat,</span>
 <span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_2_update<span class="op">(</span>InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy, <em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat,</span>
 <span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_2_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>                                        InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
@@ -2101,11 +2467,11 @@ correctly. <i>– end note]</i></p>
 <span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating Hermitian rank-2 matrix update</span></span>
 <span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat,</span>
 <span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_2_update<span class="op">(</span>InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy, <em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat,</span>
 <span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_2_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>                                        InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
@@ -2150,7 +2516,7 @@ correctly. <i>– end note]</i></p>
 <span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating symmetric rank-k matrix update</span></span>
 <span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar,</span>
 <span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1,</span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
@@ -2158,21 +2524,21 @@ correctly. <i>– end note]</i></p>
 <span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>      InMat1 A, InMat2 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy, <span class="kw">class</span> Scalar,</span>
 <span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1,</span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
 <span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>      ExecutionPolicy<span class="op">&amp;&amp;</span> exec, Scalar alpha,</span>
 <span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>      InMat1 A, InMat2 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-matrix</em> InMat1,</span>
-<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
 <span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a>      InMat1 A, InMat2 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1,</span>
-<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
@@ -2207,7 +2573,7 @@ correctly. <i>– end note]</i></p>
 <span id="cb20-85"><a href="#cb20-85" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating rank-k Hermitian matrix update</span></span>
 <span id="cb20-86"><a href="#cb20-86" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar,</span>
 <span id="cb20-87"><a href="#cb20-87" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1,</span>
-<span id="cb20-88"><a href="#cb20-88" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-88"><a href="#cb20-88" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-89"><a href="#cb20-89" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-90"><a href="#cb20-90" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-91"><a href="#cb20-91" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
@@ -2215,21 +2581,21 @@ correctly. <i>– end note]</i></p>
 <span id="cb20-93"><a href="#cb20-93" aria-hidden="true" tabindex="-1"></a>      InMat1 A, InMat2 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb20-94"><a href="#cb20-94" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy, <span class="kw">class</span> Scalar,</span>
 <span id="cb20-95"><a href="#cb20-95" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1,</span>
-<span id="cb20-96"><a href="#cb20-96" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-96"><a href="#cb20-96" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-97"><a href="#cb20-97" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-98"><a href="#cb20-98" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-99"><a href="#cb20-99" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
 <span id="cb20-100"><a href="#cb20-100" aria-hidden="true" tabindex="-1"></a>      ExecutionPolicy<span class="op">&amp;&amp;</span> exec, Scalar alpha,</span>
 <span id="cb20-101"><a href="#cb20-101" aria-hidden="true" tabindex="-1"></a>      InMat1 A, InMat2 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb20-102"><a href="#cb20-102" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-matrix</em> InMat1,</span>
-<span id="cb20-103"><a href="#cb20-103" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-103"><a href="#cb20-103" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-104"><a href="#cb20-104" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-105"><a href="#cb20-105" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-106"><a href="#cb20-106" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
 <span id="cb20-107"><a href="#cb20-107" aria-hidden="true" tabindex="-1"></a>      InMat1 A, InMat2 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb20-108"><a href="#cb20-108" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb20-109"><a href="#cb20-109" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1,</span>
-<span id="cb20-110"><a href="#cb20-110" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb20-110"><a href="#cb20-110" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat2,</span>
 <span id="cb20-111"><a href="#cb20-111" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb20-112"><a href="#cb20-112" aria-hidden="true" tabindex="-1"></a>           <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb20-113"><a href="#cb20-113" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
@@ -2260,12 +2626,12 @@ correctly. <i>– end note]</i></p>
 <span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating symmetric rank-2k matrix update</span></span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-matrix</em> InMat1, <em>in-matrix</em> InMat2,</span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat3,</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat3,</span>
 <span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_2k_update<span class="op">(</span>InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1, <em>in-matrix</em> InMat2,</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat3,</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat3,</span>
 <span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> symmetric_matrix_rank_2k_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>                                         InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t<span class="op">)</span>;</span>
@@ -2282,12 +2648,12 @@ correctly. <i>– end note]</i></p>
 <span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>  <span class="co">// updating Hermitian rank-2k matrix update</span></span>
 <span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><em>in-matrix</em> InMat1, <em>in-matrix</em> InMat2,</span>
-<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat3,</span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat3,</span>
 <span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_2k_update<span class="op">(</span>InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t<span class="op">)</span>;</span>
 <span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat1, <em>in-matrix</em> InMat2,</span>
-<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-in-matrix</em> InMat3,</span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>           <em>in-matrix</em> InMat3,</span>
 <span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>           <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> hermitian_matrix_rank_2k_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>                                         InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t<span class="op">)</span>;</span></code></pre></div>
@@ -2458,10 +2824,10 @@ symmetric matrix <code>A</code>, taking into account the
 ([linalg.general]).</p>
 <p><span class="marginalizedparent"><a class="marginalized">10</a></span>
 <em>Effects</em>: Computes <span class="math inline"><em>A</em> = <em>x</em><em>x</em><sup><em>T</em></sup></span>.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>                                      Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">11</a></span> These
@@ -2473,10 +2839,10 @@ into account the <code>Triangle</code> parameter that applies to
 <em>Effects</em>: Computes <span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>x</em><sup><em>T</em></sup></span>,
 where the scalar <span class="math inline"><em>α</em></span> is
 <em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>         <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>         <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>                                      InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">13</a></span> These
@@ -2513,10 +2879,10 @@ Hermitian matrix <code>A</code>, taking into account the
 ([linalg.general]).</p>
 <p><span class="marginalizedparent"><a class="marginalized">18</a></span>
 <em>Effects</em>: Computes <span class="math inline"><em>A</em> = <em>x</em><em>x</em><sup><em>T</em></sup></span>.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Scalar, <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>                                      Scalar alpha, InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">19</a></span> These
@@ -2528,10 +2894,10 @@ into account the <code>Triangle</code> parameter that applies to
 <em>Effects</em>: Computes <span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup></span>,
 where the scalar <span class="math inline"><em>α</em></span> is
 <em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<div class="sourceCode" id="cb34"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>         <em>in-vector</em> InVec, <em>possibly-packed-in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>         <em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> hermitian_matrix_rank_1_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>                                      InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">21</a></span> These
@@ -2621,11 +2987,11 @@ symmetric matrix <code>A</code>, taking into account the
 <p><span class="marginalizedparent"><a class="marginalized">8</a></span>
 Effects: Computes <span class="math inline"><em>A</em> = <em>x</em><em>y</em><sup><em>T</em></sup> + <em>y</em><em>x</em><sup><em>T</em></sup></span>.</p>
 <div class="sourceCode" id="cb36"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat,</span>
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> symmetric_matrix_rank_2_update<span class="op">(</span>InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy, <em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat,</span>
 <span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> symmetric_matrix_rank_2_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>                                      InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
@@ -2652,11 +3018,11 @@ Hermitian matrix <code>A</code>, taking into account the
 <p><span class="marginalizedparent"><a class="marginalized">12</a></span>
 Effects: Computes <span class="math inline"><em>A</em> = <em>x</em><em>y</em><sup><em>H</em></sup> + <em>y</em><em>x</em><sup><em>H</em></sup></span>.</p>
 <div class="sourceCode" id="cb38"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat,</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> hermitian_matrix_rank_2_update<span class="op">(</span>InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy, <em>in-vector</em> InVec1, <em>in-vector</em> InVec2,</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat,</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat,</span>
 <span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> hermitian_matrix_rank_2_update<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> exec,</span>
 <span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>                                      InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span></code></pre></div>
@@ -2821,7 +3187,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <em>Effects:</em> Computes <span class="math inline"><em>C</em> = <em>A</em><em>A</em><sup><em>H</em></sup></span>.</p>
 <div class="sourceCode" id="cb43"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar,</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat1,</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
@@ -2833,7 +3199,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Scalar,</span>
 <span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat1,</span>
-<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
@@ -2848,7 +3214,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 where the scalar <span class="math inline"><em>α</em></span> is
 <em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
 <div class="sourceCode" id="cb44"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-matrix</em> InMat1,</span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
@@ -2858,7 +3224,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>  Triangle t<span class="op">)</span>;</span>
 <span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat1,</span>
-<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> symmetric_matrix_rank_k_update<span class="op">(</span></span>
@@ -2871,7 +3237,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <em>Effects:</em> Computes <span class="math inline"><em>C</em> = <em>E</em> + <em>A</em><em>A</em><sup><em>T</em></sup></span>.</p>
 <div class="sourceCode" id="cb45"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Scalar,</span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat1,</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
@@ -2883,7 +3249,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Scalar,</span>
 <span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat1,</span>
-<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
@@ -2898,7 +3264,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 where the scalar <span class="math inline"><em>α</em></span> is
 <em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
 <div class="sourceCode" id="cb46"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-matrix</em> InMat1,</span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>
@@ -2908,7 +3274,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>  Triangle t<span class="op">)</span>;</span>
 <span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
 <span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat1,</span>
-<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-in-matrix</em> InMat2,</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
 <span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>         <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> hermitian_matrix_rank_k_update<span class="op">(</span></span>

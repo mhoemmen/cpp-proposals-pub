@@ -49,6 +49,8 @@ toc: true
 
     * For Hermitian matrix rank-1 and rank-k updates, do not constrain the type of the scaling factor `alpha`, as R1 did.  Instead, define the algorithms to use _`real-if-needed`_`(alpha)`.  Remove exposition-only concept _`noncomplex`_.
 
+    * Remove the exposition-only concept _`possibly-packed-in-matrix`_ that was introduced in R1, as it is overly restrictive.  (Input matrices never need to have unique layout, even if they are not packed.)
+
 # Abstract
 
 We propose the following changes to [linalg] that improve consistency of the rank-1, rank-2, rank-k, and rank-2k update functions with the BLAS.
@@ -73,18 +75,48 @@ Items (2) and (3) are breaking changes to the current Working Draft.  Thus, we m
 
 4. The change to existing overloads is a breaking change and thus must be finished before C++26.
 
-5. To simplify wording, we add new exposition-only concepts _`possibly-packed-in-matrix`_ and _`possibly-packed-out-matrix`_ for symmetric and Hermitian matrix update algorithms.
+5. To simplify wording, we add the new exposition-only concept _`possibly-packed-out-matrix`_ for symmetric and Hermitian matrix update algorithms.
 
-### For rank-k and rank-2k updates, BLAS supports scaling factor beta, while std::linalg currently does not
+### For rank-k and rank-2k updates, BLAS supports scaling factor `beta`, while std::linalg currently does not
 
 Each function in any section whose label begins with "linalg.algs" generally corresponds to one or more routines or functions in the original BLAS (Basic Linear Algebra Subroutines).  Every computation that the BLAS can do, a function in the C++ Standard Library should be able to do.
 
-One `std::linalg` user <a href="https://github.com/kokkos/stdBLAS/issues/272#issuecomment-2248273146">reported</a> an exception to this rule.  The BLAS routine `DSYRK` (Double-precision SYmmetric Rank-K update) computes $C := \beta C + \alpha A A^T$, but the corresponding `std::linalg` function `symmetric_matrix_rank_k_update` only computes $C := C + \alpha A A^T$.  That is, `std::linalg` currently has no way to express this BLAS operation with a general $\beta$ scaling factor.  This issue applies to all of the symmetric and Hermitian rank-k and rank-2k update functions.
+One `std::linalg` user <a href="https://github.com/kokkos/stdBLAS/issues/272#issuecomment-2248273146">reported</a> an exception to this rule.  The BLAS routines `xSYRK` (SYmmetric Rank-K update) computes $C := \beta C + \alpha A A^T$, but the corresponding `std::linalg` function `symmetric_matrix_rank_k_update` only computes $C := C + \alpha A A^T$.  That is, `std::linalg` currently has no way to express this BLAS operation with a general $\beta$ scaling factor.
 
-* `symmetric_matrix_rank_k_update`: computes $C := C + \alpha A A^T$ 
-* `hermitian_matrix_rank_k_update`: computes $C := C + \alpha A A^H$
-* `symmetric_matrix_rank_2k_update`: computes $C := C + \alpha A B^H + \alpha B A^H$
-* `hermitian_matrix_rank_2k_update`: computes $C := C + \alpha A B^H + \bar{\alpha} B A^H$, where $\bar{\alpha}$ denotes the complex conjugate of $\alpha$
+This issue applies to all of the symmetric and Hermitian rank-k and rank-2k update functions.  The following table lists these functions, what they compute now, and the two things we propose making them able to compute.  $A$ and $B$ denote general matrices, $C$ and $E$ denote symmetric or Hermitian matrices (depending on the algorithm's name), the superscript `T` denotes the transpose, the superscript `H` denotes the Hermitian transpose, $\alpha$ denotes a scaling factor, and $\bar{\alpha}$ denotes the complex conjugate of $\alpha$.  Making the functions have overloads that take an input matrix $E$ would permit $E = \beta C$, and thus make [linalg] able to compute what the BLAS can compute.
+
+<table>
+  <tr>
+    <th> [linalg] algorithm </th>
+    <th> What it computes now </th>
+    <th> Change (overwriting) </th>
+    <th> Add (updating) </th>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_k_update` </td>
+    <td> $C := C + \alpha A A^T$ </td>
+    <td> $C = \alpha A A^T$ </td>
+    <td> $C = E + \alpha A A^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_k_update` </td>
+    <td> $C := C + \alpha A A^H$ </td>
+    <td> $C = \alpha A A^H$ </td>
+    <td> $C = E + \alpha A A^H$ </td>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_2k_update` </td>
+    <td> $C := C + \alpha A B^T + \alpha B A^T$ </td>
+    <td> $C = \alpha A B^T + \alpha B A^T$ </td>
+    <td> $C = E + \alpha A B^T + \alpha B A^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_2k_update` </td>
+    <td> $C := C + \alpha A B^H + \bar{\alpha} B A^H$ </td>
+    <td> $C = \alpha A B^H + \bar{\alpha} B A^H$ </td>
+    <td> $C = E + \alpha A B^H + \bar{\alpha} B A^H$ </td>
+  </tr>
+</table>
 
 ### Make these functions consistent with general matrix product
 
@@ -114,7 +146,7 @@ Incidentally, the fact that these functions have "update" in their name is not r
 
 We propose to fix this by making the functions work just like `matrix_vector_product` or `matrix_product`.  This entails three changes.
 
-1. Add two new exposition-only concepts _`possibly-packed-in-matrix`_ and _`possibly-packed-out-matrix`_ for constraining input and output parameters of the changed or new symmetric and Hermitian update functions.
+1. Add two new exposition-only concept _`possibly-packed-out-matrix`_ for constraining output parameters of the changed or new symmetric and Hermitian update functions.
 
 2. Add "updating" overloads of the symmetric and Hermitian rank-k and rank-2k update functions.
 
@@ -122,7 +154,7 @@ We propose to fix this by making the functions work just like `matrix_vector_pro
     
     b. Explicitly permit `C` and `E` to alias, thus permitting the desired case where `E` is `scaled(beta, C)`.
     
-    c. The updating overloads take `E` as a _`possibly-packed-in-matrix`_, and take `C` as a _`possibly-packed-out-matrix`_ (instead of a _`possibly-packed-inout-matrix`_).
+    c. The updating overloads take `E` as an _`in-matrix`_, and take `C` as a _`possibly-packed-out-matrix`_ (instead of a _`possibly-packed-inout-matrix`_).
     
     d. `E` must be accessed as a symmetric or Hermitian matrix (depending on the function name) and such accesses must use the same triangle as `C`.  (The existing [linalg.general] 4 wording for symmetric and Hermitian behavior does not cover `E`.)
 
@@ -136,38 +168,129 @@ Items (2) and (3) are breaking changes to the current Working Draft.  This needs
 
 Both sets of overloads still only write to the specified triangle (lower or upper) of the output matrix `C`.  As a result, the new updating overloads only read from that triangle of the input matrix `E`.  Therefore, even though `E` may be a different matrix than `C`, the updating overloads do not need an additional `Triangle t_E` parameter for `E`.  The `symmetric_*` functions interpret `E` as symmetric in the same way that they interpret `C` as symmetric, and the `hermitian_*` functions interpret `E` as Hermitian in the same way that they interpret `C` as Hermitian.  Nevertheless, we do need new wording to explain how the functions may interpret and access `E`.
 
+### Summary of proposed changes
+
+<table>
+  <tr>
+    <th> [linalg] algorithm </th>
+    <th> What it computes now </th>
+    <th> Change (overwriting) </th>
+    <th> Add (updating) </th>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_k_update` </td>
+    <td> $C := C + \alpha A A^T$ </td>
+    <td> $C = \alpha A A^T$ </td>
+    <td> $C = E + \alpha A A^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_k_update` </td>
+    <td> $C := C + \alpha A A^H$ </td>
+    <td> $C = \alpha A A^H$ </td>
+    <td> $C = E + \alpha A A^H$ </td>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_2k_update` </td>
+    <td> $C := C + \alpha A B^T + \alpha B A^T$ </td>
+    <td> $C = \alpha A B^T + \alpha B A^T$ </td>
+    <td> $C = E + \alpha A B^T + \alpha B A^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_2k_update` </td>
+    <td> $C := C + \alpha A B^H + \bar{\alpha} B A^H$ </td>
+    <td> $C = \alpha A B^H + \bar{\alpha} B A^H$ </td>
+    <td> $C = E + \alpha A B^H + \bar{\alpha} B A^H$ </td>
+  </tr>
+</table>
+
 ## Change rank-1 and rank-2 updates to be consistent with rank-k and rank-2k
 
-1. Currently, the rank-1 and rank-2 updates unconditionally update and do not take a $\beta$ scaling factor.  This behavior deviates from the BLAS Standard and is inconsistent with the rank-k and rank-2k updates.
+1. Currently, the rank-1 and rank-2 updates unconditionally update and do not take a `beta` scaling factor.
 
-2. We propose making all the rank-1 and rank-2 update functions consistent with the proposed change to the rank-k and rank-2k updates.  This means both changing the meaning of the current overloads to be overwriting, and adding new overloads that are updating.  This includes general (nonsymmetric), symmetric, and Hermitian rank-1 update functions, as well as symmetric and Hermitian rank-2 update functions.
+2. This behavior deviates from the BLAS Standard, is inconsistent with the rank-k and rank-2k updates, and introduces a special case in [linalg]'s design.
 
-3. The exposition-only concept _`possibly-packed-inout-matrix`_ is no longer needed.  We propose removing it.
+3. We propose making all the rank-1 and rank-2 update functions consistent with the proposed change to the rank-k and rank-2k updates.  This means both changing the meaning of the current overloads to be overwriting, and adding new overloads that are updating.  This includes general (nonsymmetric), symmetric, and Hermitian rank-1 update functions, as well as symmetric and Hermitian rank-2 update functions.
+
+4. The exposition-only concept _`possibly-packed-inout-matrix`_ is no longer needed.  We propose removing it.
 
 ### Current std::linalg behavior
 
-The rank-k and rank-2k update functions have the following rank-1 and rank-2 analogs, where $A$ denotes a symmetric or Hermitian matrix (depending on the function's name) and $x$ and $y$ denote vectors.
+The symmetric and Hermitian rank-k and rank-2k update functions have the following rank-1 and rank-2 analogs, $A$ denotes a symmetric or Hermitian matrix (depending on the function's name), $x$ and $y$ denote vectors, and $\alpha$ denotes a scaling factor.
 
-* `symmetric_matrix_rank_1_update`: computes $A := A + \alpha x x^T$
-* `hermetian_matrix_rank_1_update`: computes $A := A + \alpha x x^H$
-* `symmetric_matrix_rank_2_update`: computes $A := A + \alpha x y^T + \alpha y x^T$
-* `hermitian_matrix_rank_2_update`: computes $A := A + \alpha x y^H + \bar{\alpha} x y^H$
+<table>
+  <tr>
+    <th> [linalg] algorithm </th>
+    <th> What it computes now </th>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_1_update` </td>
+    <td> $A := A + \alpha x x^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_1_update` </td>
+    <td> $A := A + \alpha x x^H$ </td>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_2_update` </td>
+    <td> $A := A + \alpha x y^T + \alpha y x^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_2_update` </td>
+    <td> $A := A + \alpha x y^H + \bar{\alpha} x y^H$ </td>
+  </tr>
+</table>
 
 These functions *unconditionally* update the matrix $A$.  They do not have an overwriting option.  In this, they follow the "general" (not necessarily symmetric or Hermitian) rank-1 update functions.
 
-* `matrix_rank_1_update`: computes $A := A + x y^T$
-* `matrix_rank_1_update_c`: computes $A := A + x y^H$
+<table>
+  <tr>
+    <th> [linalg] algorithm </th>
+    <th> What it computes now </th>
+  </tr>
+  <tr>
+    <td> `matrix_rank_1_update` </td>
+    <td> $A := A + x y^T$ </td>
+  </tr>
+  <tr>
+    <td> `matrix_rank_1_update_c` </td>
+    <td> $A := A + x y^H$ </td>
+  </tr>
+</table>
 
 ### Current behavior is inconsistent with BLAS Standard and rank-k and rank-2k updates
 
 These six rank-1 and rank-2 update functions map to BLAS routines as follows.
 
-* `matrix_rank_1_update`: `xGER`
-* `matrix_rank_1_update`: `xGERC`
-* `symmetric_matrix_rank_1_update`: `xSYR`, `xSPR`
-* `hermitian_matrix_rank_1_update`: `xHER`, `xHPR`
-* `hermitian_matrix_rank_1_update`: `xSYR2`, `xSPR2`
-* `hermitian_matrix_rank_1_update`: `xHER2`, `xHPR2`
+<table>
+  <tr>
+    <th> [linalg] algorithm </th>
+    <th> Corresponding BLAS routine(s) </th>
+  </tr>
+  <tr>
+    <td> `matrix_rank_1_update` </td>
+    <td> `xGER` </td>
+  </tr>
+  <tr>
+    <td> `matrix_rank_1_update_c` </td>
+    <td> `xGERC` </td>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_1_update` </td>
+    <td> `xSYR`, `xSPR` </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_1_update` </td>
+    <td> `xHER`, `xHPR` </td>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_2_update` </td>
+    <td> `xSYR2`, `xSPR2` </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_2_update` </td>
+    <td> `xHER2`, `xHPR2` </td>
+  </tr>
+</table>
 
 The Reference BLAS and the BLAS Standard (see Chapter 2, pp. 64 - 68) differ here.  The Reference BLAS and the original 1988 BLAS 2 paper specify all of the rank-1 and rank-2 update routines listed above as unconditionally updating, and not taking a $\beta$ scaling factor.  However, the (2002) BLAS Standard specifies all of these rank-1 and rank-2 update functions as taking a $\beta$ scaling factor.  We consider the latter to express our design intent.  It is also consistent with the corresponding rank-k and rank-2k update functions in the BLAS, which all take a $\beta$ scaling factor and thus can do either overwriting (with zero $\beta$) or updating (with nonzero $\beta$).  These routines include `xSYRK`, `xHERK`, `xSYR2K`, and `xHER2K`.  One could also include the general matrix-matrix product `xGEMM` among these, as `xGEMM` also takes a $\beta$ scaling factor.
 
@@ -175,19 +298,66 @@ The Reference BLAS and the BLAS Standard (see Chapter 2, pp. 64 - 68) differ her
 
 <a href="https://isocpp.org/files/papers/P1673R13.html#function-argument-aliasing-and-zero-scalar-multipliers">Section 10.3 of P1673R13</a> explains the three ways that the std::linalg design translates Fortran `INTENT(INOUT)` arguments into a C++ idiom.
 
-1. Provide in-place and not-in-place overloads for triangular solve and triangular multiply.
+1. Provide both in-place and not-in-place overloads for triangular solve and triangular multiply.
 
 2. "Else, if the BLAS function unconditionally updates (like `xGER`), we retain read-and-write behavior for that argument."
 
-3. "Else, if the BLAS function uses a scalar beta argument to decide whether to read the output argument as well as write to it (like `xGEMM`), we provide two versions: a write-only version (as if `beta` is zero), and a read-and-write version (as if `beta` is nonzero)."
+3. "Else, if the BLAS function uses a scalar `beta` argument to decide whether to read the output argument as well as write to it (like `xGEMM`), we provide two versions: a write-only version (as if `beta` is zero), and a read-and-write version (as if `beta` is nonzero)."
 
-Our design goal was for functions with vector or matrix output to imitate `std::transform` as much as possible.  This favors Way (3) as the default approach, which turns `INTENT(INOUT)` arguments on the Fortran side into separate input and output parameters on the C++ side.  Way (2) is really an awkward special case.  The BLAS Standard effectively eliminates this special case on the Fortran side by making the rank-1 and rank-2 updates work just like the rank-k and rank-2k updates, with a $\beta$ scaling factor.  This makes it natural to eliminate the Way (2) special case on the C++ side as well.
+Our design goal was for functions with vector or matrix output to imitate `std::transform` as much as possible.  This favors Way (3) as the default approach, which turns `INTENT(INOUT)` arguments on the Fortran side into separate input and output parameters on the C++ side.  Way (2) is really an awkward special case.  The BLAS Standard effectively eliminates this special case by making the rank-1 and rank-2 updates work just like the rank-k and rank-2k updates, with a $\beta$ scaling factor.  This makes it natural to eliminate the Way (2) special case in [linalg] as well.
 
 ### Exposition-only concept no longer needed
 
 These changes make the exposition-only concept _`possibly-packed-inout-matrix`_ superfluous.  We propose removing it.
 
 Note that this would not eliminate all uses of the exposition-only concept _`inout-matrix`_.  The in-place triangular matrix product functions `triangular_matrix_left_product` and `triangular_matrix_right_product`, and the in-place triangular linear system solve functions `triangular_matrix_matrix_left_solve` and `triangular_matrix_matrix_right_solve` would still use _`inout-matrix`_.
+
+### Summary of proposed changes
+
+<table>
+  <tr>
+    <th> [linalg] algorithm </th>
+    <th> What it computes now </th>
+    <th> Change (overwriting) </th>
+    <th> Add (updating) </th>
+  </tr>
+  <tr>
+    <td> `matrix_rank_1_update` </td>
+    <td> $A := A + x y^T$ </td>
+    <td> $A = x y^T$ </td>
+    <td> $A = E + x y^T$ </td>
+  </tr>
+  <tr>
+    <td> `matrix_rank_1_update_c` </td>
+    <td> $A := A + x y^H$ </td>
+    <td> $A = x y^H$ </td>
+    <td> $A = E + x y^H$ </td>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_1_update` </td>
+    <td> $A := A + \alpha x x^T$ </td>
+    <td> $A = \alpha x x^T$ </td>
+    <td> $A = E + \alpha x x^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_1_update` </td>
+    <td> $A := A + \alpha x x^H$ </td>
+    <td> $A = \alpha x x^H$ </td>
+    <td> $A = E + \alpha x x^H$ </td>
+  </tr>
+  <tr>
+    <td> `symmetric_matrix_rank_2_update` </td>
+    <td> $A := A + \alpha x y^T + \alpha y x^T$ </td>
+    <td> $A = \alpha x y^T + \alpha y x^T$ </td>
+    <td> $A = E + \alpha x y^T + \alpha y x^T$ </td>
+  </tr>
+  <tr>
+    <td> `hermitian_matrix_rank_2_update` </td>
+    <td> $A := A + \alpha x y^H + \bar{\alpha} x y^H$ </td>
+    <td> $A = \alpha x y^H + \bar{\alpha} x y^H$ </td>
+    <td> $A = E + \alpha x y^H + \bar{\alpha} x y^H$ </td>
+  </tr>
+</table>
 
 ## Use only the real part of scaling factor `alpha` for Hermitian matrix rank-1 and rank-k updates
 
@@ -201,29 +371,29 @@ We begin with a summary of all the Hermitian matrix BLAS routines, how scaling f
 
 The BLAS's Hermitian matrix routines take `alpha` and `beta` scaling factors.  The BLAS addresses the resulting correctness concerns in different ways, depending on what each routine computes.  For routines where a nonzero imaginary part could make the result incorrect, the routine restricts the scaling factor to have a noncomplex number type.  Otherwise, the routine takes the scaling factor as a complex number type.  We discuss all the Hermitian routines here.
 
-#### `HEMM`: Hermitian matrix-matrix multiply
+#### `xHEMM`: Hermitian matrix-matrix multiply
 
-`HEMM` (HErmitian Matrix-matrix Multiply) computes either $C := \alpha A B + \beta C$ or $C := \alpha B A + \beta C$, where $A$ is a Hermitian matrix, and neither $B$ nor $C$ need to be Hermitian.  The products $A B$ and $B A$ thus need not be Hermitian, so the scaling factors $\alpha$ and $\beta$ can have nonzero imaginary parts.  The BLAS takes them both as complex numbers.
+`xHEMM` (HErmitian Matrix-matrix Multiply) computes either $C := \alpha A B + \beta C$ or $C := \alpha B A + \beta C$, where $A$ is a Hermitian matrix, and neither $B$ nor $C$ need to be Hermitian.  The products $A B$ and $B A$ thus need not be Hermitian, so the scaling factors $\alpha$ and $\beta$ can have nonzero imaginary parts.  The BLAS takes them both as complex numbers.
 
-#### `HEMV`: HErmitian Matrix-Vector multiply
+#### `xHEMV`: HErmitian Matrix-Vector multiply
 
-`HEMV` (HErmitian Matrix-Vector multiply) computes $y := \alpha A x + \beta y$, where $A$ is a Hermitian matrix and $x$ and $y$ are vectors.  The scaled matrix $\alpha A$ does not need to be Hermitian.  Thus, $\alpha$ and $\beta$ can have nonzero imaginary parts.  The BLAS takes them both as complex numbers.
+`xHEMV` (HErmitian Matrix-Vector multiply) computes $y := \alpha A x + \beta y$, where $A$ is a Hermitian matrix and $x$ and $y$ are vectors.  The scaled matrix $\alpha A$ does not need to be Hermitian.  Thus, $\alpha$ and $\beta$ can have nonzero imaginary parts.  The BLAS takes them both as complex numbers.
 
-#### `HER`: HErmitian Rank-1 update
+#### `xHER`: HErmitian Rank-1 update
 
-`HER` (HErmitian Rank-1 update) differs between the Reference BLAS (which computes $A := \alpha x x^H + A$) and the BLAS Standard (which computes $A := \alpha x x^H + \beta A$).  The matrix $A$ must be Hermitian, and the rank-1 matrix $x x^H$ is always mathematically Hermitian, so both $\alpha$ and $\beta$ need to have zero imaginary part in order for the update to preserve $A$'s Hermitian property.  The BLAS takes them both as real (noncomplex) numbers.
+`xHER` (HErmitian Rank-1 update) differs between the Reference BLAS (which computes $A := \alpha x x^H + A$) and the BLAS Standard (which computes $A := \alpha x x^H + \beta A$).  The matrix $A$ must be Hermitian, and the rank-1 matrix $x x^H$ is always mathematically Hermitian, so both $\alpha$ and $\beta$ need to have zero imaginary part in order for the update to preserve $A$'s Hermitian property.  The BLAS takes them both as real (noncomplex) numbers.
 
-#### `HER2`: HErmitian Rank-2 update
+#### `xHER2`: HErmitian Rank-2 update
 
-`HER2` (HErmitian Rank-2 update) differs between the Reference BLAS (which computes $A := \alpha x y^H + \bar{\alpha} y x^H + A$, where $\bar{\alpha}$ denotes the complex conjugate of $\alpha$) and the BLAS Standard (which computes $A := \alpha x y^H + \bar{\alpha} y x^H + \beta A$).  The matrix $A$ must be Hermitian, and the rank-2 matrix $\alpha x y^H + \bar{\alpha} y x^H$ is always mathematically Hermitian, no matter the value of $\alpha$.  Thus, $\alpha$ can have nonzero imaginary part, but $\beta$ cannot.  The BLAS thus takes `alpha` as a complex number, but `beta` as a real (noncomplex) number.  (There is likely a typo in the BLAS Standard's description of the Fortran 95 binding.  It says that both `alpha` and `beta` are complex (have type `COMPLEX(<wp>)`), even though in the Fortran 77 binding, `beta` is real (`<rtype>`).  The BLAS Standard's description of `HER2K` (see below) says that `alpha` is complex but `beta` is real.  `HER2` needs to be consistent with `HER2K`.)
+`xHER2` (HErmitian Rank-2 update) differs between the Reference BLAS (which computes $A := \alpha x y^H + \bar{\alpha} y x^H + A$, where $\bar{\alpha}$ denotes the complex conjugate of $\alpha$) and the BLAS Standard (which computes $A := \alpha x y^H + \bar{\alpha} y x^H + \beta A$).  The matrix $A$ must be Hermitian, and the rank-2 matrix $\alpha x y^H + \bar{\alpha} y x^H$ is always mathematically Hermitian, no matter the value of $\alpha$.  Thus, $\alpha$ can have nonzero imaginary part, but $\beta$ cannot.  The BLAS thus takes `alpha` as a complex number, but `beta` as a real (noncomplex) number.  (There is likely a typo in the BLAS Standard's description of the Fortran 95 binding.  It says that both `alpha` and `beta` are complex (have type `COMPLEX(<wp>)`), even though in the Fortran 77 binding, `beta` is real (`<rtype>`).  The BLAS Standard's description of `xHER2K` (see below) says that `alpha` is complex but `beta` is real.  `xHER2` needs to be consistent with `xHER2K`.)
 
-#### `HERK`: HErmitian Rank-K update
+#### `xHERK`: HErmitian Rank-K update
 
-`HERK` (HErmitian Rank-K update) computes either $C := \alpha A A^H + \beta C$ or $C := \alpha A^H A + \beta C$, where $C$ must be Hermitian.  This is a generalization of `HER` and thus both $\alpha$ and $\beta$ need to have zero imaginary part.  The BLAS takes them both as real (noncomplex) numbers.
+`xHERK` (HErmitian Rank-K update) computes either $C := \alpha A A^H + \beta C$ or $C := \alpha A^H A + \beta C$, where $C$ must be Hermitian.  This is a generalization of `xHER` and thus both $\alpha$ and $\beta$ need to have zero imaginary part.  The BLAS takes them both as real (noncomplex) numbers.
 
-#### `HER2K`: HErmitian Rank-2k update
+#### `xHER2K`: HErmitian Rank-2k update
 
-`HER2K` (HErmitian Rank-2k update) computes either $C := \alpha A B^H + \bar{\alpha} B A^H + \beta C$ or $C := \alpha A^H B + \bar{\alpha} B^H A + \beta C$.  This is a generalization of `HER2`: $\alpha$ can have nonzero imaginary part, but $\beta$ cannot.  The BLAS thus takes `alpha` as a complex number, but `beta` as a real (noncomplex) number.
+`xHER2K` (HErmitian Rank-2k update) computes either $C := \alpha A B^H + \bar{\alpha} B A^H + \beta C$ or $C := \alpha A^H B + \bar{\alpha} B^H A + \beta C$.  This is a generalization of `xHER2`: $\alpha$ can have nonzero imaginary part, but $\beta$ cannot.  The BLAS thus takes `alpha` as a complex number, but `beta` as a real (noncomplex) number.
 
 #### Summary of BLAS routine restrictions
 
@@ -237,34 +407,34 @@ The following table lists, for all the Hermitian matrix update BLAS routines, wh
     <th> Generalizes       </th>
   </tr>
   <tr>
-    <th> `HEMM`  </th>
-    <th> No      </th>
-    <th> No      </th>
-    <th> N/A     </th>
+    <td> `xHEMM`  </td>
+    <td> No      </td>
+    <td> No      </td>
+    <td> N/A     </td>
   </tr>
   <tr>
-    <th> `HER`   </th>
-    <th> Yes     </th>
-    <th> Yes     </th>
-    <th> N/A     </th>
+    <td> `xHER`   </td>
+    <td> Yes     </td>
+    <td> Yes     </td>
+    <td> N/A     </td>
   </tr>
   <tr>
-    <th> `HER2`  </th>
-    <th> No      </th>
-    <th> Yes     </th>
-    <th> N/A     </th>
+    <td> `xHER2`  </td>
+    <td> No      </td>
+    <td> Yes     </td>
+    <td> N/A     </td>
   </tr>
   <tr>
-    <th> `HERK`  </th>
-    <th> Yes     </th>
-    <th> Yes     </th>
-    <th> `HER`   </th>
+    <td> `xHERK`  </td>
+    <td> Yes     </td>
+    <td> Yes     </td>
+    <td> `xHER`   </td>
   </tr>
   <tr>
-    <th> `HER2K` </th>
-    <th> No      </th>
-    <th> Yes     </th>
-    <th> `HER2`  </th>
+    <td> `xHER2K` </td>
+    <td> No      </td>
+    <td> Yes     </td>
+    <td> `xHER2`  </td>
   </tr>
 </table>
 
@@ -298,7 +468,7 @@ The above arguments help us restrict our concerns.  This section of our proposal
 
 * nothing in the wording currently prevents `alpha` from having nonzero imaginary part.
 
-These correspond exactly to the BLAS's Hermitian matrix update routines where the type of `alpha` is real: `HER` and `HERK`.  This strongly suggests solving the problem in [linalg] by constraining the type of `alpha` to be noncomplex.  However, as we explain in "Alternative solutions" below, it is hard to define a "noncomplex number" constraint that works well for user-defined number types.  Instead, we propose fixing this in a way that is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part."  That is, the Hermitian rank-1 and rank-k update algorithms will simply use _`real-if-needed`_`(alpha)` and ignore any nonzero imaginary part of `alpha`.
+These correspond exactly to the BLAS's Hermitian matrix update routines where the type of `alpha` is real: `xHER` and `xHERK`.  This strongly suggests solving the problem in [linalg] by constraining the type of `alpha` to be noncomplex.  However, as we explain in "Alternative solutions" below, it is hard to define a "noncomplex number" constraint that works well for user-defined number types.  Instead, we propose fixing this in a way that is consistent with our proposed resolution of <a href="https://cplusplus.github.io/LWG/issue4136">LWG Issue 4136</a>, "Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part."  That is, the Hermitian rank-1 and rank-k update algorithms will simply use _`real-if-needed`_`(alpha)` and ignore any nonzero imaginary part of `alpha`.
 
 ### Alternative solutions
 
@@ -367,9 +537,11 @@ concept maybe_complex =
     {imag(t)} -> std::convertible_to<T>;
 ```
 
-P1673 generally avoids approaches based on specializing traits.  Its design philosophy favors treating types as they are.  Users should not need to do something to get correct behavior.  We based this on our past experiences in generic numerical algorithms development.  In the 2010's, one of the authors maintained a generic mathematical algorithms library called Trilinos.  The Teuchos (pronounced "TEFF-os") package of Trilinos provides a monolithic `ScalarTraits` class template that defines different properties of a number type.  It combines the features of `std::numeric_limits` with generic complex arithmetic operations like `conjugate`, `real`, and `imag`.  Trilinos' generic algorithms assume that number types are regular and define overloaded `+`, `-`, `*`, and `/`, but use `ScalarTraits<T>::conjugate`, `ScalarTraits<T>::real`, and `ScalarTraits<T>::imag`.  As a result, users with a custom complex number type had to specialize `ScalarTraits` and provide all these operations.  Even if users had imitated `std::complex`'s interface perfectly and provided ADL-findable `conj`, `real`, and `imag`, users had to do extra work to make Trilinos compile and run correctly for their numbers.  With P1673, we decided instead that users who define a custom complex number type with an interface sufficiently like `std::complex` should get reasonable behavior without needing to do anything else.
+P1673 generally avoids approaches based on specializing traits.  Its design philosophy favors treating types as they are.  Users should not need to do something "extra" with their custom number types to get correct behavior, beyond what they would reasonably need to define to make a custom number type behave like a number.
 
-As a tangent, we would like to comment on the monolithic design of `Teuchos::ScalarTraits`.  The monolithic design was partly an imitation of `std::numeric_limits`, and partly a side effect of a requirement to support pre-C++11 compilers that did not permit partial specialization of function templates.  (The typical pre-C++11 work-around is to define an unspecialized function template that dispatches to a possibly specialized class template.)  C++11 permits partial specialization of function templates and C++14 introduces variable templates; these features have encouraged "breaking up" monolithic traits classes into separate traits.  Our paper P1370R1 ("Generic numerical algorithm development with(out) `numeric_limits`") aligns with this trend.
+We base this principle on our past experiences in generic numerical algorithms development.  In the 2010's, one of the authors maintained a generic mathematical algorithms library called Trilinos.  The Teuchos (pronounced "TEFF-os") package of Trilinos provides a monolithic `ScalarTraits` class template that defines different properties of a number type.  It combines the features of `std::numeric_limits` with generic complex arithmetic operations like `conjugate`, `real`, and `imag`.  Trilinos' generic algorithms assume that number types are regular and define overloaded `+`, `-`, `*`, and `/`, but use `ScalarTraits<T>::conjugate`, `ScalarTraits<T>::real`, and `ScalarTraits<T>::imag`.  As a result, users with a custom complex number type had to specialize `ScalarTraits` and provide all these operations.  Even if users had imitated `std::complex`'s interface perfectly and provided ADL-findable `conj`, `real`, and `imag`, users had to do extra work to make Trilinos compile and run correctly for their numbers.  With P1673, we decided instead that users who define a custom complex number type with an interface sufficiently like `std::complex` should get reasonable behavior without needing to do anything else.
+
+As a tangent, we would like to comment on the monolithic design of `Teuchos::ScalarTraits`.  The monolithic design was partly an imitation of `std::numeric_limits`, and partly a side effect of a requirement to support pre-C++11 compilers that did not permit partial specialization of function templates.  (The typical pre-C++11 work-around is to define an unspecialized function template that dispatches to a possibly specialized class template.)  Partial specialization of function templates and C++14's variable templates both encourage "breaking up" monolithic traits classes into separate traits.  Our paper P1370R1 ("Generic numerical algorithm development with(out) `numeric_limits`") aligns with this trend.
 
 #### Alternative: Impose precondition on `alpha`
 
@@ -377,11 +549,23 @@ Another option would be to impose a precondition that _`imag-if-needed`_`(alpha)
 
 If users call Hermitian matrix rank-1 or rank-k updates with `alpha` being `std::complex<float>` or `std::complex<double>`, implementations of [linalg] that call an underlying C or Fortran BLAS would have to get the real part of `alpha` anyway, because these BLAS routines only take `alpha` as a real type.  Thus, our proposed solution -- to _define_ the behavior of the update algorithms as using _`real-if-needed`_`(alpha)` -- would not add overhead.
 
+### Summary of proposed changes
+
+For Hermitian matrix update algorithms where
+
+* the algorithm exposes a separate scaling factor parameter `alpha`, and
+
+* `alpha` needs to have zero imaginary part, but
+
+* nothing in the wording currently prevents `alpha` from having nonzero imaginary part,
+
+specify that these algorithms use _`real-if-needed`_`(alpha)` and ignore any nonzero imaginary part of `alpha`.
+
 ## Things relating to scaling factors that we do not propose changing
 
 ### Hermitian matrix-vector and matrix-matrix products
 
-We pointed out above that `hermitian_matrix_vector_product` and `hermitian_matrix_product` expect that the (possibly scaled) input matrix is Hermitian, while the corresponding BLAS routines `HEMV` and `HEMM` expect that the unscaled input matrix is Hermitian and permit the scaling factor `alpha` to have nonzero imaginary part.  However, this does not affect the ability of these [linalg] algorithms to compute what the BLAS can compute.  Users who want to supply `alpha` with nonzero imaginary part should *not* scale the matrix `A` (as in `scaled(alpha, A)`).  Instead, they should scale the input vector `x`, as in the following.
+We pointed out above that `hermitian_matrix_vector_product` and `hermitian_matrix_product` expect that the (possibly scaled) input matrix is Hermitian, while the corresponding BLAS routines `xHEMV` and `xHEMM` expect that the unscaled input matrix is Hermitian and permit the scaling factor `alpha` to have nonzero imaginary part.  However, this does not affect the ability of these [linalg] algorithms to compute what the BLAS can compute.  Users who want to supply `alpha` with nonzero imaginary part should *not* scale the matrix `A` (as in `scaled(alpha, A)`).  Instead, they should scale the input vector `x`, as in the following.
 ```c++
 auto alpha = std::complex{0.0, 1.0};
 hermitian_matrix_vector_product(A, upper_triangle, scaled(alpha, x), y);
@@ -665,9 +849,6 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
 ```c++
   template<class T>
-    concept @_possibly-packed-in-matrix_@ = @_see below_@;     // @_exposition only_@
-
-  template<class T>
     concept @_possibly-packed-out-matrix_@ = @_see below_@;     // @_exposition only_@
 ```
 
@@ -677,11 +858,6 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 > <i>[Editorial Note:</i> This addition is not shown in green, becuase the authors could not convince Markdown to format the code correctly. <i>-- end note]</i>
 
 ```c++
-  template<class T>
-    concept @_possibly-packed-in-matrix_@ =
-      @_is-mdspan_@<T> && T::rank() == 2 &&
-      (T::is_always_unique() || @_is-layout-blas-packed_@<typename T::layout_type>);
-
   template<class T>
     concept @_possibly-packed-out-matrix_@ =
       @_is-mdspan_@<T> && T::rank() == 2 &&
@@ -752,16 +928,16 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
                                         InVec x, OutMat A, Triangle t);
 
   // updating symmetric rank-1 matrix update 
-  template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+  template<class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
   template<class ExecutionPolicy,
-           class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+           class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_1_update(ExecutionPolicy&& exec,
                                         Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
-  template<@_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+  template<@_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_1_update(InVec x, InMat E, OutMat A, Triangle t);
   template<class ExecutionPolicy,
-           @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+           @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_1_update(ExecutionPolicy&& exec,
                                         InVec x, InMat E, OutMat A, Triangle t);
 
@@ -780,16 +956,16 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
                                         InVec x, OutMat A, Triangle t);
 
   // updating Hermitian rank-1 matrix update 
-  template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+  template<class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
   template<class ExecutionPolicy,
-           class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+           class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                         Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
-  template<@_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+  template<@_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(InVec x, InMat E, OutMat A, Triangle t);
   template<class ExecutionPolicy,
-           @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+           @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                         InVec x, InMat E, OutMat A, Triangle t);
 ```
@@ -813,11 +989,11 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 
   // updating symmetric rank-2 matrix update
   template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-in-matrix_@ InMat,
+           @_in-matrix_@ InMat,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_2_update(InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
   template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-in-matrix_@ InMat,
+           @_in-matrix_@ InMat,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_2_update(ExecutionPolicy&& exec,
                                         InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
@@ -833,11 +1009,11 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 
   // updating Hermitian rank-2 matrix update
   template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-in-matrix_@ InMat,
+           @_in-matrix_@ InMat,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_2_update(InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
   template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-in-matrix_@ InMat,
+           @_in-matrix_@ InMat,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_2_update(ExecutionPolicy&& exec,
                                         InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
@@ -879,7 +1055,7 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
   // updating symmetric rank-k matrix update
   template<class Scalar,
            @_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void symmetric_matrix_rank_k_update(
@@ -887,21 +1063,21 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
       InMat1 A, InMat2 E, OutMat C, Triangle t);
   template<class ExecutionPolicy, class Scalar,
            @_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void symmetric_matrix_rank_k_update(
       ExecutionPolicy&& exec, Scalar alpha,
       InMat1 A, InMat2 E, OutMat C, Triangle t);
   template<@_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void symmetric_matrix_rank_k_update(
       InMat1 A, InMat2 E, OutMat C, Triangle t);
   template<class ExecutionPolicy,
            @_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void symmetric_matrix_rank_k_update(
@@ -936,7 +1112,7 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
   // updating rank-k Hermitian matrix update
   template<class Scalar,
            @_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void hermitian_matrix_rank_k_update(
@@ -944,21 +1120,21 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
       InMat1 A, InMat2 E, OutMat C, Triangle t);
   template<class ExecutionPolicy, class Scalar,
            @_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void hermitian_matrix_rank_k_update(
       ExecutionPolicy&& exec, Scalar alpha,
       InMat1 A, InMat2 E, OutMat C, Triangle t);
   template<@_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void hermitian_matrix_rank_k_update(
       InMat1 A, InMat2 E, OutMat C, Triangle t);
   template<class ExecutionPolicy,
            @_in-matrix_@ InMat1,
-           @_possibly-packed-in-matrix_@ InMat2,
+           @_in-matrix_@ InMat2,
            @_possibly-packed-out-matrix_@ OutMat,
            class Triangle>
     void hermitian_matrix_rank_k_update(
@@ -986,12 +1162,12 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 
   // updating symmetric rank-2k matrix update
   template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-in-matrix_@ InMat3,
+           @_in-matrix_@ InMat3,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_2k_update(InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t);
   template<class ExecutionPolicy,
            @_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-in-matrix_@ InMat3,
+           @_in-matrix_@ InMat3,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_2k_update(ExecutionPolicy&& exec,
                                          InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t);
@@ -1008,12 +1184,12 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 
   // updating Hermitian rank-2k matrix update
   template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-in-matrix_@ InMat3,
+           @_in-matrix_@ InMat3,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_2k_update(InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t);
   template<class ExecutionPolicy,
            @_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-in-matrix_@ InMat3,
+           @_in-matrix_@ InMat3,
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void hermitian_matrix_rank_2k_update(ExecutionPolicy&& exec,
                                          InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t);
@@ -1161,10 +1337,10 @@ template<class ExecutionPolicy,
 [10]{.pnum} *Effects*: Computes $A = x x^T$.
 
 ```c++
-template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+template<class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void symmetric_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void symmetric_matrix_rank_1_update(ExecutionPolicy&& exec,
                                       Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 ```
@@ -1174,10 +1350,10 @@ template<class ExecutionPolicy,
 [12]{.pnum} *Effects*: Computes $A = E + \alpha x x^T$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
-template<@_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+template<@_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void symmetric_matrix_rank_1_update(InVec x, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void symmetric_matrix_rank_1_update(ExecutionPolicy&& exec,
                                       InVec x, InMat E, OutMat A, Triangle t);
 ```
@@ -1212,10 +1388,10 @@ template<class ExecutionPolicy,
 [18]{.pnum} *Effects*: Computes $A = x x^T$.
 
 ```c++
-template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+template<class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         class Scalar, @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                       Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 ```
@@ -1225,10 +1401,10 @@ template<class ExecutionPolicy,
 [20]{.pnum} *Effects*: Computes $A = E + \alpha x x^H$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
-template<@_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+template<@_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(InVec x, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         @_in-vector_@ InVec, @_possibly-packed-in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                       InVec x, InMat E, OutMat A, Triangle t);
 ```
@@ -1290,11 +1466,11 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
 
 ```c++
 template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-in-matrix_@ InMat,
+         @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void symmetric_matrix_rank_2_update(InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-in-matrix_@ InMat,
+         @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void symmetric_matrix_rank_2_update(ExecutionPolicy&& exec,
                                       InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
@@ -1320,11 +1496,11 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
 
 ```c++
 template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-in-matrix_@ InMat,
+         @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_2_update(InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-in-matrix_@ InMat,
+         @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_2_update(ExecutionPolicy&& exec,
                                       InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
@@ -1475,7 +1651,7 @@ Computes $C = A A^H$.
 ```c++
 template<class Scalar,
          @_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void symmetric_matrix_rank_k_update(
@@ -1487,7 +1663,7 @@ void symmetric_matrix_rank_k_update(
 template<class ExecutionPolicy,
          class Scalar,
          @_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void symmetric_matrix_rank_k_update(
@@ -1505,7 +1681,7 @@ where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void symmetric_matrix_rank_k_update(
@@ -1515,7 +1691,7 @@ void symmetric_matrix_rank_k_update(
   Triangle t);
 template<class ExecutionPolicy,
          @_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void symmetric_matrix_rank_k_update(
@@ -1532,7 +1708,7 @@ Computes $C = E + A A^T$.
 ```c++
 template<class Scalar,
          @_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void hermitian_matrix_rank_k_update(
@@ -1544,7 +1720,7 @@ void hermitian_matrix_rank_k_update(
 template<class ExecutionPolicy,
          class Scalar,
          @_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void hermitian_matrix_rank_k_update(
@@ -1562,7 +1738,7 @@ where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 
 ```c++
 template<@_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void hermitian_matrix_rank_k_update(
@@ -1572,7 +1748,7 @@ void hermitian_matrix_rank_k_update(
   Triangle t);
 template<class ExecutionPolicy,
          @_in-matrix_@ InMat1,
-         @_possibly-packed-in-matrix_@ InMat2,
+         @_in-matrix_@ InMat2,
          @_possibly-packed-out-matrix_@ OutMat,
          class Triangle>
 void hermitian_matrix_rank_k_update(
