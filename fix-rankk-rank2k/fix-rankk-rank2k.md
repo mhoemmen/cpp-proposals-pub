@@ -480,7 +480,7 @@ The BLAS solves this problem by having the Hermitian rank-1 update routines `xHE
 
 For number types that have an additive identity (like zero for the integers and reals), it's mathematically correct to treat those as "complex numbers" whose imaginary parts are always zero.  This is what `conjugated_accessor` does if you give it a number type for which ADL cannot find `conj`.  P3050 optimizes `conjugated` for such number types by bypassing `conjugated_accessor` and using `default_accessor` instead, but this is just a code optimization.  Therefore, it can afford to be conservative: if a number type _might_ be complex, then `conjugated` needs to use `conjugated_accessor`.  This is why P3050's approach doesn't apply here.  If a number type has ADL-findable `conj`, `real`, and `imag`, then it _might_ be complex.  However, if we define the opposite of that as "noncomplex," then we might be preventing users from using otherwise reasonable number types.  
 
-The following `MyRealNumber` example always has zero imaginary part, but nevertheless has ADL-findable `conj`, `real`, and `imag`.  Furthermore, it has a constructor for which `MyRealNumber(1.2, 3.4)` is well-formed.  (This is an unfortunate design choice; making `precision` have class type that is not implicitly convertible from `double` would be wiser, so that users would have to type `MyRealNumber(1.2, Precision(42))`.)  As a result, there is no reasonable way to tell at compile time if `MyRealNumber` might represent a complex number.
+The following `MyRealNumber` example always has zero imaginary part, but nevertheless has ADL-findable `conj`, `real`, and `imag`.  Furthermore, it has a constructor for which `MyRealNumber(1.2, 3.4)` is well-formed.  (This is an unfortunate design choice; making `precision` have class type that is not implicitly convertible from `double` would be wiser, so that users would have to type something like `MyRealNumber(1.2, Precision(42))`.)  As a result, there is no reasonable way to tell at compile time if `MyRealNumber` might represent a complex number.
 
 ```c++
 class MyRealNumber {
@@ -525,6 +525,7 @@ concept maybe_complex =
     {conj(t)} -> T;
     {real(t)} -> std::convertible_to<T>;
     {imag(t)} -> std::convertible_to<T>;
+  };
 ```
 
 P1673 generally avoids approaches based on specializing traits.  Its design philosophy favors treating types as they are.  Users should not need to do something "extra" with their custom number types to get correct behavior, beyond what they would reasonably need to define to make a custom number type behave like a number.
@@ -566,21 +567,16 @@ Therefore, `hermitian_matrix_vector_product` and `hermitian_matrix_product` do *
 
 In Chapter 2 of the BLAS Standard, both `xHEMV` and `xHEMM` take the scaling factors $\alpha$ and $\beta$ as complex numbers (`COMPLEX<wp>`, where `<wp>` represents the current working precision).  The BLAS permits `xHEMV` or `xHEMM` to be called with `alpha` whose imaginary part is nonzero.  The matrix that the BLAS assumes to be Hermitian is $A$, not $\alpha A$.  Even if $A$ is Hermitian, $\alpha A$ might not necessarily be Hermitian.  For example, if $A$ is the identity matrix (diagonal all ones) and $\alpha$ is $i$, then $\alpha A$ is not Hermitian but skew-Hermitian.
 
-The current [linalg] wording requires that the input matrix be Hermitian.  This excludes using `scaled(alpha, A)` as the input matrix, where `alpha` has nonzero imaginary part.  For example, the following gives mathematically incorrect results.
-```c++
-auto alpha = std::complex{0.0, 1.0};
-hermitian_matrix_vector_product(scaled(alpha, A), upper_triangle, x, y);
-```
-Note that the behavior of this is still otherwise well defined, at least after applying the fix proposed in LWG4136 for diagonal elements with nonzero imaginary part.  It does not violate a precondition.  Therefore, the Standard has no way to tell the user that they did something wrong.
+The current [linalg] wording requires that the input matrix be Hermitian.  This excludes replicating BLAS behavior by using `scaled(alpha, A)` (where `alpha` has nonzero imaginary part, and `A` is any Hermitian matrix) as the input matrix.  Note that the behavior of this is still otherwise well defined, at least after applying the fix proposed in LWG4136 for diagonal elements with nonzero imaginary part.  It does not violate a precondition.  Therefore, the Standard has no way to tell the user that they did something wrong.
 
 #### Status quo permits scaling via the input vector
 
-The current wording permits introducing the scaling factor `alpha` through the input vector.
+The current wording permits introducing the scaling factor `alpha` through the input vector, even if `alpha` has nonzero imaginary part.
 ```c++
 auto alpha = std::complex{0.0, 1.0};
 hermitian_matrix_vector_product(A, upper_triangle, scaled(alpha, x), y);
 ```
-This is fine as long as $\alpha A x$ equals $A \alpha x$, that is, as long as $\alpha$ commutes with the elements of A.  This issue would only be of concern if those multiplications might be noncommutative.  We're already well outside the world of "types that do ordinary arithmetic with `std::complex`."  This scenario would only arise given a user-defined complex type, like `user_complex<user_noncommutative>` in the example below, whose real parts have noncommutative multiplication.
+This is mathematically correct as long as $\alpha A x$ equals $A \alpha x$, that is, as long as $\alpha$ commutes with the elements of A.  This issue would only be of concern if those multiplications might be noncommutative.  Multiplication with floating-point numbers, integers, and anything that behaves reasonably like a real or complex number is commutative.  However, practical number types exist that have noncommutative multiplication.  Quaternions are one example.  Another is the ring of square $N$ by $N$ matrices (for some fixed dimension $N$), with matrix multiplication using the same definition that `linalg::matrix_product` uses.  One way for a user-defined complex number type to have noncommutative multiplication would be if its real and imaginary parts each have a user-defined number type with noncommutative multiplication, as in the `user_complex<noncommutative>` example below.
 
 ```c++
 template<class T>
@@ -588,25 +584,51 @@ class user_complex {
 public:
   user_complex(T re, T im) : re_(re), im_(im) {}
 
-  // ... overloaded arithmetic operators ...
-
   friend T real(user_complex<T> z) { return z.re_; }
   friend T imag(user_complex<T> z) { return z.im_; } 
   friend user_complex<T> conj(user_complex<T> z) {
     return {real(z), -imag(z)};
   }
 
+  // ... other overloaded arithmetic operators ...
+
+  // the usual complex arithmetic definition
+  friend user_complex<T>
+  operator*(user_complex<T> z, user_complex<T> w) {
+    return {
+      real(z) * real(w) - imag(z) * imag(w),
+      real(z) * imag(w) + imag(z) * real(w)
+    };
+  }
+
 private:
   T re_, im_;
 };
 
-auto alpha = user_complex<user_noncommutative>{something, something_else};
+class noncommutative {
+public:
+  explicit noncommutative(double value) : value_(value) {}
+
+  // ... overloaded arithmetic operators ...
+
+  // x * y != y * x here, for example with x=3 and y=5
+  friend auto operator*(noncommutative x, noncommutative y) {
+    return x + 2.0 * y.value_;
+  }
+
+private:
+  double value_;
+};
+
+auto alpha = user_complex<noncommutative>{
+  noncommutative{3.0}, noncommutative{4.0}
+};
 hermitian_matrix_vector_product(N, upper_triangle, scaled(alpha, x), y);
 ```
 
-The [linalg] library was designed to support element types with noncommutative multiplication.  On the other hand, generally, if we speak of Hermitian matrices or even of inner products (which are used to define Hermitian matrices), we're working in a vector space.  This means that multiplication of the matrix's elements is commutative.  Anything more general than that is far beyond what the BLAS can do.  Thus, we think restricting use of `alpha` with nonzero imaginary part to `scaled(alpha, x)` is not so onerous.
+The [linalg] library was designed to support element types with noncommutative multiplication.  On the other hand, generally, if we speak of Hermitian matrices or even of inner products (which are used to define Hermitian matrices), we're working in a vector space.  This means that multiplication of the matrix's elements is commutative.  Thus, we think it is not so onerous to restrict use of `alpha` with nonzero imaginary part in this case.
 
-#### Scaling via the input vector is weird, but the least bad choice
+#### Scaling via the input vector is the least bad choice
 
 Many users may not like the status quo of needing to scale `x` instead of `A`.  First, it differs from the BLAS, which puts `alpha` before `A` in its `xHEMV` and `xHEMM` function arguments.  Second, users would get no compile-time feedback and likely no run-time feedback if they scale `A` instead of `x`.  Their code would compile and produce correct results for almost all matrix-vector or matrix-matrix products, *except* for the Hermitian case, and *only* when the scaling factor has a nonzero imaginary part.  However, we still think the status quo is the least bad choice.  We explain why by discussing the following alternatives.
 
@@ -618,7 +640,7 @@ Many users may not like the status quo of needing to scale `x` instead of `A`.  
 
 The first choice is mathematically incorrect, as we will explain below.  The second is not incorrect, but could only catch some errors.  The third is likewise not incorrect, but would add a lot of overloads for an uncommon use case, and would still not prevent users from scaling the matrix in mathematically incorrect ways.
 
-##### Bad choice: Special cases for scaling the matrix
+##### Treating a scaled matrix as a special case would be incorrect
 
 "Treat `scaled(alpha, A)` as a special case" actually means three special cases, given some nested accessor type `Acc` and a scaling factor `alpha` of type `Scalar`.
 
@@ -630,15 +652,13 @@ c. `scaled(alpha, conjugated(A))`, whose accessor type is `scaled_accessor<Scala
 
 One could replace `conjugated` with `conjugate_transposed` (which we expect to be more common in practice) without changing the accessor type.
 
-This approach violates the fundamental [linalg] principle that "... each `mdspan` parameter of a function behaves as itself and is not otherwise 'modified' by other parameters" (Section 10.2.5, P1673R13).  The behavior of [linalg] is agnostic of specific accessor types, even though implementations likely have optimizations for specific accessor types.  [linalg] takes this approach for consistency, even where it results in different behavior from the BLAS (see Section 10.5.2 of P1673R13).  The application of this principle here is "the input parameter `A` is always Hermitian."
+This approach violates the fundamental [linalg] principle that "... each `mdspan` parameter of a function behaves as itself and is not otherwise 'modified' by other parameters" (Section 10.2.5, P1673R13).  The behavior of [linalg] is agnostic of specific accessor types, even though implementations likely have optimizations for specific accessor types.  [linalg] takes this approach for consistency, even where it results in different behavior from the BLAS (see Section 10.5.2 of P1673R13).  The application of this principle here is "the input parameter `A` is always Hermitian."  In this case, the consistency matters for mathematical correctness.  What if `scaled(alpha, A)` is Hermitian, but `A` itself is not?  An example is $\alpha = -i$ and $A$ is the 2 x 2 matrix whose elements are all $i$.  If we treat `scaled_accessor` as a special case, then `hermitian_matrix_vector_product` will compute different results.
 
-In this case, the consistency matters for mathematical correctness.  What if `scaled(alpha, A)` is Hermitian, but `A` itself is not?  An example is $\alpha = -i$ and $A$ is the 2 x 2 matrix whose elements are all $i$.  If we treat `scaled_accessor` as a special case, then `hermitian_matrix_vector_product` will compute different results.
+Another problem with this approach is that users might define their own accessor types with the effect of `scaled_accessor`, or combine existing nested accessor types in hard-to-detect ways (like a long nesting of `conjugated_accessor` with a `scaled_accessor` inside).  The [linalg] library has no way to detect all possible ways that the matrix might be scaled.
 
-Another problem is that users are permitted to define their own accessor types, including nested accessors.  Arbitrary user accessors might have `scaled_accessor` somewhere in that nesting, or they might have the *effect* of `scaled_accessor` without being called that.  Thus, we can't detect all possible ways that the matrix might be scaled.
+##### Forbidding `scaled_accessor` would not solve the problem
 
-##### Not-so-good choice: Forbid scaling the matrix at compile time
-
-Hermitian matrix-matrix and matrix-vector product functions could instead *forbid* scaling the matrix at compile time, at least for the three accessor type cases listed in the previous option.
+Hermitian matrix-matrix and matrix-vector product functions could instead *forbid* scaling the matrix at compile time.  This means excluding, at compile time, the three accessor type cases listed in the previous option.
 
 a. `scaled_accessor<Scalar, Acc>`
 
@@ -646,9 +666,9 @@ b. `conjugated_accessor<scaled_accessor<Scalar, Acc>>`
 
 c. `scaled_accessor<Scalar, conjugated_accessor<Acc>>`
 
-Doing this would certainly encourage correct behavior for the most common cases.  However, as mentioned above, users are permitted to define their own accessor types, including nested accessors.  Thus, we can't detect all ways that an arbitrary, possibly user-defined accessor might scale the matrix.  Furthermore, scaling the matrix might still be mathematically correct.  A scaling factor with nonzero imaginary part might even *make* the matrix Hermitian.  Applying $i$ as a scaling factor twice would give a perfectly valid scaling factor of $-1$.
+Doing this would certainly encourage correct behavior for the most common cases.  However, as mentioned above, users are permitted to define their own accessor types, and to combine existing nested accessors in arbitrary ways.  The [linalg] library cannot detect all possible ways that an arbitrary, possibly user-defined accessor might scale the matrix.  Furthermore, scaling the matrix might still be mathematically correct.  A scaling factor with nonzero imaginary part might even *make* the matrix Hermitian.  Applying $i$ as a scaling factor twice would give a perfectly valid scaling factor of $-1$.
 
-##### Not-so-good choice: Add alpha overloads
+##### Adding `alpha` overloads would make the problem worse
 
 One could imagine adding overloads that take `alpha`, analogous to the rank-1 and rank-k update overloads that take `alpha`.  Users could then write
 ```c++
@@ -659,13 +679,7 @@ instead of
 hermitian_matrix_vector_product(A, upper_triangle, scaled(alpha, x), y);
 ```
 
-We do not support this approach.  First, it would introduce many overloads, without adding to what the existing overloads can accomplish.  (Users can already introduce the scaling factor `alpha` through `x`.)  Contrast this with the rank-1 and rank-k Hermitian update functions, where not having `alpha` overloads might break simple cases.  Here are two examples.
-
-1. If the matrix and vector element types and the scaling factor $\alpha = 2$ are all integers, then the update $C := C - 2 x x^H$ can be computed using integer types and arithmetic with an `alpha` overload.  However, without an `alpha` overload, the user would need to use `scaled(sqrt(2), x)` as the input vector, thus forcing use of floating-point arithmetic that may give inexact results.
-
-2. The update $C := C - x x^H$ would require resorting to complex arithmetic, as the only way to express $-x x^H$ with the same scaling factor for both vectors is $(i x) (i x)^H$.
-
-Second, `alpha` overloads would not prevent users from *also* supplying `scaled(gamma, A)` as the matrix for some other scaling factor `gamma`.  Thus, instead of solving the problem, the overloads would introduce more possibilities for errors.
+We do not support this approach.  First, users can already introduce a scaling factor through the input vector parameter, so adding `alpha` overloads would not add much to what the existing overloads can accomplish.  Contrast this with the rank-1 and rank-k Hermitian update functions, where not having `alpha` overloads would prevent simple cases, like $C := C - 2 x x^H$ with a user-defined complex number type whose real and imaginary parts are both integers.  Second, `alpha` overloads would not prevent users from *also* supplying `scaled(gamma, A)` as the matrix for some other scaling factor `gamma`.  This would make the problem worse, because users would need to reason about the combination of two ways that the matrix could be scaled.
 
 ### Triangular matrix products with implicit unit diagonals
 
