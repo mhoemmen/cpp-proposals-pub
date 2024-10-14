@@ -1282,7 +1282,7 @@ matrix_rank_1_update(std::forward<ExecutionPolicy>(exec), x, conjugated(y), A);
 
 [1]{.pnum} <i>[Note:</i>
 These functions correspond to the BLAS functions `xSYR`, `xSPR`, `xHER`, and `xHPR`[bib].
-They have overloads taking a scaling factor `alpha`, because it would be impossible to express the update $A = A x x^T$ otherwise.
+They have overloads taking a scaling factor `alpha`, because it would be impossible to express the update $A = A - x x^T$ in noncomplex arithmetic otherwise.
 <i>-- end note]</i>
 
 [2]{.pnum} The following elements apply to all functions in [linalg.algs.blas2.symherrank1].
@@ -1351,7 +1351,7 @@ template<class ExecutionPolicy,
 
 [11]{.pnum} These functions perform an updating symmetric rank-1 update of the symmetric matrix `A` using the symmetric matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
 
-[12]{.pnum} *Effects*: Computes $A = E + \alpha x x^T$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
+[12]{.pnum} *Effects*: Computes $A = E + \alpha x x^T$, where the scalar $\alpha$ is `alpha`.
 
 ```c++
 template<@_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -1681,7 +1681,7 @@ void symmetric_matrix_rank_k_update(
 
 [9]{.pnum} *Effects:*
 Computes $C = E + \alpha A A^T$,
-where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
+where the scalar $\alpha$ is `alpha`.
 
 ```c++
 template<@_in-matrix_@ InMat1,

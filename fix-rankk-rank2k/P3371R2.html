@@ -2732,8 +2732,8 @@ the following.</p>
 <code>xSYR</code>, <code>xSPR</code>, <code>xHER</code>, and
 <code>xHPR</code>[bib]. They have overloads taking a scaling factor
 <code>alpha</code>, because it would be impossible to express the update
-<span class="math inline"><em>A</em> = <em>A</em><em>x</em><em>x</em><sup><em>T</em></sup></span>
-otherwise. <i>– end note]</i></p>
+<span class="math inline"><em>A</em> = <em>A</em> − <em>x</em><em>x</em><sup><em>T</em></sup></span>
+in noncomplex arithmetic otherwise. <i>– end note]</i></p>
 <p><span class="marginalizedparent"><a class="marginalized">2</a></span>
 The following elements apply to all functions in
 [linalg.algs.blas2.symherrank1].</p>
@@ -2829,7 +2829,7 @@ into account the <code>Triangle</code> parameter that applies to
 <p><span class="marginalizedparent"><a class="marginalized">12</a></span>
 <em>Effects</em>: Computes <span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>x</em><sup><em>T</em></sup></span>,
 where the scalar <span class="math inline"><em>α</em></span> is
-<em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
+<code>alpha</code>.</p>
 <div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-vector</em> InVec, <em>in-matrix</em> InMat, <em>possibly-packed-out-matrix</em> OutMat, <span class="kw">class</span> Triangle<span class="op">&gt;</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> symmetric_matrix_rank_1_update<span class="op">(</span>InVec x, InMat E, OutMat A, Triangle t<span class="op">)</span>;</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> ExecutionPolicy,</span>
@@ -3203,7 +3203,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <p><span class="marginalizedparent"><a class="marginalized">9</a></span>
 <em>Effects:</em> Computes <span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>,
 where the scalar <span class="math inline"><em>α</em></span> is
-<em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
+<code>alpha</code>.</p>
 <div class="sourceCode" id="cb43"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><em>in-matrix</em> InMat1,</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>         <em>in-matrix</em> InMat2,</span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>         <em>possibly-packed-out-matrix</em> OutMat,</span>
