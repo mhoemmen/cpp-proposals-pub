@@ -463,8 +463,8 @@ doesn’t change</a></li>
 <ul>
 <li><a href="#increment-__cpp_lib_submdspan-feature-test-macro" id="toc-increment-__cpp_lib_submdspan-feature-test-macro"><span class="toc-section-number">6.1</span> Increment
 <code>__cpp_lib_submdspan</code> feature test macro</a></li>
-<li><a href="#change-existing-layout-mappings-so-submdspan_mapping" id="toc-change-existing-layout-mappings-so-submdspan_mapping"><span class="toc-section-number">6.2</span> Change existing layout mappings so
-<code>submdspan_mapping</code></a></li>
+<li><a href="#change-existing-layout-mappings-submdspan_mapping-results" id="toc-change-existing-layout-mappings-submdspan_mapping-results"><span class="toc-section-number">6.2</span> Change existing layout mappings’
+<code>submdspan_mapping</code> results</a></li>
 </ul></li>
 </ul>
 </div>
@@ -486,6 +486,14 @@ layouts”) into the Working Draft for C++26).</li>
 this a separate paper.</p></li>
 <li><p>Increment <code>__cpp_lib_submdspan</code> from its current value
 (<code>202403L</code>).</p></li>
+<li><p>Implement suggestion during LEWG wording review to define a
+“wording macro” for all the slice specifier types that have unit stride.
+We call it <em>unit-stride slice for <code>M</code></em>, where
+<code>M</code> is a layout mapping type. (The definition only depends on
+an <code>index_type</code>, but the wording is most natural when it
+depends on the layout mapping type for which
+<em><code>submdspan-mapping-impl</code></em> is a private member
+function.)</p></li>
 </ul></li>
 </ul>
 <h1 data-number="2" id="abstract"><span class="header-section-number">2</span> Abstract<a href="#abstract" class="self-link"></a></h1>
@@ -710,8 +718,27 @@ the integer literal encoding the appropriate year (YYYY) and month
 (MM).</p>
 </blockquote>
 <div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define __cpp_lib_submdspan </span>YYYYMML<span class="pp"> </span><span class="co">// also in &lt;mdspan&gt;</span></span></code></pre></div>
-<h2 data-number="6.2" id="change-existing-layout-mappings-so-submdspan_mapping"><span class="header-section-number">6.2</span> Change existing layout mappings
-so <code>submdspan_mapping</code><a href="#change-existing-layout-mappings-so-submdspan_mapping" class="self-link"></a></h2>
+<h2 data-number="6.2" id="change-existing-layout-mappings-submdspan_mapping-results"><span class="header-section-number">6.2</span> Change existing layout
+mappings’ <code>submdspan_mapping</code> results<a href="#change-existing-layout-mappings-submdspan_mapping-results" class="self-link"></a></h2>
+<blockquote>
+<p>Append the following to the end of
+<strong>[mdspan.sub.map.common]</strong>.</p>
+</blockquote>
+<p><span class="marginalizedparent"><a class="marginalized">9</a></span>
+Given a layout mapping type <code>M</code>, a type <code>S</code> is a
+<em>unit-stride slice for <code>M</code></em> if</p>
+<p><span class="marginalizedparent"><a class="marginalized">(9.1)</a></span>
+<code>S</code> is a specialization of <code>strided_slice</code> where
+<code>S::stride_type</code> models
+<em><code>integral-constant-like</code></em> and
+<code>S::stride_type::value</code> equals 1,</p>
+<p><span class="marginalizedparent"><a class="marginalized">(9.2)</a></span>
+<code>S</code> models
+<em><code>index-pair-like</code></em><code>&lt;M::index_type&gt;</code>,
+or</p>
+<p><span class="marginalizedparent"><a class="marginalized">(9.3)</a></span>
+<code>is_convertible_v&lt;S, full_extent_t&gt;</code> is
+<code>true</code>.</p>
 <blockquote>
 <p>Throughout <strong>[mdspan.sub]</strong>, wherever the text says</p>
 <p>“<span class="math inline"><em>S</em><sub><em>k</em></sub></span>
@@ -721,13 +748,7 @@ models
 is <code>true</code>,”</p>
 <p>replace it with</p>
 <p>“<span class="math inline"><em>S</em><sub><em>k</em></sub></span> is
-a specialization of <code>strided_slice</code> where
-<code>stride_type</code> models
-<em><code>integral-constant-like</code></em> and
-<code>stride_type::value</code> equals 1, <span class="math inline"><em>S</em><sub><em>k</em></sub></span> models
-<em><code>index-pair-like</code></em><code>&lt;index_type&gt;</code>, or
-<code>is_convertible_v&lt;</code><span class="math inline"><em>S</em><sub><em>k</em></sub></span><code>, full_extent_t&gt;</code>
-is <code>true</code>.”</p>
+a unit-stride slice for <code>decltype(*this)</code>.”</p>
 <p>Apply the analogous transformation if the text says <span class="math inline"><em>S</em><sub><em>p</em></sub></span> or <span class="math inline"><em>S</em><sub>0</sub></span>, but is otherwise the
 same. Make this set of changes in the following places.</p>
 <ul>

@@ -20,6 +20,8 @@ author:
 
     * Increment `__cpp_lib_submdspan` from its current value (`202403L`).
 
+    * Implement suggestion during LEWG wording review to define a "wording macro" for all the slice specifier types that have unit stride.  We call it *unit-stride slice for `M`*, where `M` is a layout mapping type.  (The definition only depends on an `index_type`, but the wording is most natural when it depends on the layout mapping type for which _`submdspan-mapping-impl`_ is a private member function.)
+
 # Abstract
 
 We propose to change `submdspan_mapping` for the following layouts' layout mappings:
@@ -200,7 +202,17 @@ C++26 / IS.
 #define __cpp_lib_submdspan YYYYMML // also in <mdspan>
 ```
 
-## Change existing layout mappings so `submdspan_mapping`
+## Change existing layout mappings' `submdspan_mapping` results
+
+> Append the following to the end of **[mdspan.sub.map.common]**.
+
+[9]{.pnum} Given a layout mapping type `M`, a type `S` is a *unit-stride slice for `M`* if
+
+[9.1]{.pnum} `S` is a specialization of `strided_slice` where `S::stride_type` models _`integral-constant-like`_ and `S::stride_type::value` equals 1,
+
+[9.2]{.pnum} `S` models _`index-pair-like`_`<M::index_type>`, or
+
+[9.3]{.pnum} `is_convertible_v<S, full_extent_t>` is `true`.
 
 > Throughout **[mdspan.sub]**, wherever the text says
 >
@@ -208,7 +220,7 @@ C++26 / IS.
 >
 > replace it with
 >
-> "$S_k$ is a specialization of `strided_slice` where `stride_type` models _`integral-constant-like`_ and `stride_type::value` equals 1, $S_k$ models _`index-pair-like`_`<index_type>`, or `is_convertible_v<`$S_k$`, full_extent_t>` is `true`."
+> "$S_k$ is a unit-stride slice for `decltype(*this)`."
 >
 > Apply the analogous transformation if the text says $S_p$ or $S_0$, but is otherwise the same.
 > Make this set of changes in the following places.
