@@ -1,6 +1,6 @@
 ---
 title: "Fix submdspan for C++26"
-document: P3355R1
+document: D3355R2
 date: today
 audience: Library Evolution
 author:
@@ -21,6 +21,10 @@ author:
     * Increment `__cpp_lib_submdspan` from its current value (`202403L`).
 
     * Implement suggestion during LEWG wording review to define a "wording macro" for all the slice specifier types that have unit stride.  We call it *unit-stride slice for `M`*, where `M` is a layout mapping type.  (The definition only depends on an `index_type`, but the wording is most natural when it depends on the layout mapping type for which _`submdspan-mapping-impl`_ is a private member function.)
+
+* Revision 2 to be submitted for the next mailing
+
+    * Use green and red text in Wording to make changes more clear.  No actual wording changes.
 
 # Abstract
 
@@ -204,24 +208,37 @@ C++26 / IS.
 
 ## Change existing layout mappings' `submdspan_mapping` results
 
-> Append the following to the end of **[mdspan.sub.map.common]**.
+> Append the following to the end of **[mdspan.sub.map.common]**.  Additions are shown in green text.
 
+<span style="color: green;">
 [9]{.pnum} Given a layout mapping type `M`, a type `S` is a *unit-stride slice for `M`* if
+</span>
 
+<span style="color: green;">
 [9.1]{.pnum} `S` is a specialization of `strided_slice` where `S::stride_type` models _`integral-constant-like`_ and `S::stride_type::value` equals 1,
+</span>
 
+<span style="color: green;">
 [9.2]{.pnum} `S` models _`index-pair-like`_`<M::index_type>`, or
+</span>
 
+<span style="color: green;">
 [9.3]{.pnum} `is_convertible_v<S, full_extent_t>` is `true`.
+</span>
 
 > Throughout **[mdspan.sub]**, wherever the text says
->
-> "$S_k$ models _`index-pair-like`_`<index_type>` or `is_convertible_v<`$S_k$`, full_extent_t>` is `true`,"
->
+
+<span style="color: red;">
+$S_k$ models _`index-pair-like`_`<index_type>` or `is_convertible_v<`$S_k$`, full_extent_t>` is `true`,
+</span>
+
 > replace it with
->
-> "$S_k$ is a unit-stride slice for `decltype(*this)`."
->
+
+<span style="color: green;">
+$S_k$ is a unit-stride slice for `decltype(*this)`.
+</span>
+
+> Additions are shown in green text and removals in red text.
 > Apply the analogous transformation if the text says $S_p$ or $S_0$, but is otherwise the same.
 > Make this set of changes in the following places.
 >
@@ -232,3 +249,54 @@ C++26 / IS.
 > * **[mdspan.sub.map.leftpad]** (1.3.2), (1.4), (1.4.1), and (1.4.3); and
 >
 > * **[mdspan.sub.map.rightpad]** (1.3.2), (1.4), (1.4.1), and (1.4.3).
+
+> For example, here are the changes to **[mdspan.sub.map.left]**.
+> The other sections have analogous changes.
+
+*Returns*:
+
+[1.1]{.pnum} `submdspan_mapping_result{*this, 0}`, if `Extents​::​rank() == 0` is `true`;
+
+[1.2]{.pnum} otherwise, `submdspan_mapping_result{layout_left​::​mapping(sub_ext), offset}`, if `SubExtents​::​rank() == 0` is `true`;
+
+[1.3]{.pnum} otherwise, `submdspan_mapping_result{layout_left​::​mapping(sub_ext), offset}`, if
+
+[1.3.1]{.pnum} for each `k` in the range $[$ `0`, `SubExtents​::​rank() - 1` $)$, `is_convertible_v<` $S_k$ `, full_extent_t>` is `true`; and
+
+<span style="color: red;">
+[1.3.2]{.pnum} for `k` equal to `SubExtents​::​rank() - 1`, $S_k$ models _`index-pair-like<index_type>`_ or `is_convertible_v<` $S_k$ `, full_extent_t>` is `true`;
+</span>
+
+<span style="color: green;">
+[1.3.2]{.pnum} for `k` equal to `SubExtents​::​rank() - 1`, $S_k$ is a unit-stride slice for `decltype(*this)`;
+</span>
+
+<i>[Note 1: </i> If the above conditions are true, all $S_k$ with $k$ larger than `SubExtents​::​rank() - 1` are convertible to `index_type`. <i>- end note]</i>
+
+<span style="color: red;">
+[1.4]{.pnum} otherwise, `submdspan_mapping_result{layout_left_padded<S_static>::mapping(sub_ext, stride(u + 1)), offset}` if for a value $u$ for which $u+1$ is the smallest value $p$ larger than zero for which $S_p$ models _`index-pair-like<index_type>`_ or `is_convertible_v<` $S_p$ `, full_extent_t>` is `true`, the following conditions are met:
+</span>
+
+<span style="color: green;">
+[1.4]{.pnum} otherwise, `submdspan_mapping_result{layout_left_padded<S_static>::mapping(sub_ext, stride(u + 1)), offset}` if for a value $u$ for which $u+1$ is the smallest value $p$ larger than zero for which $S_p$ is a unit-stride slice for `decltype(*this)`, the following conditions are met:
+</span>
+
+<span style="color: red;">
+[1.4.1]{.pnum} $S_0$ models _`index-pair-like<index_type>`_ or `is_convertible_v<` $S_0$ `, full_extent_t>` is `true`; and
+</span>
+
+<span style="color: green;">
+[1.4.1]{.pnum} $S_0$ is a unit-stride slice for `decltype(*this)`; and
+</span>
+
+[1.4.2]{.pnum} for each $k$ in the range $[u + 1$, $u$ + `SubExtents​::​rank()` - 1 $)$, `is_convertible_v<` $S_k$ `, full_extent_t>` is `true`; and
+
+<span style="color: red;">
+[1.4.3]{.pnum} for $k$ equal to $u$ + `SubExtents​::​rank()` - 1, $S_k$ models _`index-pair-like<index_type>`_ or `is_convertible_v<` $S_k$ `, full_extent_t>` is `true`;
+</span>
+
+<span style="color: green;">
+[1.4.3]{.pnum} for $k$ equal to $u$ + `SubExtents​::​rank()` - 1, $S_k$ is a unit-stride slice for `decltype(*this)`;
+</span>
+
+    and where `S_static` is:
