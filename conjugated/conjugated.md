@@ -16,9 +16,9 @@ toc: true
 
 # Revision history
 
-* Revision 0 was submitted for the post-Kona mailing on 2023/11/15.
+* Revision 0 was submitted for the post-Kona mailing on 2023-11-15.
 
-* Revision 1 will be submitted for the post-Tokyo mailing on 2024/04/16.
+* Revision 1 will be submitted for the post-Tokyo mailing on 2024-04-16.
 
     * Add explanation to Wording section
         (actual wording change is not affected)
@@ -30,7 +30,7 @@ toc: true
     * Change title and abstract, to emphasize that delaying
         this until after C++26 would be a breaking change
 
-* Revision 2 will be submitted by 2024/08/15.
+* Revision 2 will be submitted by 2024-08-15.
 
     * Minor wording fix (define "`E`" in "`conj(E)`")
 
@@ -38,7 +38,9 @@ toc: true
 
     * Add nonwording "Presentation" section    
 
-* Revision 2 will be submitted after LWG review on 2024/10/25.
+* Revision 3 will be submitted after LWG review on 2024-10-25.
+
+    * Revision 2 was approved by LEWG on 2024-09-03 (B0 "now or never" priority, unanimous consent), to be confirmed by electronic poll (October, in progress).  A poll to request a new feature test macro, rather than bumping `__cpp_lib_linalg`, did not have consensus for change.
 
     * Change wording instructions to use green and red text to show changes better.  Make minor wording changes just for consistency with word order in the Working Draft, without changing the meaning.
 
