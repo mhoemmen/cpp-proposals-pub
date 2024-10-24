@@ -1,8 +1,8 @@
 
 ---
 title: "Fix C++26 by optimizing linalg::conjugated for noncomplex value types"
-document: P3050R2
-date: 2024/08/12
+document: D3050R3
+date: 2024-10-24
 audience: LEWG
 author:
   - name: Mark Hoemmen
@@ -37,6 +37,10 @@ toc: true
     * Bump value of `__cpp_lib_linalg` macro
 
     * Add nonwording "Presentation" section    
+
+* Revision 2 will be submitted after LWG review on 2024/10/25.
+
+    * Change wording instructions to use green and red text to show changes better.  Make minor wording changes just for consistency with word order in the Working Draft, without changing the meaning.
 
 # Abstract
 
@@ -458,41 +462,46 @@ for an LWG review contribution.
 >
 > Change [linalg.conj.conjugated] paragraphs 1 and 2 to read as follows.
 > (Paragraph 1 has been reorganized from a sentence into four bullet points,
-> where the old Paragraph 2.2 has been changed to 2.4,
-> and the new Paragraphs 1.2 and 1.3 have been inserted as the middle bullet points.
+> where Paragraphs 1.2 and 1.3 represent the changes.
 > Similarly, Paragraph 2 has been reorganized from two bullet points into four.
 > The old Paragraph 2.2 has been changed to 2.4,
 > and the new Paragraphs 2.2 and 2.3 have been inserted as the middle bullet points.)
+> Text to add is shown in green, and text to remove is shown in red.
 
+<span style="color: red;">
+[1]{.pnum} Let `A` be `remove_cvref_t<decltype(a.accessor().nested_accessor())>` if `Accessor` is a specialization of `conjugated_accessor`, and otherwise `conjugated_accessor<Accessor>`.
+</span>
+
+<span style="color: green;">
 [1]{.pnum} Let `A` be
+</span>
 
-* [1.1]{.pnum} `remove_cvref_t<decltype(a.accessor().nested_accessor())>` if `Accessor` is a specialization of `conjugated_accessor`; otherwise,
+<span style="color: green;">
+[1.1]{.pnum} if `Accessor` is a specialization of `conjugated_accessor`, `remove_cvref_t<decltype(a.accessor().nested_accessor())>`;
+</span>
 
-* [1.2]{.pnum} `Accessor`
-    if `remove_cvref_t<ElementType>` is an arithmetic type; otherwise,
+<span style="color: green;">
+[1.2]{.pnum} otherwise, if `remove_cvref_t<ElementType>` is an arithmetic type, `Accessor`;
+</span>
 
-* [1.3]{.pnum} `Accessor`
-    if the expression `conj(E)` is not valid for any subexpression `E`
-    whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>`
-    with overload resolution performed in a context
-    that includes the declaration
-    `template<class T> conj(const T&) = delete;`; otherwise,
+<span style="color: green;">
+[1.3]{.pnum} otherwise, if the expression `conj(E)` is not valid for any subexpression `E` whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> conj(const T&) = delete;`, `Accessor`;
+</span>
 
-* [1.4]{.pnum} `conjugated_accessor<Accessor>`.
+<span style="color: green;">
+[1.4]{.pnum} otherwise, `conjugated_accessor<Accessor>`.
+</span>
 
 [2]{.pnum} *Returns:*
 
-* [2.1]{.pnum} `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), a.accessor().nested_accessor())`
-    if `Accessor` is a specialization of `conjugated_accessor`; otherwise,
+[2.1]{.pnum} if `Accessor` is a specialization of `conjugated_accessor`, `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), a.accessor().nested_accessor())`;
 
-* [2.2]{.pnum} `a`
-    if `remove_cvref_t<ElementType>` is an arithmetic type; otherwise,
+<span style="color: green;">
+[2.2]{.pnum} otherwise, if `remove_cvref_t<ElementType>` is an arithmetic type, `a`;
+</span>
 
-* [2.3]{.pnum} `a`
-    if the expression `conj(E)` is not valid for any subexpression `E`
-    whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>`
-    with overload resolution performed in a context
-    that includes the declaration
-    `template<class T> conj(const T&) = delete;`; otherwise,
+<span style="color: green;">
+[2.3]{.pnum} otherwise, if the expression `conj(E)` is not valid for any subexpression `E` whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> conj(const T&) = delete;`, `a`;
+</span>
 
-* [2.4]{.pnum} `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.
+[2.4]{.pnum} otherwise, `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.
