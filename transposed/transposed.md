@@ -1,8 +1,8 @@
 
 ---
 title: "Fix C++26 by adding transposed special cases for P2642 layouts"
-document: P3222R0
-date: 2024/04/08
+document: D3222R1
+date: 2024-10-24
 audience: LEWG
 author:
   - name: Mark Hoemmen
@@ -21,6 +21,10 @@ Thanks to Nicolas Morales (Sandia National Laboratories) for review feedback.
 # Revision history
 
 * Revision 0 to be submitted for the post-Tokyo mailing before 2024/04/16
+
+* Revision 1 to be submitted after LWG review on 2024-10-25
+
+    * Improve Wording section by adding green and red text to express what has been changed.  Make minor wording changes just for consistency of word order with the Working Draft, but without changing the meaning.
 
 # Abstract
 
@@ -473,20 +477,36 @@ in the reference `mdspan` implementation.
 #define __cpp_lib_linalg YYYYMML // also in <linalg>
 ```
 
-> Change [linalg.transp.transposed] paragraph 3 ("Let `ReturnExtents` be ...") by inserting the following subparagraphs after subparagraph 3.2 ("otherwise, `layout_left` ...") and before current subparagraph 3.3 ("otherwise, `layout_stride` ...", to be renumbered to paragraph 3.5), and renumbering subparagraphs and subsubparagraphs within paragraph 3 thereafter.
+> Change [linalg.transp.transposed] paragraph 3 ("Let `ReturnExtents` be ...") by inserting two subparagraphs (as shown below) after subparagraph 3.2 ("otherwise, `layout_left` ...") and before current subparagraph 3.3 ("otherwise, `layout_stride` ...", to be renumbered to paragraph 3.5), and renumbering subparagraphs and subsubparagraphs within paragraph 3 thereafter.  Inserted text is green.
 
+[3]{.pnum} Let `ReturnExtents` be _`transpose-extents-t`_`<Extents>`.  Let `R` be `mdspan<ElementType, ReturnExtents, ReturnLayout, Accessor>`, where `ReturnLayout` is: 
+
+[3.1]{.pnum} `layout_right` if `Layout` is `layout_left`;
+
+[3.2]{.pnum} otherwise, `layout_left` if `Layout` is `layout_right`;
+
+<span style="color: green;">
 [3.3]{.pnum} otherwise, `layout_right_padded<PaddingValue>` if `Layout` is `layout_left_padded<PaddingValue>` for some `size_t` value `PaddingValue`;
+</span>
 
+<span style="color: green;">
 [3.4]{.pnum} otherwise, `layout_left_padded<PaddingValue>` if `Layout` is `layout_right_padded<PaddingValue>` for some `size_t` value `PaddingValue`;
+</span>
 
-> Change [linalg.transp.transposed] paragraph 4 (*Returns* clause of `transposed`) by inserting the following subparagraphs after subparagraph 4.1 (for `Layout` being `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`) and before current subparagraph 4.2 (for `Layout` being `layout_stride`, to be renumbered to subparagraph 4.4), and renumbering subparagraphs within paragraph 4 thereafter.
+[3.5]{.pnum} otherwise, `layout_blas_packed<OppositeTriangle, OppositeStorageOrder>`, ...
 
-[4.2]{.pnum} otherwise,
-    `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.mapping().stride(1)), a.accessor())`
-    if `Layout` is `layout_left_padded<PaddingValue>`
-    for some `size_t` value `PaddingValue`;
+> Change [linalg.transp.transposed] paragraph 4 (*Returns* clause of `transposed`) by inserting two subparagraphs (as shown below) after subparagraph 4.1 (for `Layout` being `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`) and before current subparagraph 4.2 (for `Layout` being `layout_stride`, to be renumbered to subparagraph 4.4), and renumbering subparagraphs within paragraph 4 thereafter.  Inserted text is green.
 
-[4.3]{.pnum} otherwise,
-    `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.stride(0)), a.accessor())`
-    if `Layout` is `layout_right_padded<PaddingValue>`
-    for some `size_t` value `PaddingValue`;
+[4]{.pnum} *Returns*: With `ReturnMapping` being the type `typename ReturnLayout​::​template mapping<ReturnExtents>`: 
+
+[4.1]{.pnum} if `Layout` is `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents())), a.accessor())`
+
+<span style="color: green;">
+[4.2]{.pnum} otherwise, if `Layout` is `layout_left_padded<PaddingValue>` for some `size_t` value `PaddingValue`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.mapping().stride(1)), a.accessor())`
+</span>
+
+<span style="color: green;">
+[4.3]{.pnum} otherwise, if `Layout` is `layout_right_padded<PaddingValue>` for some `size_t` value `PaddingValue`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.stride(0)), a.accessor())`
+</span>
+
+[4.4]{.pnum} otherwise, `R(a.data_handle(), ReturnMapping(a.mapping()), a.accessor())`
