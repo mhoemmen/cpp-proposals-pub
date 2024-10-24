@@ -3,7 +3,7 @@
 title: "Fix C++26 by optimizing linalg::conjugated for noncomplex value types"
 document: D3050R3
 date: 2024-10-24
-audience: LEWG
+audience: LWG
 author:
   - name: Mark Hoemmen
     email: <mhoemmen@nvidia.com>
