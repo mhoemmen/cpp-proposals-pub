@@ -24,7 +24,14 @@ Thanks to Nicolas Morales (Sandia National Laboratories) for review feedback.
 
 * Revision 1 to be submitted after LWG review on 2024-10-25
 
-    * Improve Wording section by adding green and red text to express what has been changed.  Make minor wording changes just for consistency of word order with the Working Draft, but without changing the meaning.
+    * Improve Wording section by adding green and red text to express what has been changed.  Make minor wording changes for consistency of word order with the Working Draft.
+
+    * Suggestions from pre-LWG review feedback:
+
+        * Make the new 4.2 and 4.3 consistent by using `a.stride(1)` resp. `a.stride(0)` instead of `a.mapping().stride(1)` resp. `a.stride(0)`.
+
+        * Fix old vs. new text coloring.
+
 
 # Abstract
 
@@ -493,7 +500,13 @@ in the reference `mdspan` implementation.
 [3.4]{.pnum} otherwise, `layout_left_padded<PaddingValue>` if `Layout` is `layout_right_padded<PaddingValue>` for some `size_t` value `PaddingValue`;
 </span>
 
-[3.5]{.pnum} otherwise, `layout_blas_packed<OppositeTriangle, OppositeStorageOrder>`, ...
+<span style="color: red;">
+[3.3]{.pnum} otherwise, `layout_stride` if `Layout` is `layout_stride`;
+</span>
+
+<span style="color: green;">
+[3.5]{.pnum} otherwise, `layout_stride` if `Layout` is `layout_stride`;
+</span>
 
 > Change [linalg.transp.transposed] paragraph 4 (*Returns* clause of `transposed`) by inserting two subparagraphs (as shown below) after subparagraph 4.1 (for `Layout` being `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`) and before current subparagraph 4.2 (for `Layout` being `layout_stride`, to be renumbered to subparagraph 4.4), and renumbering subparagraphs within paragraph 4 thereafter.  Inserted text is green.
 
@@ -502,11 +515,17 @@ in the reference `mdspan` implementation.
 [4.1]{.pnum} if `Layout` is `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents())), a.accessor())`
 
 <span style="color: green;">
-[4.2]{.pnum} otherwise, if `Layout` is `layout_left_padded<PaddingValue>` for some `size_t` value `PaddingValue`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.mapping().stride(1)), a.accessor())`
+[4.2]{.pnum} otherwise, if `Layout` is `layout_left_padded<PaddingValue>` for some `size_t` value `PaddingValue`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.stride(1)), a.accessor())`
 </span>
 
 <span style="color: green;">
 [4.3]{.pnum} otherwise, if `Layout` is `layout_right_padded<PaddingValue>` for some `size_t` value `PaddingValue`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.stride(0)), a.accessor())`
 </span>
 
-[4.4]{.pnum} otherwise, `R(a.data_handle(), ReturnMapping(a.mapping()), a.accessor())`
+<span style="color: red;">
+[4.2]{.pnum} otherwise, if `Layout` is `layout_stride`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())`
+</span>
+
+<span style="color: green;">
+[4.4]{.pnum} otherwise, if `Layout` is `layout_stride`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())`
+</span>

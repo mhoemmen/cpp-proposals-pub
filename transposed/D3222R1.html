@@ -498,10 +498,17 @@ feedback.</p>
 2024/04/16</p></li>
 <li><p>Revision 1 to be submitted after LWG review on 2024-10-25</p>
 <ul>
-<li>Improve Wording section by adding green and red text to express what
-has been changed. Make minor wording changes just for consistency of
-word order with the Working Draft, but without changing the
-meaning.</li>
+<li><p>Improve Wording section by adding green and red text to express
+what has been changed. Make minor wording changes for consistency of
+word order with the Working Draft.</p></li>
+<li><p>Suggestions from pre-LWG review feedback:</p>
+<ul>
+<li><p>Make the new 4.2 and 4.3 consistent by using
+<code>a.stride(1)</code> resp. <code>a.stride(0)</code> instead of
+<code>a.mapping().stride(1)</code> resp.
+<code>a.stride(0)</code>.</p></li>
+<li><p>Fix old vs. new text coloring.</p></li>
+</ul></li>
 </ul></li>
 </ul>
 <h1 data-number="4" id="abstract"><span class="header-section-number">4</span> Abstract<a href="#abstract" class="self-link"></a></h1>
@@ -933,10 +940,12 @@ otherwise, <code>layout_left_padded&lt;PaddingValue&gt;</code> if
 <code>Layout</code> is
 <code>layout_right_padded&lt;PaddingValue&gt;</code> for some
 <code>size_t</code> value <code>PaddingValue</code>; </span></p>
-<p><span class="marginalizedparent"><a class="marginalized">(3.5)</a></span>
-otherwise,
-<code>layout_blas_packed&lt;OppositeTriangle, OppositeStorageOrder&gt;</code>,
-…</p>
+<p><span style="color: red;"> <span class="marginalizedparent"><a class="marginalized">(3.3)</a></span>
+otherwise, <code>layout_stride</code> if <code>Layout</code> is
+<code>layout_stride</code>; </span></p>
+<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(3.5)</a></span>
+otherwise, <code>layout_stride</code> if <code>Layout</code> is
+<code>layout_stride</code>; </span></p>
 <blockquote>
 <p>Change [linalg.transp.transposed] paragraph 4 (<em>Returns</em>
 clause of <code>transposed</code>) by inserting two subparagraphs (as
@@ -959,7 +968,7 @@ paragraph 4 thereafter. Inserted text is green.</p>
 otherwise, if <code>Layout</code> is
 <code>layout_left_padded&lt;PaddingValue&gt;</code> for some
 <code>size_t</code> value <code>PaddingValue</code>,
-<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.mapping().extents()), a.mapping().stride(1)), a.accessor())</code>
+<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.mapping().extents()), a.stride(1)), a.accessor())</code>
 </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.3)</a></span>
 otherwise, if <code>Layout</code> is
@@ -967,9 +976,14 @@ otherwise, if <code>Layout</code> is
 <code>size_t</code> value <code>PaddingValue</code>,
 <code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.mapping().extents()), a.stride(0)), a.accessor())</code>
 </span></p>
-<p><span class="marginalizedparent"><a class="marginalized">(4.4)</a></span>
-otherwise,
-<code>R(a.data_handle(), ReturnMapping(a.mapping()), a.accessor())</code></p>
+<p><span style="color: red;"> <span class="marginalizedparent"><a class="marginalized">(4.2)</a></span>
+otherwise, if <code>Layout</code> is <code>layout_stride</code>,
+<code>R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())</code>
+</span></p>
+<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.4)</a></span>
+otherwise, if <code>Layout</code> is <code>layout_stride</code>,
+<code>R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())</code>
+</span></p>
 </div>
 </div>
 </body>
