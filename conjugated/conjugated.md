@@ -52,6 +52,12 @@ toc: true
 
         * Combine 2.2 and 2.3 into "otherwise, if `is_same_v<A, Accessor>` is `true`, `a`" -- this does not change the meaning, but avoids repeating the conditions of 1.2 and 1.3.
 
+    * Suggestions from LWG review on 2024-10-25:
+
+        * Improve diff formatting.
+
+        * Respell use of Standard-ese for ADL-findable to say "valid" instead of "not valid," for consistency with existing _`conj-if-needed`_ wording.
+
 # Abstract
 
 We propose the following change to the C++ Working Paper.
@@ -468,7 +474,7 @@ for an LWG review contribution.
 #define __cpp_lib_linalg YYYYMML // also in <linalg>
 ```
 
-> adjust the placeholder vlaue YYYYMML as needed so as to denote this proposal's date of adoption.
+> adjust the placeholder value YYYYMML as needed so as to denote this proposal's date of adoption.
 >
 > Change [linalg.conj.conjugated] paragraphs 1 and 2 to read as follows.
 > (Paragraph 1 has been reorganized from a sentence into four bullet points,
@@ -478,36 +484,36 @@ for an LWG review contribution.
 > and the new Paragraph 2.2 has been inserted as the middle bullet point.)
 > Text to add is shown in green, and text to remove is shown in red.
 
-<span style="color: red;">
-[1]{.pnum} Let `A` be `remove_cvref_t<decltype(a.accessor().nested_accessor())>` if `Accessor` is a specialization of `conjugated_accessor`, and otherwise `conjugated_accessor<Accessor>`.
-</span>
+[1]{.pnum} Let `A` be[:]{.add}[ `remove_cvref_t<decltype(a.accessor().nested_accessor())>` if `Accessor` is a specialization of `conjugated_accessor`, and otherwise `conjugated_accessor<Accessor>`]{.rm}.
 
-<span style="color: green;">
-[1]{.pnum} Let `A` be
-</span>
-
-<span style="color: green;">
+::: add
 [1.1]{.pnum} `remove_cvref_t<decltype(a.accessor().nested_accessor())>`, if `Accessor` is a specialization of `conjugated_accessor`;
-</span>
 
-<span style="color: green;">
 [1.2]{.pnum} otherwise, `Accessor`, if `remove_cvref_t<ElementType>` is an arithmetic type;
-</span>
 
-<span style="color: green;">
 [1.3]{.pnum} otherwise, `conjugated_accessor<Accessor>`, if the expression `conj(E)` is valid for any subexpression `E` whose type `T` is `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> T conj(const T&) = delete;`;
-</span>
 
-<span style="color: green;">
 [1.4]{.pnum} otherwise, `Accessor`.
-</span>
+:::
 
-[2]{.pnum} *Returns:*
+[2]{.pnum} *Returns:* [Let `MD` be `mdspan<typename A::element_type, Extents, Layout, A>`.]{.add}
 
-[2.1]{.pnum} if `Accessor` is a specialization of `conjugated_accessor`, `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), a.accessor().nested_accessor())`;
+[2.1]{.pnum} [`MD(a.data_handle(), a.mapping(), a.accessor().nested_accessor())`]{.add} if `Accessor` is a specialization of `conjugated_accessor`[,]{.rm}[;]{.add}
 
-<span style="color: green;">
-[2.2]{.pnum} otherwise, if `is_same_v<A, Accessor>` is `true`, `a`;
-</span>
+::: rm
+```
+mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), a.accessor().nested_accessor())
+```
+:::
 
-[2.3]{.pnum} otherwise, `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.
+::: add
+[2.2]{.pnum} otherwise, `a`, if `is_same_v<A, Accessor>` is `true`;
+:::
+
+[2.3]{.pnum} otherwise, [`MD(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.]{.add}
+
+::: rm
+```
+mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))
+```
+:::
