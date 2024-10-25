@@ -42,7 +42,15 @@ toc: true
 
     * Revision 2 was approved by LEWG on 2024-09-03 (B0 "now or never" priority, unanimous consent), to be confirmed by electronic poll (October, in progress).  A poll to request a new feature test macro, rather than bumping `__cpp_lib_linalg`, did not have consensus for change.
 
-    * Change wording instructions to use green and red text to show changes better.  Make minor wording changes just for consistency with word order in the Working Draft, without changing the meaning.
+    * Change wording instructions to use green and red text to show changes better.  Make minor wording changes just for consistency with word order in the Working Draft.
+
+    * Suggestions from pre-LWG review feedback:
+
+        * Change "whose type `T` is expression-equivalent to remove_cvref_t<ElementType>" to "whose type is `remove_cvref_t<ElementType>`."
+
+        * Make sure the deleted `conj` declaration has a return type (`T`).
+
+        * Combine 2.2 and 2.3 into "otherwise, if `is_same_v<A, Accessor>` is `true`, `a`" -- this does not change the meaning, but avoids repeating the conditions of 1.2 and 1.3.
 
 # Abstract
 
@@ -465,9 +473,9 @@ for an LWG review contribution.
 > Change [linalg.conj.conjugated] paragraphs 1 and 2 to read as follows.
 > (Paragraph 1 has been reorganized from a sentence into four bullet points,
 > where Paragraphs 1.2 and 1.3 represent the changes.
-> Similarly, Paragraph 2 has been reorganized from two bullet points into four.
-> The old Paragraph 2.2 has been changed to 2.4,
-> and the new Paragraphs 2.2 and 2.3 have been inserted as the middle bullet points.)
+> Similarly, Paragraph 2 has been reorganized from two bullet points into three.
+> The old Paragraph 2.2 has been changed to 2.3,
+> and the new Paragraph 2.2 has been inserted as the middle bullet point.)
 > Text to add is shown in green, and text to remove is shown in red.
 
 <span style="color: red;">
@@ -487,7 +495,7 @@ for an LWG review contribution.
 </span>
 
 <span style="color: green;">
-[1.3]{.pnum} otherwise, if the expression `conj(E)` is not valid for any subexpression `E` whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> conj(const T&) = delete;`, `Accessor`;
+[1.3]{.pnum} otherwise, if the expression `conj(E)` is not valid for any subexpression `E` whose type `T` is `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> T conj(const T&) = delete;`, `Accessor`;
 </span>
 
 <span style="color: green;">
@@ -499,11 +507,7 @@ for an LWG review contribution.
 [2.1]{.pnum} if `Accessor` is a specialization of `conjugated_accessor`, `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), a.accessor().nested_accessor())`;
 
 <span style="color: green;">
-[2.2]{.pnum} otherwise, if `remove_cvref_t<ElementType>` is an arithmetic type, `a`;
+[2.2]{.pnum} otherwise, if `is_same_v<A, Accessor>` is `true`, `a`;
 </span>
 
-<span style="color: green;">
-[2.3]{.pnum} otherwise, if the expression `conj(E)` is not valid for any subexpression `E` whose type `T` is expression-equivalent to `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> conj(const T&) = delete;`, `a`;
-</span>
-
-[2.4]{.pnum} otherwise, `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.
+[2.3]{.pnum} otherwise, `mdspan<typename A::element_type, Extents, Layout, A>(a.data_handle(), a.mapping(), conjugated_accessor(a.accessor()))`.
