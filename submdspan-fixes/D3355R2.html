@@ -497,8 +497,11 @@ function.)</p></li>
 </ul></li>
 <li><p>Revision 2 to be submitted for the next mailing</p>
 <ul>
-<li>Use green and red text in Wording to make changes more clear. No
-actual wording changes.</li>
+<li><p>Use green and red text in Wording to make changes more
+clear.</p></li>
+<li><p>Per pre-LWG feedback, change “unit-stride slice for
+<code>decltype(*this)</code>” to “unit-stride slice for
+<code>mapping</code>.”</p></li>
 </ul></li>
 </ul>
 <h1 data-number="2" id="abstract"><span class="header-section-number">2</span> Abstract<a href="#abstract" class="self-link"></a></h1>
@@ -756,7 +759,7 @@ is <code>true</code>, </span></p>
 <p>replace it with</p>
 </blockquote>
 <p><span style="color: green;"> <span class="math inline"><em>S</em><sub><em>k</em></sub></span> is a
-unit-stride slice for <code>decltype(*this)</code>. </span></p>
+unit-stride slice for <code>mapping</code>. </span></p>
 <blockquote>
 <p>Additions are shown in green text and removals in red text. Apply the
 analogous transformation if the text says <span class="math inline"><em>S</em><sub><em>p</em></sub></span> or <span class="math inline"><em>S</em><sub>0</sub></span>, but is otherwise the
@@ -800,7 +803,7 @@ for <code>k</code> equal to <code>SubExtents​::​rank() - 1</code>, <span cla
 <code>, full_extent_t&gt;</code> is <code>true</code>; </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.3.2)</a></span>
 for <code>k</code> equal to <code>SubExtents​::​rank() - 1</code>, <span class="math inline"><em>S</em><sub><em>k</em></sub></span> is a
-unit-stride slice for <code>decltype(*this)</code>; </span></p>
+unit-stride slice for <code>mapping</code>; </span></p>
 <p><i>[Note 1: </i> If the above conditions are true, all <span class="math inline"><em>S</em><sub><em>k</em></sub></span> with <span class="math inline"><em>k</em></span> larger than
 <code>SubExtents​::​rank() - 1</code> are convertible to
 <code>index_type</code>. <i>- end note]</i></p>
@@ -822,8 +825,8 @@ if for a value <span class="math inline"><em>u</em></span> for which
 <span class="math inline"><em>u</em> + 1</span> is the smallest value
 <span class="math inline"><em>p</em></span> larger than zero for which
 <span class="math inline"><em>S</em><sub><em>p</em></sub></span> is a
-unit-stride slice for <code>decltype(*this)</code>, the following
-conditions are met: </span></p>
+unit-stride slice for <code>mapping</code>, the following conditions are
+met: </span></p>
 <p><span style="color: red;"> <span class="marginalizedparent"><a class="marginalized">(1.4.1)</a></span>
 <span class="math inline"><em>S</em><sub>0</sub></span> models
 <em><code>index-pair-like&lt;index_type&gt;</code></em> or
@@ -831,7 +834,7 @@ conditions are met: </span></p>
 <code>, full_extent_t&gt;</code> is <code>true</code>; and </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.4.1)</a></span>
 <span class="math inline"><em>S</em><sub>0</sub></span> is a unit-stride
-slice for <code>decltype(*this)</code>; and </span></p>
+slice for <code>mapping</code>; and </span></p>
 <p><span class="marginalizedparent"><a class="marginalized">(1.4.2)</a></span>
 for each <span class="math inline"><em>k</em></span> in the range <span class="math inline">[<em>u</em> + 1</span>, <span class="math inline"><em>u</em></span> + <code>SubExtents​::​rank()</code>
 - 1 <span class="math inline">)</span>,
@@ -846,7 +849,7 @@ models <em><code>index-pair-like&lt;index_type&gt;</code></em> or
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.4.3)</a></span>
 for <span class="math inline"><em>k</em></span> equal to <span class="math inline"><em>u</em></span> + <code>SubExtents​::​rank()</code>
 - 1, <span class="math inline"><em>S</em><sub><em>k</em></sub></span> is
-a unit-stride slice for <code>decltype(*this)</code>; </span></p>
+a unit-stride slice for <code>mapping</code>; </span></p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>and where `S_static` is:</span></code></pre></div>
 </div>
 </div>

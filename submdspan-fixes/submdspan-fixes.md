@@ -24,7 +24,9 @@ author:
 
 * Revision 2 to be submitted for the next mailing
 
-    * Use green and red text in Wording to make changes more clear.  No actual wording changes.
+    * Use green and red text in Wording to make changes more clear.
+    
+    * Per pre-LWG feedback, change "unit-stride slice for `decltype(*this)`" to "unit-stride slice for `mapping`."
 
 # Abstract
 
@@ -235,7 +237,7 @@ $S_k$ models _`index-pair-like`_`<index_type>` or `is_convertible_v<`$S_k$`, ful
 > replace it with
 
 <span style="color: green;">
-$S_k$ is a unit-stride slice for `decltype(*this)`.
+$S_k$ is a unit-stride slice for `mapping`.
 </span>
 
 > Additions are shown in green text and removals in red text.
@@ -268,7 +270,7 @@ $S_k$ is a unit-stride slice for `decltype(*this)`.
 </span>
 
 <span style="color: green;">
-[1.3.2]{.pnum} for `k` equal to `SubExtents​::​rank() - 1`, $S_k$ is a unit-stride slice for `decltype(*this)`;
+[1.3.2]{.pnum} for `k` equal to `SubExtents​::​rank() - 1`, $S_k$ is a unit-stride slice for `mapping`;
 </span>
 
 <i>[Note 1: </i> If the above conditions are true, all $S_k$ with $k$ larger than `SubExtents​::​rank() - 1` are convertible to `index_type`. <i>- end note]</i>
@@ -278,7 +280,7 @@ $S_k$ is a unit-stride slice for `decltype(*this)`.
 </span>
 
 <span style="color: green;">
-[1.4]{.pnum} otherwise, `submdspan_mapping_result{layout_left_padded<S_static>::mapping(sub_ext, stride(u + 1)), offset}` if for a value $u$ for which $u+1$ is the smallest value $p$ larger than zero for which $S_p$ is a unit-stride slice for `decltype(*this)`, the following conditions are met:
+[1.4]{.pnum} otherwise, `submdspan_mapping_result{layout_left_padded<S_static>::mapping(sub_ext, stride(u + 1)), offset}` if for a value $u$ for which $u+1$ is the smallest value $p$ larger than zero for which $S_p$ is a unit-stride slice for `mapping`, the following conditions are met:
 </span>
 
 <span style="color: red;">
@@ -286,7 +288,7 @@ $S_k$ is a unit-stride slice for `decltype(*this)`.
 </span>
 
 <span style="color: green;">
-[1.4.1]{.pnum} $S_0$ is a unit-stride slice for `decltype(*this)`; and
+[1.4.1]{.pnum} $S_0$ is a unit-stride slice for `mapping`; and
 </span>
 
 [1.4.2]{.pnum} for each $k$ in the range $[u + 1$, $u$ + `SubExtents​::​rank()` - 1 $)$, `is_convertible_v<` $S_k$ `, full_extent_t>` is `true`; and
@@ -296,7 +298,7 @@ $S_k$ is a unit-stride slice for `decltype(*this)`.
 </span>
 
 <span style="color: green;">
-[1.4.3]{.pnum} for $k$ equal to $u$ + `SubExtents​::​rank()` - 1, $S_k$ is a unit-stride slice for `decltype(*this)`;
+[1.4.3]{.pnum} for $k$ equal to $u$ + `SubExtents​::​rank()` - 1, $S_k$ is a unit-stride slice for `mapping`;
 </span>
 
     and where `S_static` is:
