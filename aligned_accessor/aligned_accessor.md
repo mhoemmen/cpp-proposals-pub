@@ -112,6 +112,8 @@ toc: true
 
     * Swap order of template parameters of `is_sufficiently_aligned`.
 
+    * Use `assume_aligned` in `offset` as well as in `access`.
+
     * Update Compiler Explorer <a href="https://godbolt.org/z/xj4Yzdnvf">implementation link</a>.
 
 # Purpose of this paper
@@ -1423,7 +1425,7 @@ constexpr typename offset_policy::data_handle_type
 
 [6]{.pnum} *Preconditions*: `p` points to an object `X` of a type similar (**[conv.qual]**) to `element_type`, where `X` has alignment `byte_alignment` (**[basic.align]**).
 
-[7]{.pnum} *Effects*: Equivalent to: `return p + i;`
+[7]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
 
 [*Example:*
 The following function `compute` uses `is_sufficiently_aligned`

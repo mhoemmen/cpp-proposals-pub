@@ -622,6 +622,8 @@ convention (the only exceptions are <code>charT</code> and
 <code>traits</code>).</p></li>
 <li><p>Swap order of template parameters of
 <code>is_sufficiently_aligned</code>.</p></li>
+<li><p>Use <code>assume_aligned</code> in <code>offset</code> as well as
+in <code>access</code>.</p></li>
 <li><p>Update Compiler Explorer
 <a href="https://godbolt.org/z/xj4Yzdnvf">implementation
 link</a>.</p></li>
@@ -1825,7 +1827,8 @@ is <code>true</code>.</p>
 <code>element_type</code>, where <code>X</code> has alignment
 <code>byte_alignment</code> (<strong>[basic.align]</strong>).</p>
 <p><span class="marginalizedparent"><a class="marginalized">7</a></span>
-<em>Effects</em>: Equivalent to: <code>return p + i;</code></p>
+<em>Effects</em>: Equivalent to:
+<code>return assume_aligned&lt;byte_alignment&gt;(p) + i;</code></p>
 <p>[<em>Example:</em> The following function <code>compute</code> uses
 <code>is_sufficiently_aligned</code> to check whether a given
 <code>mdspan</code> with <code>default_accessor</code> has a data handle
