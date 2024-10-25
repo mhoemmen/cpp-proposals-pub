@@ -933,19 +933,16 @@ otherwise, <code>layout_left</code> if <code>Layout</code> is
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(3.3)</a></span>
 otherwise, <code>layout_right_padded&lt;PaddingValue&gt;</code> if
 <code>Layout</code> is
-<code>layout_left_padded&lt;PaddingValue&gt;</code> for some
-<code>size_t</code> value <code>PaddingValue</code>; </span></p>
+<code>layout_left_padded&lt;PaddingValue&gt;</code> for some value
+<code>PaddingValue</code> of type <code>size_t</code>; </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(3.4)</a></span>
 otherwise, <code>layout_left_padded&lt;PaddingValue&gt;</code> if
 <code>Layout</code> is
-<code>layout_right_padded&lt;PaddingValue&gt;</code> for some
-<code>size_t</code> value <code>PaddingValue</code>; </span></p>
-<p><span style="color: red;"> <span class="marginalizedparent"><a class="marginalized">(3.3)</a></span>
+<code>layout_right_padded&lt;PaddingValue&gt;</code> for some value
+<code>PaddingValue</code> of type <code>size_t</code>; </span></p>
+<p><span class="marginalizedparent"><a class="marginalized">(3.5)</a></span>
 otherwise, <code>layout_stride</code> if <code>Layout</code> is
-<code>layout_stride</code>; </span></p>
-<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(3.5)</a></span>
-otherwise, <code>layout_stride</code> if <code>Layout</code> is
-<code>layout_stride</code>; </span></p>
+<code>layout_stride</code>;</p>
 <blockquote>
 <p>Change [linalg.transp.transposed] paragraph 4 (<em>Returns</em>
 clause of <code>transposed</code>) by inserting two subparagraphs (as
@@ -966,15 +963,15 @@ paragraph 4 thereafter. Inserted text is green.</p>
 <code>R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents())), a.accessor())</code></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.2)</a></span>
 otherwise, if <code>Layout</code> is
-<code>layout_left_padded&lt;PaddingValue&gt;</code> for some
-<code>size_t</code> value <code>PaddingValue</code>,
-<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.mapping().extents()), a.stride(1)), a.accessor())</code>
+<code>layout_left_padded&lt;PaddingValue&gt;</code> for some value
+<code>PaddingValue</code> of type <code>size_t</code>,
+<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.extents()), a.stride(1)), a.accessor())</code>
 </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.3)</a></span>
 otherwise, if <code>Layout</code> is
-<code>layout_right_padded&lt;PaddingValue&gt;</code> for some
-<code>size_t</code> value <code>PaddingValue</code>,
-<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.mapping().extents()), a.stride(0)), a.accessor())</code>
+<code>layout_right_padded&lt;PaddingValue&gt;</code> for some value
+<code>PaddingValue</code> of type <code>size_t</code>,
+<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.extents()), a.stride(0)), a.accessor())</code>
 </span></p>
 <p><span style="color: red;"> <span class="marginalizedparent"><a class="marginalized">(4.2)</a></span>
 otherwise, if <code>Layout</code> is <code>layout_stride</code>,
@@ -982,7 +979,7 @@ otherwise, if <code>Layout</code> is <code>layout_stride</code>,
 </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.4)</a></span>
 otherwise, if <code>Layout</code> is <code>layout_stride</code>,
-<code>R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())</code>
+<code>R(a.data_handle(), ReturnMapping(transpose-extents(a.extents()), array{a.stride(1), a.stride(0)}), a.accessor())</code>
 </span></p>
 </div>
 </div>

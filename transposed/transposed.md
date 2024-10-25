@@ -493,20 +493,14 @@ in the reference `mdspan` implementation.
 [3.2]{.pnum} otherwise, `layout_left` if `Layout` is `layout_right`;
 
 <span style="color: green;">
-[3.3]{.pnum} otherwise, `layout_right_padded<PaddingValue>` if `Layout` is `layout_left_padded<PaddingValue>` for some `size_t` value `PaddingValue`;
+[3.3]{.pnum} otherwise, `layout_right_padded<PaddingValue>` if `Layout` is `layout_left_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`;
 </span>
 
 <span style="color: green;">
-[3.4]{.pnum} otherwise, `layout_left_padded<PaddingValue>` if `Layout` is `layout_right_padded<PaddingValue>` for some `size_t` value `PaddingValue`;
+[3.4]{.pnum} otherwise, `layout_left_padded<PaddingValue>` if `Layout` is `layout_right_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`;
 </span>
 
-<span style="color: red;">
-[3.3]{.pnum} otherwise, `layout_stride` if `Layout` is `layout_stride`;
-</span>
-
-<span style="color: green;">
 [3.5]{.pnum} otherwise, `layout_stride` if `Layout` is `layout_stride`;
-</span>
 
 > Change [linalg.transp.transposed] paragraph 4 (*Returns* clause of `transposed`) by inserting two subparagraphs (as shown below) after subparagraph 4.1 (for `Layout` being `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`) and before current subparagraph 4.2 (for `Layout` being `layout_stride`, to be renumbered to subparagraph 4.4), and renumbering subparagraphs within paragraph 4 thereafter.  Inserted text is green.
 
@@ -515,11 +509,11 @@ in the reference `mdspan` implementation.
 [4.1]{.pnum} if `Layout` is `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents())), a.accessor())`
 
 <span style="color: green;">
-[4.2]{.pnum} otherwise, if `Layout` is `layout_left_padded<PaddingValue>` for some `size_t` value `PaddingValue`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.stride(1)), a.accessor())`
+[4.2]{.pnum} otherwise, if `Layout` is `layout_left_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.extents()), a.stride(1)), a.accessor())`
 </span>
 
 <span style="color: green;">
-[4.3]{.pnum} otherwise, if `Layout` is `layout_right_padded<PaddingValue>` for some `size_t` value `PaddingValue`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.mapping().extents()), a.stride(0)), a.accessor())`
+[4.3]{.pnum} otherwise, if `Layout` is `layout_right_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.extents()), a.stride(0)), a.accessor())`
 </span>
 
 <span style="color: red;">
@@ -527,5 +521,5 @@ in the reference `mdspan` implementation.
 </span>
 
 <span style="color: green;">
-[4.4]{.pnum} otherwise, if `Layout` is `layout_stride`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())`
+[4.4]{.pnum} otherwise, if `Layout` is `layout_stride`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.extents()), array{a.stride(1), a.stride(0)}), a.accessor())`
 </span>
