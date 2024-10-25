@@ -630,6 +630,9 @@ in <code>access</code>.</p></li>
 <code>aligned_accessor</code> converting constructor back from Mandate
 to Constraint. Add explanation with example in nonwording Section
 5.9.</p></li>
+<li><p>Remove <code>access</code> Precondition, since it is implied by
+the Effects being equivalent to using
+<code>assume_aligned</code>.</p></li>
 <li><p>Update Compiler Explorer
 <a href="https://godbolt.org/z/x1erq98cK">implementation
 link</a>.</p></li>
@@ -1838,21 +1841,16 @@ is <code>true</code>.</p>
 <div class="sourceCode" id="cb34"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> reference</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  access<span class="op">(</span>data_handle_type p, <span class="dt">size_t</span> i<span class="op">)</span> <span class="kw">const</span> <span class="kw">noexcept</span>;</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">3</a></span>
-<em>Preconditions</em>: <code>p</code> points to an object
-<code>X</code> of a type similar (<strong>[conv.qual]</strong>) to
-<code>element_type</code>, where <code>X</code> has alignment
-<code>byte_alignment</code> (<strong>[basic.align]</strong>).</p>
-<p><span class="marginalizedparent"><a class="marginalized">4</a></span>
 <em>Effects</em>: Equivalent to:
 <code>return assume_aligned&lt;byte_alignment&gt;(p)[i];</code></p>
 <div class="sourceCode" id="cb35"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> <span class="kw">typename</span> offset_policy<span class="op">::</span>data_handle_type</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  offset<span class="op">(</span>data_handle_type p, <span class="dt">size_t</span> i<span class="op">)</span> <span class="kw">const</span> <span class="kw">noexcept</span>;</span></code></pre></div>
-<p><span class="marginalizedparent"><a class="marginalized">5</a></span>
+<p><span class="marginalizedparent"><a class="marginalized">4</a></span>
 <em>Preconditions</em>: <code>p</code> points to an object
 <code>X</code> of a type similar (<strong>[conv.qual]</strong>) to
 <code>element_type</code>, where <code>X</code> has alignment
 <code>byte_alignment</code> (<strong>[basic.align]</strong>).</p>
-<p><span class="marginalizedparent"><a class="marginalized">6</a></span>
+<p><span class="marginalizedparent"><a class="marginalized">5</a></span>
 <em>Effects</em>: Equivalent to:
 <code>return assume_aligned&lt;byte_alignment&gt;(p) + i;</code></p>
 <p>[<em>Example:</em> The following function <code>compute</code> uses

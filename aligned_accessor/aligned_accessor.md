@@ -116,6 +116,8 @@ toc: true
 
     * Change `gcd` requirement in `aligned_accessor` converting constructor back from Mandate to Constraint.  Add explanation with example in nonwording Section 5.9.
 
+    * Remove `access` Precondition, since it is implied by the Effects being equivalent to using `assume_aligned`.
+
     * Update Compiler Explorer <a href="https://godbolt.org/z/x1erq98cK">implementation link</a>.
 
 # Purpose of this paper
@@ -1431,11 +1433,7 @@ constexpr reference
   access(data_handle_type p, size_t i) const noexcept;
 ```
 
-[3]{.pnum} *Preconditions*: `p` points to an object `X`
-of a type similar (**[conv.qual]**) to `element_type`,
-where `X` has alignment `byte_alignment` (**[basic.align]**).
-
-[4]{.pnum} *Effects*: Equivalent to:
+[3]{.pnum} *Effects*: Equivalent to:
 `return assume_aligned<byte_alignment>(p)[i];`
 
 ```c++
@@ -1443,9 +1441,9 @@ constexpr typename offset_policy::data_handle_type
   offset(data_handle_type p, size_t i) const noexcept;
 ```
 
-[5]{.pnum} *Preconditions*: `p` points to an object `X` of a type similar (**[conv.qual]**) to `element_type`, where `X` has alignment `byte_alignment` (**[basic.align]**).
+[4]{.pnum} *Preconditions*: `p` points to an object `X` of a type similar (**[conv.qual]**) to `element_type`, where `X` has alignment `byte_alignment` (**[basic.align]**).
 
-[6]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
+[5]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
 
 [*Example:*
 The following function `compute` uses `is_sufficiently_aligned`
