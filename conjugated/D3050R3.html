@@ -962,23 +962,24 @@ if <code>Accessor</code> is a specialization of
 <code>conjugated_accessor&lt;Accessor&gt;</code>. </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">1</a></span> Let
 <code>A</code> be </span></p>
-<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.1)</a></span> if
-<code>Accessor</code> is a specialization of
-<code>conjugated_accessor</code>,
-<code>remove_cvref_t&lt;decltype(a.accessor().nested_accessor())&gt;</code>;
-</span></p>
+<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.1)</a></span>
+<code>remove_cvref_t&lt;decltype(a.accessor().nested_accessor())&gt;</code>,
+if <code>Accessor</code> is a specialization of
+<code>conjugated_accessor</code>; </span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.2)</a></span>
-otherwise, if <code>remove_cvref_t&lt;ElementType&gt;</code> is an
-arithmetic type, <code>Accessor</code>; </span></p>
+otherwise, <code>Accessor</code>, if
+<code>remove_cvref_t&lt;ElementType&gt;</code> is an arithmetic type;
+</span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.3)</a></span>
-otherwise, if the expression <code>conj(E)</code> is not valid for any
-subexpression <code>E</code> whose type <code>T</code> is
+otherwise, <code>conjugated_accessor&lt;Accessor&gt;</code>, if the
+expression <code>conj(E)</code> is valid for any subexpression
+<code>E</code> whose type <code>T</code> is
 <code>remove_cvref_t&lt;ElementType&gt;</code> with overload resolution
 performed in a context that includes the declaration
-<code>template&lt;class T&gt; T conj(const T&amp;) = delete;</code>,
-<code>Accessor</code>; </span></p>
+<code>template&lt;class T&gt; T conj(const T&amp;) = delete;</code>;
+</span></p>
 <p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(1.4)</a></span>
-otherwise, <code>conjugated_accessor&lt;Accessor&gt;</code>. </span></p>
+otherwise, <code>Accessor</code>. </span></p>
 <p><span class="marginalizedparent"><a class="marginalized">2</a></span>
 <em>Returns:</em></p>
 <p><span class="marginalizedparent"><a class="marginalized">(2.1)</a></span> if

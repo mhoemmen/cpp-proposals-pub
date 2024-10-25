@@ -487,19 +487,19 @@ for an LWG review contribution.
 </span>
 
 <span style="color: green;">
-[1.1]{.pnum} if `Accessor` is a specialization of `conjugated_accessor`, `remove_cvref_t<decltype(a.accessor().nested_accessor())>`;
+[1.1]{.pnum} `remove_cvref_t<decltype(a.accessor().nested_accessor())>`, if `Accessor` is a specialization of `conjugated_accessor`;
 </span>
 
 <span style="color: green;">
-[1.2]{.pnum} otherwise, if `remove_cvref_t<ElementType>` is an arithmetic type, `Accessor`;
+[1.2]{.pnum} otherwise, `Accessor`, if `remove_cvref_t<ElementType>` is an arithmetic type;
 </span>
 
 <span style="color: green;">
-[1.3]{.pnum} otherwise, if the expression `conj(E)` is not valid for any subexpression `E` whose type `T` is `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> T conj(const T&) = delete;`, `Accessor`;
+[1.3]{.pnum} otherwise, `conjugated_accessor<Accessor>`, if the expression `conj(E)` is valid for any subexpression `E` whose type `T` is `remove_cvref_t<ElementType>` with overload resolution performed in a context that includes the declaration `template<class T> T conj(const T&) = delete;`;
 </span>
 
 <span style="color: green;">
-[1.4]{.pnum} otherwise, `conjugated_accessor<Accessor>`.
+[1.4]{.pnum} otherwise, `Accessor`.
 </span>
 
 [2]{.pnum} *Returns:*
