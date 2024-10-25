@@ -114,7 +114,9 @@ toc: true
 
     * Use `assume_aligned` in `offset` as well as in `access`.
 
-    * Update Compiler Explorer <a href="https://godbolt.org/z/xj4Yzdnvf">implementation link</a>.
+    * Change `gcd` requirement in `aligned_accessor` converting constructor back from Mandate to Constraint.  Add explanation with example in nonwording Section 5.9.
+
+    * Update Compiler Explorer <a href="https://godbolt.org/z/x1erq98cK">implementation link</a>.
 
 # Purpose of this paper
 
@@ -1184,6 +1186,22 @@ For all these reasons, we do not support replacing `mdspan`'s
 current "conversions with preconditions are explicit conversions"
 design with a cast function design. 
 
+## `gcd` requirement in converting constructor
+
+LEWG had wanted the `gcd` requirement in `aligned_accessor`'s converting constructor to be a Mandate instead of a Constraint.  LWG requested that we change it back, so that constructibility traits and overload resolution work as expected.  LWG cites the following overload set as an example.
+
+```c++
+extern void compute(
+  std::mdspan<float, std::dims<1>, std::layout_right,
+    std::aligned_accessor<float, 16 * alignof(float)>> x);
+    
+extern void compute(
+  std::mdspan<float, std::dims<1>, std::layout_right,
+    std::aligned_accessor<float, 4 * alignof(float)>> x); 
+```
+
+Suppose that the user has an 8x overaligned mdspan `mdspan<float, dims<1>, aligned_accessor<float, 8 * alignof(float)>> x`, and calls `compute(x)`.  With the Constraint design, the 4x overload would be called, which is the correct and expected behavior.  With the Mandate design, the `compute(x)` call would be ambiguous.
+
 # Implementation
 
 We have tested an implementation of this proposal with the
@@ -1394,9 +1412,11 @@ template<class OtherElementType, size_t OtherByteAlignment>
     aligned_accessor<OtherElementType, OtherByteAlignment>) noexcept {}
 ```
 
-[1]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
+[1]{.pnum} *Constraints*:
 
-[2]{.pnum} *Mandates*: `gcd(OtherByteAlignment, byte_alignment) == byte_alignment` is `true`.
+[1.1]{.pnum} `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
+
+[1.2]{.pnum} `gcd(OtherByteAlignment, byte_alignment) == byte_alignment` is `true`.
 
 ```c++
 template<class OtherElementType>
@@ -1404,18 +1424,18 @@ template<class OtherElementType>
     default_accessor<OtherElementType>) noexcept {};
 ```
 
-[3]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
+[2]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
 
 ```c++
 constexpr reference
   access(data_handle_type p, size_t i) const noexcept;
 ```
 
-[4]{.pnum} *Preconditions*: `p` points to an object `X`
+[3]{.pnum} *Preconditions*: `p` points to an object `X`
 of a type similar (**[conv.qual]**) to `element_type`,
 where `X` has alignment `byte_alignment` (**[basic.align]**).
 
-[5]{.pnum} *Effects*: Equivalent to:
+[4]{.pnum} *Effects*: Equivalent to:
 `return assume_aligned<byte_alignment>(p)[i];`
 
 ```c++
@@ -1423,9 +1443,9 @@ constexpr typename offset_policy::data_handle_type
   offset(data_handle_type p, size_t i) const noexcept;
 ```
 
-[6]{.pnum} *Preconditions*: `p` points to an object `X` of a type similar (**[conv.qual]**) to `element_type`, where `X` has alignment `byte_alignment` (**[basic.align]**).
+[5]{.pnum} *Preconditions*: `p` points to an object `X` of a type similar (**[conv.qual]**) to `element_type`, where `X` has alignment `byte_alignment` (**[basic.align]**).
 
-[7]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
+[6]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
 
 [*Example:*
 The following function `compute` uses `is_sufficiently_aligned`
@@ -1699,7 +1719,7 @@ int main()
 
 # Appendix B: Implementation and demo
 
-<a href="https://godbolt.org/z/xj4Yzdnvf">This Compiler Explorer link</a>
+<a href="https://godbolt.org/z/x1erq98cK">This Compiler Explorer link</a>
 gives a full implementation of `aligned_accessor` and a demonstration.
 We show the full source code from that link here below.
 
@@ -1751,15 +1771,13 @@ public:
     class OtherElementType,
     size_t OtherByteAlignment>
   requires(is_convertible_v<
-    OtherElementType(*)[], element_type(*)[]>)
+    OtherElementType(*)[], element_type(*)[]> && 
+    gcd(OtherByteAlignment, byte_alignment) == byte_alignment
+  )
   constexpr aligned_accessor(
     aligned_accessor<OtherElementType, OtherByteAlignment>)
       noexcept
-  {
-    constexpr size_t the_gcd =
-      gcd(OtherByteAlignment, byte_alignment);
-    static_assert(the_gcd == byte_alignment);
-  }
+  {}
 
   template<class OtherElementType>
   requires(is_convertible_v<
