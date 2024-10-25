@@ -110,6 +110,10 @@ toc: true
 
     * Change all template parameter names to be PascalCase, per Library convention (the only exceptions are `charT` and `traits`).
 
+    * Swap order of template parameters of `is_sufficiently_aligned`.
+
+    * Update Compiler Explorer <a href="https://godbolt.org/z/xj4Yzdnvf">implementation link</a>.
+
 # Purpose of this paper
 
 We propose adding `aligned_accessor` to the C++ Standard Library.
@@ -1294,14 +1298,14 @@ Available online [last accessed 2024-07-05]:
 > add the following.
 
 ```c++
-template<class T, size_t Alignment>
+template<size_t Alignment, class T>
   bool is_sufficiently_aligned(T* ptr);
 ```
 
 > At the end of **[ptr.align]**, add the following.
 
 ```c++
-template<class T, size_t Alignment>
+template<size_t Alignment, class T>
   bool is_sufficiently_aligned(T* ptr);
 ```
 
@@ -1693,7 +1697,7 @@ int main()
 
 # Appendix B: Implementation and demo
 
-<a href="https://godbolt.org/z/3z1WaW778">This Compiler Explorer link</a>
+<a href="https://godbolt.org/z/xj4Yzdnvf">This Compiler Explorer link</a>
 gives a full implementation of `aligned_accessor` and a demonstration.
 We show the full source code from that link here below.
 
@@ -1718,15 +1722,17 @@ namespace std {
 template<size_t Rank, class IndexType = size_t>
 using dims = dextents<IndexType, Rank>;
 
-template<class ElementType, size_t byte_alignment>
+template<size_t ByteAlignment, class ElementType>
 bool is_sufficiently_aligned(ElementType* p)
 {
-  return bit_cast<uintptr_t>(p) % byte_alignment == 0;
+  return bit_cast<uintptr_t>(p) % ByteAlignment == 0;
 }
 
-template<class ElementType, size_t byte_alignment>
+template<class ElementType, size_t ByteAlignment>
 class aligned_accessor {
 public:
+  static constexpr size_t byte_alignment = ByteAlignment;
+
   static_assert(has_single_bit(byte_alignment),
     "byte_alignment must be a power of two.");
   static_assert(byte_alignment >= alignof(ElementType),
@@ -1741,15 +1747,15 @@ public:
 
   template<
     class OtherElementType,
-    size_t other_byte_alignment>
+    size_t OtherByteAlignment>
   requires(is_convertible_v<
     OtherElementType(*)[], element_type(*)[]>)
   constexpr aligned_accessor(
-    aligned_accessor<OtherElementType, other_byte_alignment>)
+    aligned_accessor<OtherElementType, OtherByteAlignment>)
       noexcept
   {
     constexpr size_t the_gcd =
-      gcd(other_byte_alignment, byte_alignment);
+      gcd(OtherByteAlignment, byte_alignment);
     static_assert(the_gcd == byte_alignment);
   }
 
@@ -1774,7 +1780,7 @@ public:
 
   constexpr typename offset_policy::data_handle_type
   offset(data_handle_type p, size_t i) const noexcept {
-    return p + i;
+    return assume_aligned<byte_alignment>(p) + i;
   }
 };
 
