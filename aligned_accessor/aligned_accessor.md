@@ -1,8 +1,8 @@
 
 ---
 title: "`aligned_accessor`: An mdspan accessor expressing pointer overalignment"
-document: P2897R5
-date: today
+document: D2897R6
+date: 2024-10-25
 audience: LEWG
 author:
   - name: Mark Hoemmen
@@ -105,6 +105,10 @@ toc: true
 
     * Give `is_sufficiently_aligned` a "*Throws*: Nothing" clause
         and add nonwording text explaining why
+
+* Revision 6 to be submitted after LWG review 2024-10-25
+
+    * Change all template parameter names to be PascalCase, per Library convention (the only exceptions are `charT` and `traits`).
 
 # Purpose of this paper
 
@@ -1290,22 +1294,22 @@ Available online [last accessed 2024-07-05]:
 > add the following.
 
 ```c++
-template<class T, size_t alignment>
+template<class T, size_t Alignment>
   bool is_sufficiently_aligned(T* ptr);
 ```
 
 > At the end of **[ptr.align]**, add the following.
 
 ```c++
-template<class T, size_t alignment>
-bool is_sufficiently_aligned(T* ptr);
+template<class T, size_t Alignment>
+  bool is_sufficiently_aligned(T* ptr);
 ```
 
 [10]{.pnum} *Preconditions*: `p` points to an object `X`
 of a type similar (**[conv.qual]**) to `T`.
 
 [11]{.pnum} *Returns*: `true` if `X` has alignment
-at least `alignment`, else `false`.
+at least `Alignment`, else `false`.
 
 [12]{.pnum} *Throws*: Nothing.
 
@@ -1317,7 +1321,7 @@ at least `alignment`, else `false`.
 
 ```c++
 // [mdspan.accessor.aligned], class template aligned_accessor
-template<class ElementType, size_t byte_alignment>
+template<class ElementType, size_t ByteAlignment>
   class aligned_accessor;
 ```
 
@@ -1332,20 +1336,20 @@ template<class ElementType, size_t byte_alignment>
 <b> �.1 Overview [mdspan.accessor.aligned.overview] </b>
 
 ```c++
-template<class ElementType, size_t the_byte_alignment>
+template<class ElementType, size_t ByteAlignment>
 struct aligned_accessor {
   using offset_policy = default_accessor<ElementType>;
   using element_type = ElementType;
   using reference = ElementType&;
   using data_handle_type = ElementType*;
 
-  static constexpr size_t byte_alignment = the_byte_alignment;
+  static constexpr size_t byte_alignment = ByteAlignment;
 
   constexpr aligned_accessor() noexcept = default;
 
-  template<class OtherElementType, size_t other_byte_alignment>
+  template<class OtherElementType, size_t OtherByteAlignment>
     constexpr aligned_accessor(
-      aligned_accessor<OtherElementType, other_byte_alignment>) noexcept;
+      aligned_accessor<OtherElementType, OtherByteAlignment>) noexcept;
 
   template<class OtherElementType>
     explicit constexpr aligned_accessor(
@@ -1379,14 +1383,14 @@ struct aligned_accessor {
 ## Members [mdspan.accessor.aligned.members]
 
 ```c++
-template<class OtherElementType, size_t other_byte_alignment>
+template<class OtherElementType, size_t OtherByteAlignment>
   constexpr aligned_accessor(
-    aligned_accessor<OtherElementType, other_byte_alignment>) noexcept {}
+    aligned_accessor<OtherElementType, OtherByteAlignment>) noexcept {}
 ```
 
 [1]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
 
-[2]{.pnum} *Mandates*: `gcd(other_byte_alignment, byte_alignment) == byte_alignment` is `true`.
+[2]{.pnum} *Mandates*: `gcd(OtherByteAlignment, byte_alignment) == byte_alignment` is `true`.
 
 ```c++
 template<class OtherElementType>
@@ -1476,12 +1480,12 @@ struct delete_with_free {
 template<class ElementType>
 using allocation = std::unique_ptr<ElementType[], delete_with_free<ElementType>>;
 
-template<class ElementType, size_t byte_alignment>
+template<class ElementType, size_t ByteAlignment>
 allocation<ElementType>
   allocate_overaligned(const size_t num_elements)
 {
   const size_t num_bytes = num_elements * sizeof(ElementType);
-  void* ptr = std::aligned_alloc(byte_alignment, num_bytes);
+  void* ptr = std::aligned_alloc(ByteAlignment, num_bytes);
   return {ptr, delete_with_free<ElementType>{}};
 }
 ```
@@ -1490,11 +1494,11 @@ The example's functions `vectorized_axpy` and `vectorized_norm`
 require their input arrays to have 32-byte alignment.
 
 ```c++
-template<size_t byte_alignment>
+template<size_t ByteAlignment>
 using aligned_mdspan = std::mdspan<
   float, std::dims<1, int>,
   std::layout_right,
-  std::aligned_accessor<float, byte_alignment>>;
+  std::aligned_accessor<float, ByteAlignment>>;
 
 extern void vectorized_axpy(
   aligned_mdspan<32> y, float alpha, aligned_mdspan<32> x);
