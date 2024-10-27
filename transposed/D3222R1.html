@@ -501,13 +501,14 @@ feedback.</p>
 <li><p>Improve Wording section by adding green and red text to express
 what has been changed. Make minor wording changes for consistency of
 word order with the Working Draft.</p></li>
-<li><p>Suggestions from pre-LWG review feedback:</p>
+<li><p>Suggestions from LWG pre-review and 2024-10-25 review:</p>
 <ul>
-<li><p>Make the new 4.2 and 4.3 consistent by using
-<code>a.stride(1)</code> resp. <code>a.stride(0)</code> instead of
-<code>a.mapping().stride(1)</code> resp.
-<code>a.stride(0)</code>.</p></li>
-<li><p>Fix old vs. new text coloring.</p></li>
+<li><p>Make Paragraph 4 consistent and more concise by using
+<code>a.stride(1)</code> and <code>a.stride(0)</code> instead of
+<code>a.mapping().stride(1)</code> and <code>a.stride(0)</code>, and
+<code>a.extents()</code> instead of <code>a.mapping.extents()</code>.
+This affects both existing and new wording.</p></li>
+<li><p>Fix formatting of additions and deletions.</p></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -903,12 +904,17 @@ reference <code>mdspan</code> implementation.</p>
 for generating proposed wording.</p>
 <p>Make the following changes to the latest C++ Working Draft as of the
 time of writing. All wording is relative to the latest C++ Working
-Draft.</p>
+Draft. Inserted text is green and removed text () is red and
+overstruck.</p>
 <p>In [version.syn], increase the value of the
 <code>__cpp_lib_linalg</code> macro by replacing YYYMML below with the
 integer literal encoding the appropriate year (YYYY) and month (MM).</p>
 </blockquote>
-<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define __cpp_lib_linalg </span>YYYYMML<span class="pp"> </span><span class="co">// also in &lt;linalg&gt;</span></span></code></pre></div>
+<div class="add" style="color: #00AA00">
+
+<div class="sourceCode" id="cb4"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>#define __cpp_lib_linalg YYYYMML // also in &lt;linalg&gt;</span></code></pre></div>
+
+</div>
 <blockquote>
 <p>Change [linalg.transp.transposed] paragraph 3 (“Let
 <code>ReturnExtents</code> be …”) by inserting two subparagraphs (as
@@ -916,7 +922,7 @@ shown below) after subparagraph 3.2 (“otherwise,
 <code>layout_left</code> …”) and before current subparagraph 3.3
 (“otherwise, <code>layout_stride</code> …”, to be renumbered to
 paragraph 3.5), and renumbering subparagraphs and subsubparagraphs
-within paragraph 3 thereafter. Inserted text is green.</p>
+within paragraph 3 thereafter.</p>
 </blockquote>
 <p><span class="marginalizedparent"><a class="marginalized">3</a></span>
 Let <code>ReturnExtents</code> be
@@ -930,16 +936,18 @@ where <code>ReturnLayout</code> is:</p>
 <p><span class="marginalizedparent"><a class="marginalized">(3.2)</a></span>
 otherwise, <code>layout_left</code> if <code>Layout</code> is
 <code>layout_right</code>;</p>
-<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(3.3)</a></span>
+<div class="add" style="color: #00AA00">
+<p><span class="marginalizedparent"><a class="marginalized">(3.3)</a></span>
 otherwise, <code>layout_right_padded&lt;PaddingValue&gt;</code> if
 <code>Layout</code> is
 <code>layout_left_padded&lt;PaddingValue&gt;</code> for some value
-<code>PaddingValue</code> of type <code>size_t</code>; </span></p>
-<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(3.4)</a></span>
+<code>PaddingValue</code> of type <code>size_t</code>;</p>
+<p><span class="marginalizedparent"><a class="marginalized">(3.4)</a></span>
 otherwise, <code>layout_left_padded&lt;PaddingValue&gt;</code> if
 <code>Layout</code> is
 <code>layout_right_padded&lt;PaddingValue&gt;</code> for some value
-<code>PaddingValue</code> of type <code>size_t</code>; </span></p>
+<code>PaddingValue</code> of type <code>size_t</code>;</p>
+</div>
 <p><span class="marginalizedparent"><a class="marginalized">(3.5)</a></span>
 otherwise, <code>layout_stride</code> if <code>Layout</code> is
 <code>layout_stride</code>;</p>
@@ -951,7 +959,7 @@ shown below) after subparagraph 4.1 (for <code>Layout</code> being
 of <code>layout_blas_packed</code>) and before current subparagraph 4.2
 (for <code>Layout</code> being <code>layout_stride</code>, to be
 renumbered to subparagraph 4.4), and renumbering subparagraphs within
-paragraph 4 thereafter. Inserted text is green.</p>
+paragraph 4 thereafter.</p>
 </blockquote>
 <p><span class="marginalizedparent"><a class="marginalized">4</a></span>
 <em>Returns</em>: With <code>ReturnMapping</code> being the type
@@ -960,27 +968,22 @@ paragraph 4 thereafter. Inserted text is green.</p>
 <code>Layout</code> is <code>layout_left</code>,
 <code>layout_right</code>, or a specialization of
 <code>layout_blas_packed</code>,
-<code>R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents())), a.accessor())</code></p>
-<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.2)</a></span>
+<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.</code><span class="rm" style="color: #bf0303"><del><span><code>mapping().</code></span></del></span><code>extents())), a.accessor())</code></p>
+<div class="add" style="color: #00AA00">
+<p><span class="marginalizedparent"><a class="marginalized">(4.2)</a></span>
 otherwise, if <code>Layout</code> is
 <code>layout_left_padded&lt;PaddingValue&gt;</code> for some value
 <code>PaddingValue</code> of type <code>size_t</code>,
-<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.extents()), a.stride(1)), a.accessor())</code>
-</span></p>
-<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.3)</a></span>
+<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.extents()), a.stride(1)), a.accessor())</code></p>
+<p><span class="marginalizedparent"><a class="marginalized">(4.3)</a></span>
 otherwise, if <code>Layout</code> is
 <code>layout_right_padded&lt;PaddingValue&gt;</code> for some value
 <code>PaddingValue</code> of type <code>size_t</code>,
-<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.extents()), a.stride(0)), a.accessor())</code>
-</span></p>
-<p><span style="color: red;"> <span class="marginalizedparent"><a class="marginalized">(4.2)</a></span>
+<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.extents()), a.stride(0)), a.accessor())</code></p>
+</div>
+<p><span class="marginalizedparent"><a class="marginalized">(4.4)</a></span>
 otherwise, if <code>Layout</code> is <code>layout_stride</code>,
-<code>R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())</code>
-</span></p>
-<p><span style="color: green;"> <span class="marginalizedparent"><a class="marginalized">(4.4)</a></span>
-otherwise, if <code>Layout</code> is <code>layout_stride</code>,
-<code>R(a.data_handle(), ReturnMapping(transpose-extents(a.extents()), array{a.stride(1), a.stride(0)}), a.accessor())</code>
-</span></p>
+<code>R(a.data_handle(), ReturnMapping(</code><em><code>transpose-extents</code></em><code>(a.</code><span class="rm" style="color: #bf0303"><del><span><code>mapping().</code></span></del></span><code>extents()), array{a.</code><span class="rm" style="color: #bf0303"><del><span><code>mapping().</code></span></del></span><code>stride(1), a.</code><span class="rm" style="color: #bf0303"><del><span><code>mapping().</code></span></del></span><code>stride(0)}), a.accessor())</code></p>
 </div>
 </div>
 </body>

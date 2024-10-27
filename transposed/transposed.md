@@ -26,12 +26,11 @@ Thanks to Nicolas Morales (Sandia National Laboratories) for review feedback.
 
     * Improve Wording section by adding green and red text to express what has been changed.  Make minor wording changes for consistency of word order with the Working Draft.
 
-    * Suggestions from pre-LWG review feedback:
+    * Suggestions from LWG pre-review and 2024-10-25 review:
 
-        * Make the new 4.2 and 4.3 consistent by using `a.stride(1)` resp. `a.stride(0)` instead of `a.mapping().stride(1)` resp. `a.stride(0)`.
+        * Make Paragraph 4 consistent and more concise by using `a.stride(1)` and `a.stride(0)` instead of `a.mapping().stride(1)` and `a.stride(0)`, and `a.extents()` instead of `a.mapping.extents()`.  This affects both existing and new wording.
 
-        * Fix old vs. new text coloring.
-
+        * Fix formatting of additions and deletions.
 
 # Abstract
 
@@ -477,14 +476,17 @@ in the reference `mdspan` implementation.
 > Text in blockquotes is not proposed wording, but rather instructions for generating proposed wording.
 >
 > Make the following changes to the latest C++ Working Draft as of the time of writing.  All wording is relative to the latest C++ Working Draft.
+> Inserted text is green and removed text () is red and overstruck.
 >
 > In [version.syn], increase the value of the `__cpp_lib_linalg` macro by replacing YYYMML below with the integer literal encoding the appropriate year (YYYY) and month (MM).
 
-```c++
+::: add
+```
 #define __cpp_lib_linalg YYYYMML // also in <linalg>
 ```
+:::
 
-> Change [linalg.transp.transposed] paragraph 3 ("Let `ReturnExtents` be ...") by inserting two subparagraphs (as shown below) after subparagraph 3.2 ("otherwise, `layout_left` ...") and before current subparagraph 3.3 ("otherwise, `layout_stride` ...", to be renumbered to paragraph 3.5), and renumbering subparagraphs and subsubparagraphs within paragraph 3 thereafter.  Inserted text is green.
+> Change [linalg.transp.transposed] paragraph 3 ("Let `ReturnExtents` be ...") by inserting two subparagraphs (as shown below) after subparagraph 3.2 ("otherwise, `layout_left` ...") and before current subparagraph 3.3 ("otherwise, `layout_stride` ...", to be renumbered to paragraph 3.5), and renumbering subparagraphs and subsubparagraphs within paragraph 3 thereafter.
 
 [3]{.pnum} Let `ReturnExtents` be _`transpose-extents-t`_`<Extents>`.  Let `R` be `mdspan<ElementType, ReturnExtents, ReturnLayout, Accessor>`, where `ReturnLayout` is: 
 
@@ -492,34 +494,24 @@ in the reference `mdspan` implementation.
 
 [3.2]{.pnum} otherwise, `layout_left` if `Layout` is `layout_right`;
 
-<span style="color: green;">
+::: add
 [3.3]{.pnum} otherwise, `layout_right_padded<PaddingValue>` if `Layout` is `layout_left_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`;
-</span>
 
-<span style="color: green;">
 [3.4]{.pnum} otherwise, `layout_left_padded<PaddingValue>` if `Layout` is `layout_right_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`;
-</span>
+:::
 
 [3.5]{.pnum} otherwise, `layout_stride` if `Layout` is `layout_stride`;
 
-> Change [linalg.transp.transposed] paragraph 4 (*Returns* clause of `transposed`) by inserting two subparagraphs (as shown below) after subparagraph 4.1 (for `Layout` being `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`) and before current subparagraph 4.2 (for `Layout` being `layout_stride`, to be renumbered to subparagraph 4.4), and renumbering subparagraphs within paragraph 4 thereafter.  Inserted text is green.
+> Change [linalg.transp.transposed] paragraph 4 (*Returns* clause of `transposed`) by inserting two subparagraphs (as shown below) after subparagraph 4.1 (for `Layout` being `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`) and before current subparagraph 4.2 (for `Layout` being `layout_stride`, to be renumbered to subparagraph 4.4), and renumbering subparagraphs within paragraph 4 thereafter.
 
 [4]{.pnum} *Returns*: With `ReturnMapping` being the type `typename ReturnLayout​::​template mapping<ReturnExtents>`: 
 
-[4.1]{.pnum} if `Layout` is `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents())), a.accessor())`
+[4.1]{.pnum} if `Layout` is `layout_left`, `layout_right`, or a specialization of `layout_blas_packed`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.`[`mapping().`]{.rm}`extents())), a.accessor())`
 
-<span style="color: green;">
+::: add
 [4.2]{.pnum} otherwise, if `Layout` is `layout_left_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.extents()), a.stride(1)), a.accessor())`
-</span>
 
-<span style="color: green;">
 [4.3]{.pnum} otherwise, if `Layout` is `layout_right_padded<PaddingValue>` for some value `PaddingValue` of type `size_t`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.extents()), a.stride(0)), a.accessor())`
-</span>
+:::
 
-<span style="color: red;">
-[4.2]{.pnum} otherwise, if `Layout` is `layout_stride`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.mapping().extents()), array{a.mapping().stride(1), a.mapping().stride(0)}), a.accessor())`
-</span>
-
-<span style="color: green;">
-[4.4]{.pnum} otherwise, if `Layout` is `layout_stride`, `R(a.data_handle(), ReturnMapping(transpose-extents(a.extents()), array{a.stride(1), a.stride(0)}), a.accessor())`
-</span>
+[4.4]{.pnum} otherwise, if `Layout` is `layout_stride`, `R(a.data_handle(), ReturnMapping(`_`transpose-extents`_`(a.`[`mapping().`]{.rm}`extents()), array{a.`[`mapping().`]{.rm}`stride(1), a.`[`mapping().`]{.rm}`stride(0)}), a.accessor())`
