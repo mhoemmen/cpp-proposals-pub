@@ -106,7 +106,7 @@ toc: true
     * Give `is_sufficiently_aligned` a "*Throws*: Nothing" clause
         and add nonwording text explaining why
 
-* Revision 6 to be submitted after LWG review 2024-10-25
+* Revision 6 to be submitted after LWG review (started 2024-10-25)
 
     * Change all template parameter names to be PascalCase, per Library convention (the only exceptions are `charT` and `traits`).
 
@@ -119,6 +119,8 @@ toc: true
     * Remove `access` Precondition, since it is implied by the Effects being equivalent to using `assume_aligned`.
 
     * Update Compiler Explorer <a href="https://godbolt.org/z/x1erq98cK">implementation link</a>.
+
+    * Add alignment precondition to `aligned_accessor` class, and add nonwording section "Standard accessors already impose preconditions that propagate to `mdspan` construction" that explains the "class-wide" preconditions on data handles given to `default_accessor` and `aligned_accessor`.
 
 # Purpose of this paper
 
@@ -753,6 +755,12 @@ bool detectably_invalid(data_handle_type ptr, size_t size)
   return ptr == nullptr && size != 0;
 }
 ```
+
+### Standard accessors already impose preconditions that propagate to `mdspan` construction
+
+**[mdspan.accessor.aligned.overview]** 5 expresses class-wide preconditions on any data handle given to `aligned_accessor`'s `access` or `offset` member functions.  The existing `default_accessor` has analogous preconditions in [[mdspan.accessor.default.overview] 4](https://eel.is/c++draft/views.multidim#mdspan.accessor.default.overview-4).  The reason we impose these preconditions on the entire accessor class, and not just `access` and `offset`, is that we intend for the preconditions to propagate to `mdspan` construction.  That is, specializations of `mdspan` for `default_accessor` or `aligned_accessor` could, in theory, check the data handle given to `mdspan`'s constructor, by using the layout mapping's `required_span_size()` as the size of the range.  We say "in theory" because C++ does not provide a Standard way to check whether a range is valid, but as we discussed above, some implementations do have that ability.
+
+Implementations could thus give `default_accessor` and `aligned_accessor` their own  "`detectably_invalid`" that `mdspan`'s constructor would use to check preconditions.  Adding `detectably_invalid` to the accessor requirements would just extend this potential preconditions check to custom accessors.
 
 ### Users could work around the breaking change of adding `detectably_invalid` to accessor requirements
 
@@ -1404,7 +1412,13 @@ struct aligned_accessor {
 
 [4]{.pnum} Each specialization of `aligned_accessor` is a trivially copyable type that models `semiregular`.
 
-[5]{.pnum} $[0, n)$ is an accessible range for an object `p` of type `data_handle_type` and an object of type `aligned_accessor` if and only if $[$`p`, `p` + $n)$ is a valid range.
+[5]{.pnum} $[0, n)$ is an accessible range for an object `p` of type `data_handle_type` and an object of type `aligned_accessor` if and only if
+
+* [5.1]{.pnum} $[$`p`, `p` + $n)$ is a valid range; and
+
+* [5.2]{.pnum} for each integer $k$ in $[0, n)$, `is_sufficiently_aligned(p + `$k$`)` is `true`.
+
+<i>[Editorial note:</i> Condition 5.2 is new as of version 6. <i>— end editorial note]</i>
 
 ## Members [mdspan.accessor.aligned.members]
 
@@ -1416,9 +1430,9 @@ template<class OtherElementType, size_t OtherByteAlignment>
 
 [1]{.pnum} *Constraints*:
 
-[1.1]{.pnum} `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
+* [1.1]{.pnum} `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
 
-[1.2]{.pnum} `gcd(OtherByteAlignment, byte_alignment) == byte_alignment` is `true`.
+* [1.2]{.pnum} `gcd(OtherByteAlignment, byte_alignment) == byte_alignment` is `true`.
 
 ```c++
 template<class OtherElementType>

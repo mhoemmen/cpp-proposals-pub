@@ -476,17 +476,20 @@ safety</a></li>
 Generic validity check?</a></li>
 <li><a href="#arguments-against-and-for-detectably_invalid" id="toc-arguments-against-and-for-detectably_invalid"><span class="toc-section-number">5.7.2</span> Arguments against and for
 <code>detectably_invalid</code></a></li>
-<li><a href="#users-could-work-around-the-breaking-change-of-adding-detectably_invalid-to-accessor-requirements" id="toc-users-could-work-around-the-breaking-change-of-adding-detectably_invalid-to-accessor-requirements"><span class="toc-section-number">5.7.3</span> Users could work around the
+<li><a href="#standard-accessors-already-impose-preconditions-that-propagate-to-mdspan-construction" id="toc-standard-accessors-already-impose-preconditions-that-propagate-to-mdspan-construction"><span class="toc-section-number">5.7.3</span> Standard accessors already
+impose preconditions that propagate to <code>mdspan</code>
+construction</a></li>
+<li><a href="#users-could-work-around-the-breaking-change-of-adding-detectably_invalid-to-accessor-requirements" id="toc-users-could-work-around-the-breaking-change-of-adding-detectably_invalid-to-accessor-requirements"><span class="toc-section-number">5.7.4</span> Users could work around the
 breaking change of adding <code>detectably_invalid</code> to accessor
 requirements</a></li>
-<li><a href="#is_sufficiently_aligned-is-still-useful-on-its-own" id="toc-is_sufficiently_aligned-is-still-useful-on-its-own"><span class="toc-section-number">5.7.4</span>
+<li><a href="#is_sufficiently_aligned-is-still-useful-on-its-own" id="toc-is_sufficiently_aligned-is-still-useful-on-its-own"><span class="toc-section-number">5.7.5</span>
 <code>is_sufficiently_aligned</code> is still useful on its own</a></li>
-<li><a href="#nonmember-is_sufficiently_aligned" id="toc-nonmember-is_sufficiently_aligned"><span class="toc-section-number">5.7.5</span> Nonmember
+<li><a href="#nonmember-is_sufficiently_aligned" id="toc-nonmember-is_sufficiently_aligned"><span class="toc-section-number">5.7.6</span> Nonmember
 <code>is_sufficiently_aligned</code></a></li>
-<li><a href="#do-accessors-need-to-check-anything-else" id="toc-do-accessors-need-to-check-anything-else"><span class="toc-section-number">5.7.6</span> Do accessors need to check
+<li><a href="#do-accessors-need-to-check-anything-else" id="toc-do-accessors-need-to-check-anything-else"><span class="toc-section-number">5.7.7</span> Do accessors need to check
 anything else?</a></li>
-<li><a href="#naming-the-function" id="toc-naming-the-function"><span class="toc-section-number">5.7.7</span> Naming the function</a></li>
-<li><a href="#conclusions" id="toc-conclusions"><span class="toc-section-number">5.7.8</span> Conclusions</a></li>
+<li><a href="#naming-the-function" id="toc-naming-the-function"><span class="toc-section-number">5.7.8</span> Naming the function</a></li>
+<li><a href="#conclusions" id="toc-conclusions"><span class="toc-section-number">5.7.9</span> Conclusions</a></li>
 </ul></li>
 <li><a href="#explicit-conversions-as-the-model-for-precondition-asserting-conversions" id="toc-explicit-conversions-as-the-model-for-precondition-asserting-conversions"><span class="toc-section-number">5.8</span> Explicit conversions as the model
 for precondition-asserting conversions</a>
@@ -617,7 +620,8 @@ from LEWG mailing list review of R4</p></li>
 <li><p>Give <code>is_sufficiently_aligned</code> a “<em>Throws</em>:
 Nothing” clause and add nonwording text explaining why</p></li>
 </ul></li>
-<li><p>Revision 6 to be submitted after LWG review 2024-10-25</p>
+<li><p>Revision 6 to be submitted after LWG review (started
+2024-10-25)</p>
 <ul>
 <li><p>Change all template parameter names to be PascalCase, per Library
 convention (the only exceptions are <code>charT</code> and
@@ -636,6 +640,12 @@ the Effects being equivalent to using
 <li><p>Update Compiler Explorer
 <a href="https://godbolt.org/z/x1erq98cK">implementation
 link</a>.</p></li>
+<li><p>Add alignment precondition to <code>aligned_accessor</code>
+class, and add nonwording section “Standard accessors already impose
+preconditions that propagate to <code>mdspan</code> construction” that
+explains the “class-wide” preconditions on data handles given to
+<code>default_accessor</code> and
+<code>aligned_accessor</code>.</p></li>
 </ul></li>
 </ul>
 <h1 data-number="3" id="purpose-of-this-paper"><span class="header-section-number">3</span> Purpose of this paper<a href="#purpose-of-this-paper" class="self-link"></a></h1>
@@ -1228,7 +1238,32 @@ to check if the pointer points to valid GPU memory. Even
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> ptr <span class="op">==</span> <span class="kw">nullptr</span> <span class="op">&amp;&amp;</span> size <span class="op">!=</span> <span class="dv">0</span>;</span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<h3 data-number="5.7.3" id="users-could-work-around-the-breaking-change-of-adding-detectably_invalid-to-accessor-requirements"><span class="header-section-number">5.7.3</span> Users could work around the
+<h3 data-number="5.7.3" id="standard-accessors-already-impose-preconditions-that-propagate-to-mdspan-construction"><span class="header-section-number">5.7.3</span> Standard accessors already
+impose preconditions that propagate to <code>mdspan</code>
+construction<a href="#standard-accessors-already-impose-preconditions-that-propagate-to-mdspan-construction" class="self-link"></a></h3>
+<p><strong>[mdspan.accessor.aligned.overview]</strong> 5 expresses
+class-wide preconditions on any data handle given to
+<code>aligned_accessor</code>’s <code>access</code> or
+<code>offset</code> member functions. The existing
+<code>default_accessor</code> has analogous preconditions in <a href="https://eel.is/c++draft/views.multidim#mdspan.accessor.default.overview-4">[mdspan.accessor.default.overview]
+4</a>. The reason we impose these preconditions on the entire accessor
+class, and not just <code>access</code> and <code>offset</code>, is that
+we intend for the preconditions to propagate to <code>mdspan</code>
+construction. That is, specializations of <code>mdspan</code> for
+<code>default_accessor</code> or <code>aligned_accessor</code> could, in
+theory, check the data handle given to <code>mdspan</code>’s
+constructor, by using the layout mapping’s
+<code>required_span_size()</code> as the size of the range. We say “in
+theory” because C++ does not provide a Standard way to check whether a
+range is valid, but as we discussed above, some implementations do have
+that ability.</p>
+<p>Implementations could thus give <code>default_accessor</code> and
+<code>aligned_accessor</code> their own
+“<code>detectably_invalid</code>” that <code>mdspan</code>’s constructor
+would use to check preconditions. Adding <code>detectably_invalid</code>
+to the accessor requirements would just extend this potential
+preconditions check to custom accessors.</p>
+<h3 data-number="5.7.4" id="users-could-work-around-the-breaking-change-of-adding-detectably_invalid-to-accessor-requirements"><span class="header-section-number">5.7.4</span> Users could work around the
 breaking change of adding <code>detectably_invalid</code> to accessor
 requirements<a href="#users-could-work-around-the-breaking-change-of-adding-detectably_invalid-to-accessor-requirements" class="self-link"></a></h3>
 <p>C++23 defines the generic interface of accessors through the accessor
@@ -1272,7 +1307,7 @@ accessors that have the ability to make accurate checks.</p>
 <span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">false</span>;</span>
 <span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
 <span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<h3 data-number="5.7.4" id="is_sufficiently_aligned-is-still-useful-on-its-own"><span class="header-section-number">5.7.4</span>
+<h3 data-number="5.7.5" id="is_sufficiently_aligned-is-still-useful-on-its-own"><span class="header-section-number">5.7.5</span>
 <code>is_sufficiently_aligned</code> is still useful on its own<a href="#is_sufficiently_aligned-is-still-useful-on-its-own" class="self-link"></a></h3>
 <p>One could argue that if <code>aligned_accessor</code> had
 <code>detectably_invalid</code>, that would make
@@ -1306,20 +1341,20 @@ agree with us that <code>is_sufficiently_aligned</code> is useful by
 itself. All their concerns would be addressed by making
 <code>is_sufficiently_aligned</code> a nonmember function, rather than a
 member function of <code>aligned_accessor</code>.</p>
-<h3 data-number="5.7.5" id="nonmember-is_sufficiently_aligned"><span class="header-section-number">5.7.5</span> Nonmember
+<h3 data-number="5.7.6" id="nonmember-is_sufficiently_aligned"><span class="header-section-number">5.7.6</span> Nonmember
 <code>is_sufficiently_aligned</code><a href="#nonmember-is_sufficiently_aligned" class="self-link"></a></h3>
 <p>The reviewer responded to our argument above by suggesting that we
 remove <code>is_sufficiently_aligned</code> from
 <code>aligned_accessor</code> and make it a separate nonmember function.
 R4 of this paper implements this change.</p>
-<h4 data-number="5.7.5.1" id="mark-it-freestanding"><span class="header-section-number">5.7.5.1</span> Mark it freestanding<a href="#mark-it-freestanding" class="self-link"></a></h4>
+<h4 data-number="5.7.6.1" id="mark-it-freestanding"><span class="header-section-number">5.7.6.1</span> Mark it freestanding<a href="#mark-it-freestanding" class="self-link"></a></h4>
 <p>We propose marking <code>is_sufficiently_aligned</code> freestanding.
 We know of no obstacles to this. Since <code>assume_aligned</code> is
 freestanding and since it would be reasonable to use
 <code>is_sufficiently_aligned</code> and <code>assume_aligned</code>
 together, it would make sense to mark
 <code>is_sufficiently_aligned</code> freestanding as well.</p>
-<h4 data-number="5.7.5.2" id="put-it-in-memory"><span class="header-section-number">5.7.5.2</span> Put it in
+<h4 data-number="5.7.6.2" id="put-it-in-memory"><span class="header-section-number">5.7.6.2</span> Put it in
 <code>&lt;memory&gt;</code><a href="#put-it-in-memory" class="self-link"></a></h4>
 <p>Into which header should this new function go? Since
 <code>is_sufficiently_aligned</code> does not depend on
@@ -1334,7 +1369,7 @@ instead. First, that would make it easier to use
 together. Second, “alignment is related to placement of the object in
 memory,” as one LEWG mailing list reviewer pointed out. R5 thus proposes
 putting the function in <code>&lt;memory&gt;</code>.</p>
-<h4 data-number="5.7.5.3" id="throws-nothing"><span class="header-section-number">5.7.5.3</span> Throws: Nothing<a href="#throws-nothing" class="self-link"></a></h4>
+<h4 data-number="5.7.6.3" id="throws-nothing"><span class="header-section-number">5.7.6.3</span> Throws: Nothing<a href="#throws-nothing" class="self-link"></a></h4>
 <p>R5 also adds a “<em>Throws</em>: Nothing” element to
 <code>is_sufficiently_aligned</code>. Users generally would not want
 <code>is_sufficiently_aligned</code> to throw, because it exists to
@@ -1351,7 +1386,7 @@ valid pointer with unknown alignment (analogous to a valid pointer to a
 base class <code>Base</code>), then assert or determine its alignment at
 run time (analogous to <code>dynamic_cast</code>ing the pointer to a
 subclass of <code>Base</code>, and checking if the result is null).</p>
-<h3 data-number="5.7.6" id="do-accessors-need-to-check-anything-else"><span class="header-section-number">5.7.6</span> Do accessors need to check
+<h3 data-number="5.7.7" id="do-accessors-need-to-check-anything-else"><span class="header-section-number">5.7.7</span> Do accessors need to check
 anything else?<a href="#do-accessors-need-to-check-anything-else" class="self-link"></a></h3>
 <p>The only other thing an accessor’s user might want to check besides a
 (data handle, size) pair would be converting construction from another
@@ -1372,7 +1407,7 @@ accessors, as there would be no risk of ambiguity. Converting
 constructors only take one argument, so there would be no ambiguity
 between calling <code>detectably_invalid</code> with an accessor and
 calling it with a data handle and size.</p>
-<h3 data-number="5.7.7" id="naming-the-function"><span class="header-section-number">5.7.7</span> Naming the function<a href="#naming-the-function" class="self-link"></a></h3>
+<h3 data-number="5.7.8" id="naming-the-function"><span class="header-section-number">5.7.8</span> Naming the function<a href="#naming-the-function" class="self-link"></a></h3>
 <ol type="1">
 <li><p>The function describes a property: “this (data handle, size) pair
 is not known to be invalid.” It’s an adjective (like
@@ -1396,7 +1431,7 @@ type alias of <code>void*</code>​.</p></li>
 </ol>
 <p>These points together suggest the name
 <code>detectably_invalid</code>.</p>
-<h3 data-number="5.7.8" id="conclusions"><span class="header-section-number">5.7.8</span> Conclusions<a href="#conclusions" class="self-link"></a></h3>
+<h3 data-number="5.7.9" id="conclusions"><span class="header-section-number">5.7.9</span> Conclusions<a href="#conclusions" class="self-link"></a></h3>
 <ol type="1">
 <li><p>Adding <code>detectably_invalid</code> to the accessor
 requirements and existing Standard accessors in C++26 would be a
@@ -1817,7 +1852,17 @@ copyable type that models <code>semiregular</code>.</p>
 <p><span class="marginalizedparent"><a class="marginalized">5</a></span>
 <span class="math inline">[0, <em>n</em>)</span> is an accessible range
 for an object <code>p</code> of type <code>data_handle_type</code> and
-an object of type <code>aligned_accessor</code> if and only if <span class="math inline">[</span><code>p</code>, <code>p</code> + <span class="math inline"><em>n</em>)</span> is a valid range.</p>
+an object of type <code>aligned_accessor</code> if and only if</p>
+<ul>
+<li><p><span class="marginalizedparent"><a class="marginalized">(5.1)</a></span>
+<span class="math inline">[</span><code>p</code>, <code>p</code> + <span class="math inline"><em>n</em>)</span> is a valid range; and</p></li>
+<li><p><span class="marginalizedparent"><a class="marginalized">(5.2)</a></span> for
+each integer <span class="math inline"><em>k</em></span> in <span class="math inline">[0, <em>n</em>)</span>,
+<code>is_sufficiently_aligned(p +</code><span class="math inline"><em>k</em></span><code>)</code> is
+<code>true</code>.</p></li>
+</ul>
+<p><i>[Editorial note:</i> Condition 5.2 is new as of version 6. <i>—
+end editorial note]</i></p>
 <h2 data-number="10.3" id="members-mdspan.accessor.aligned.members"><span class="header-section-number">10.3</span> Members
 [mdspan.accessor.aligned.members]<a href="#members-mdspan.accessor.aligned.members" class="self-link"></a></h2>
 <div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> OtherElementType, <span class="dt">size_t</span> OtherByteAlignment<span class="op">&gt;</span></span>
@@ -1825,12 +1870,14 @@ an object of type <code>aligned_accessor</code> if and only if <span class="math
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    aligned_accessor<span class="op">&lt;</span>OtherElementType, OtherByteAlignment<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">{}</span></span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">1</a></span>
 <em>Constraints</em>:</p>
-<p><span class="marginalizedparent"><a class="marginalized">(1.1)</a></span>
+<ul>
+<li><p><span class="marginalizedparent"><a class="marginalized">(1.1)</a></span>
 <code>is_convertible_v&lt;OtherElementType(*)[], element_type(*)[]&gt;</code>
-is <code>true</code>.</p>
-<p><span class="marginalizedparent"><a class="marginalized">(1.2)</a></span>
+is <code>true</code>.</p></li>
+<li><p><span class="marginalizedparent"><a class="marginalized">(1.2)</a></span>
 <code>gcd(OtherByteAlignment, byte_alignment) == byte_alignment</code>
-is <code>true</code>.</p>
+is <code>true</code>.</p></li>
+</ul>
 <div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> OtherElementType<span class="op">&gt;</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">explicit</span> <span class="kw">constexpr</span> aligned_accessor<span class="op">(</span></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    default_accessor<span class="op">&lt;</span>OtherElementType<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">{}</span>;</span></code></pre></div>
