@@ -57,7 +57,7 @@ toc: true
 
     - [ ] Constrain "linear algebra value type" to be neither `mdspan` nor an execution policy (`is_execution_policy_v<Scalar>` is `false`).  This will prevent ambiguous overloads, even if we retain overloads without `Scalar alpha` or add them later.
 
-    - [ ] Add nonwording sections motivating this change.
+    - [x] Add nonwording sections motivating this change.
 
 # Abstract
 
@@ -69,7 +69,9 @@ We propose the following changes to [linalg] that improve consistency of the ran
 
 3. For the overloads of `hermitian_rank_1_update` and `hermitian_rank_k_update` that have an `alpha` scaling factor parameter, only use _`real-if-needed`_`(alpha)` in the update.  This ensures that the update will be mathematically Hermitian, and makes the behavior well defined if `alpha` has nonzero imaginary part.  The change is also consistent with our proposed resolution for LWG 4136 ("Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part").
 
-Items (2) and (3) are breaking changes to the current Working Draft.  Thus, we must finish this before finalization of C++26.
+4. Remove overloads of rank-1 and rank-k symmetric and Hermitian update functions without a `Scalar alpha` parameter.  Retain only those overloads that have a `Scalar alpha` parameter.  In case WG21 wants to add those overloads or similar ones later, constrain `Scalar` (specifically, linear algebra value types) to be neither `mdspan` nor execution policies (`is_execution_policy_v<Scalar>` is `false`).  This avoids potentially ambiguous overloads.
+
+Items (2), (3), and (4) are breaking changes to the current Working Draft.  Thus, we must finish this before finalization of C++26.
 
 # Discussion of proposed changes
 
@@ -559,6 +561,67 @@ For Hermitian matrix update algorithms where
 * nothing in the wording currently prevents `alpha` from having nonzero imaginary part,
 
 specify that these algorithms use _`real-if-needed`_`(alpha)` and ignore any nonzero imaginary part of `alpha`.
+
+## Remove rank-1 and rank-k symmetric and Hermitian update overloads without `alpha`, and constrain `Scalar alpha`
+
+### Summary
+
+For the rank-1 and rank-k symmetric and Hermitian update functions, Revision 3 of this paper adds two changes.
+
+1. Constrain linear algebra value types (and thus `Scalar alpha`) to be neither `mdspan` nor an execution policy.
+
+2. Remove overloads that do not have a `Scalar alpha` parameter.  Keep the overloads that have a `Scalar alpha` parameter.
+
+### Motivation
+
+#### Constraining `Scalar` prevents ambiguous overloads
+
+As motivation for constraining `Scalar`, consider `symmetric_matrix_rank_k_update`.  Previous revisions of this paper added the first overload (updating, taking `E` as well as `C`).
+
+```c++
+template<in-matrix InMat1,
+         in-matrix InMat2,
+         possibly-packed-out-matrix OutMat,
+         class Triangle>
+void symmetric_matrix_rank_k_update(
+  InMat1 A,
+  InMat2 E,
+  OutMat C,
+  Triangle t);
+
+template<class Scalar,
+         in-matrix InMat,
+         possibly-packed-out-matrix OutMat,
+         class Triangle>
+void symmetric_matrix_rank_k_update(
+  Scalar alpha,
+  InMat A,
+  OutMat C,
+  Triangle t);
+```
+
+Our implementation experiments showed that for `mdspan` `A` and `C`, the call `symmetric_matrix_rank_k_update(A, C, C, Triangle{})` is ambiguous.  This is because the `Scalar` template parameter is not sufficiently constrained, so it could match either an `mdspan` (as in the first overload above) or `Scalar alpha` (as in the second overload above).
+
+Throughout **[linalg]**, any template parameter named `Scalar` is constrained to be a "linear algebra value type."  The definition in **[linalg.reqs.val]** 1 -- 3 currently only constrains linear algebra value types to be `semiregular`.  Constraining it further to be neither `mdspan` nor an execution policy resolves this ambiguity.
+
+Another option would be to constrain `Scalar` to be multipliable by something.  However, this would go against the wording style expressed in **[linalg.reqs.alg]**.  Instead of constraining types, that section merely says, "It is a precondition of the algorithm that [any mathematical expression that the algorithm might reasonably use] is a well-formed expression."  That is, the algorithms generally don't constrain linear algebra value types to meet their expression requirements.  This imitates the wording of Standard Algorithms like `accumulate` and `reduce`.
+
+#### Removing non-`Scalar` overloads simplifies wording and implementations
+
+We propose to go further.  For any algorithm that needs an `alpha` parameter overload in order to make sense, we propose discarding the overloads that do *not* have an `alpha` parameter, and keeping only the overloads that do.  The only algorithms that would be affected are the symmetric and Hermitian rank-1 and rank-k updates.
+
+This change halves the number of overloads of the symmetric and Hermitian rank-1 and rank-k functions.  This mitigates the addition of updating overloads.  Removing the `alpha` overloads also makes correct use of this interface more obvious.  For example, if users want to perform a symmetric rank-k update $C = C + \alpha A A^T$, they would have to write it like this.
+```c++
+symmetric_matrix_rank_k_update(alpha, A, C, C, Triangle{});
+```
+Users no longer would be able to write code like the following, which would scale by $\alpha^2$ instead of just $\alpha$ and thus would not express what the user meant.
+```c++
+symmetric_matrix_rank_k_update(scaled(alpha, A), C, C, Triangle{});
+```
+
+In terms of functionality, the only reason to retain non-`alpha` overloads would be to support matrix and vector element types that lack a multiplicative identity.  However, the C or Fortran BLAS does not support such types now, and personal experience with generic C++ linear algebra libraries is that users have never asked for such types.  Removing support for such types from the symmetric and Hermitian rank-1 and rank-k updates would reduce the testing burden.  Furthermore, we could always add the overloads back later, and we propose constraining the type of `alpha` in a way that makes such overloads not ambiguous.
+
+In terms of performance, one argument for retaining `alpha` overloads is to speed up the special case of `alpha = 1`, by avoiding unnecessary multiplies with `alpha`.  Performance of arithmetic operations is more important for "BLAS 3" operations like rank-k updates than for "BLAS 2" operations like rank-1 updates, so we will only consider rank-k updates here.  The high-performance case of rank-k updates would likely dispatch to a BLAS or other optimized library that dispatches at run time based on special cases of `alpha`.  Thus, there's no need to expose `alpha = 1` as a special case in the interface.  Furthermore, the case `alpha = -1` is also an important special case where implementations could avoid multiplications, yet **[linalg]** does not have special interfaces for `alpha = -1`.  Thus, we see no pressing motivation to provide special interfaces for the case `alpha = 1`, either.
 
 ## Things relating to scaling factors that we do not propose changing
 
