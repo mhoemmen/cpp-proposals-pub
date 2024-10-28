@@ -1416,7 +1416,7 @@ struct aligned_accessor {
 
 * [5.1]{.pnum} $[$`p`, `p` + $n)$ is a valid range; and
 
-* [5.2]{.pnum} for each integer $k$ in $[0, n)$, `is_sufficiently_aligned(p + `$k$`)` is `true`.
+* [5.2]{.pnum} if $n$ is greater than zero, then `is_sufficiently_aligned(p)` is `true`.
 
 <i>[Editorial note:</i> Condition 5.2 is new as of version 6. <i>— end editorial note]</i>
 
