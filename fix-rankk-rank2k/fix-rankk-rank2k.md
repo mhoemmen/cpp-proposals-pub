@@ -51,13 +51,13 @@ toc: true
 
     * Remove the exposition-only concept _`possibly-packed-in-matrix`_ that was introduced in R1, as it is overly restrictive.  (Input matrices never need to have unique layout, even if they are not packed.)
 
-* Revision 2 to be submitted 2024-11-15
+* Revision 3 to be submitted 2024-11-15
 
-    - [x] Remove rank-1 and rank-k update overloads without a `Scalar alpha` parameter.  Retain rank-1 and rank-k update overloads with this parameter.
+    * Remove rank-1 and rank-k update overloads without a `Scalar alpha` parameter.  Retain rank-1 and rank-k update overloads with this parameter.
 
-    - [ ] Constrain "linear algebra value type" to be neither `mdspan` nor an execution policy (`is_execution_policy_v<Scalar>` is `false`).  This will prevent ambiguous overloads, even if we retain overloads without `Scalar alpha` or add them later.
+    * Constrain "linear algebra value type" to be neither `mdspan` nor an execution policy (`is_execution_policy_v<Scalar>` is `false`).  This will prevent ambiguous overloads, even if we retain overloads without `Scalar alpha` or add them later.
 
-    - [x] Add nonwording sections motivating this change.
+    * Add nonwording sections motivating this change.
 
 # Abstract
 
@@ -1398,6 +1398,26 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
                                          InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t);
 ```
 :::
+
+## Constrain linear algebra value type
+
+> Change [linalg.reqs.val] as follows.
+
+[1]{.pnum} Throughout [linalg], the following types are *linear algebra value type[s]{.add}*:
+
+* [1.1]{.pnum} the `value_type` type alias of any input or output `mdspan` parameter(s) of any function in **[linalg]**; and
+
+* [1.2]{.pnum} the `Scalar` template parameter (if any) of any function or class in **[linalg]**.
+
+[2]{.pnum} Linear algebra value types shall model `semiregular`.
+
+::: add
+[3]{.pnum} Linear algebra value types shall not be specializations of `mdspan`.
+
+[4]{.pnum} If `T` is a linear algebra value type, then `is_execution_policy_v<T>` shall be `false`.
+:::
+
+[5]{.pnum} A value-initialized object of linear algebra value type shall act as the additive identity.
 
 ## Specification of nonsymmetric rank-1 update functions
 

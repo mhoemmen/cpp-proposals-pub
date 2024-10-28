@@ -529,15 +529,17 @@ synopsis</a></li>
 synopsis</a></li>
 <li><a href="#rank-2k-update-functions-in-synopsis" id="toc-rank-2k-update-functions-in-synopsis"><span class="toc-section-number">8.5</span> Rank-2k update functions in
 synopsis</a></li>
-<li><a href="#specification-of-nonsymmetric-rank-1-update-functions" id="toc-specification-of-nonsymmetric-rank-1-update-functions"><span class="toc-section-number">8.6</span> Specification of nonsymmetric
+<li><a href="#constrain-linear-algebra-value-type" id="toc-constrain-linear-algebra-value-type"><span class="toc-section-number">8.6</span> Constrain linear algebra value
+type</a></li>
+<li><a href="#specification-of-nonsymmetric-rank-1-update-functions" id="toc-specification-of-nonsymmetric-rank-1-update-functions"><span class="toc-section-number">8.7</span> Specification of nonsymmetric
 rank-1 update functions</a></li>
-<li><a href="#specification-of-symmetric-and-hermitian-rank-1-update-functions" id="toc-specification-of-symmetric-and-hermitian-rank-1-update-functions"><span class="toc-section-number">8.7</span> Specification of symmetric and
+<li><a href="#specification-of-symmetric-and-hermitian-rank-1-update-functions" id="toc-specification-of-symmetric-and-hermitian-rank-1-update-functions"><span class="toc-section-number">8.8</span> Specification of symmetric and
 Hermitian rank-1 update functions</a></li>
-<li><a href="#specification-of-symmetric-and-hermitian-rank-2-update-functions" id="toc-specification-of-symmetric-and-hermitian-rank-2-update-functions"><span class="toc-section-number">8.8</span> Specification of symmetric and
+<li><a href="#specification-of-symmetric-and-hermitian-rank-2-update-functions" id="toc-specification-of-symmetric-and-hermitian-rank-2-update-functions"><span class="toc-section-number">8.9</span> Specification of symmetric and
 Hermitian rank-2 update functions</a></li>
-<li><a href="#specification-of-rank-k-update-functions" id="toc-specification-of-rank-k-update-functions"><span class="toc-section-number">8.9</span> Specification of rank-k update
+<li><a href="#specification-of-rank-k-update-functions" id="toc-specification-of-rank-k-update-functions"><span class="toc-section-number">8.10</span> Specification of rank-k update
 functions</a></li>
-<li><a href="#specification-of-rank-2k-update-functions" id="toc-specification-of-rank-2k-update-functions"><span class="toc-section-number">8.10</span> Specification of rank-2k update
+<li><a href="#specification-of-rank-2k-update-functions" id="toc-specification-of-rank-2k-update-functions"><span class="toc-section-number">8.11</span> Specification of rank-2k update
 functions</a></li>
 </ul></li>
 <li><a href="#appendix-a-example-of-a-generic-numerical-algorithm" id="toc-appendix-a-example-of-a-generic-numerical-algorithm"><span class="toc-section-number">9</span> Appendix A: Example of a generic
@@ -596,20 +598,18 @@ exposition-only concept <em><code>noncomplex</code></em>.</p></li>
 R1, as it is overly restrictive. (Input matrices never need to have
 unique layout, even if they are not packed.)</p></li>
 </ul></li>
-<li><p>Revision 2 to be submitted 2024-11-15</p>
-<ul class="task-list">
-<li><p><label><input type="checkbox" checked></input>Remove rank-1 and
-rank-k update overloads without a <code>Scalar alpha</code> parameter.
-Retain rank-1 and rank-k update overloads with this
-parameter.</label></p></li>
-<li><p><label><input type="checkbox"></input>Constrain “linear algebra value
-type” to be neither <code>mdspan</code> nor an execution policy
+<li><p>Revision 3 to be submitted 2024-11-15</p>
+<ul>
+<li><p>Remove rank-1 and rank-k update overloads without a
+<code>Scalar alpha</code> parameter. Retain rank-1 and rank-k update
+overloads with this parameter.</p></li>
+<li><p>Constrain “linear algebra value type” to be neither
+<code>mdspan</code> nor an execution policy
 (<code>is_execution_policy_v&lt;Scalar&gt;</code> is
 <code>false</code>). This will prevent ambiguous overloads, even if we
 retain overloads without <code>Scalar alpha</code> or add them
-later.</label></p></li>
-<li><p><label><input type="checkbox" checked></input>Add nonwording
-sections motivating this change.</label></p></li>
+later.</p></li>
+<li><p>Add nonwording sections motivating this change.</p></li>
 </ul></li>
 </ul>
 <h1 data-number="3" id="abstract"><span class="header-section-number">3</span> Abstract<a href="#abstract" class="self-link"></a></h1>
@@ -2901,7 +2901,38 @@ synopsis<a href="#rank-2k-update-functions-in-synopsis" class="self-link"></a></
 <span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>                                         InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t);</span></code></pre></div>
 
 </div>
-<h2 data-number="8.6" id="specification-of-nonsymmetric-rank-1-update-functions"><span class="header-section-number">8.6</span> Specification of nonsymmetric
+<h2 data-number="8.6" id="constrain-linear-algebra-value-type"><span class="header-section-number">8.6</span> Constrain linear algebra value
+type<a href="#constrain-linear-algebra-value-type" class="self-link"></a></h2>
+<blockquote>
+<p>Change [linalg.reqs.val] as follows.</p>
+</blockquote>
+<p><span class="marginalizedparent"><a class="marginalized">1</a></span>
+Throughout [linalg], the following types are <em>linear algebra value
+type<span class="add" style="color: #00AA00"><ins>s</ins></span></em>:</p>
+<ul>
+<li><p><span class="marginalizedparent"><a class="marginalized">(1.1)</a></span> the
+<code>value_type</code> type alias of any input or output
+<code>mdspan</code> parameter(s) of any function in
+<strong>[linalg]</strong>; and</p></li>
+<li><p><span class="marginalizedparent"><a class="marginalized">(1.2)</a></span> the
+<code>Scalar</code> template parameter (if any) of any function or class
+in <strong>[linalg]</strong>.</p></li>
+</ul>
+<p><span class="marginalizedparent"><a class="marginalized">2</a></span>
+Linear algebra value types shall model <code>semiregular</code>.</p>
+<div class="add" style="color: #00AA00">
+<p><span class="marginalizedparent"><a class="marginalized">3</a></span>
+Linear algebra value types shall not be specializations of
+<code>mdspan</code>.</p>
+<p><span class="marginalizedparent"><a class="marginalized">4</a></span>
+If <code>T</code> is a linear algebra value type, then
+<code>is_execution_policy_v&lt;T&gt;</code> shall be
+<code>false</code>.</p>
+</div>
+<p><span class="marginalizedparent"><a class="marginalized">5</a></span>
+A value-initialized object of linear algebra value type shall act as the
+additive identity.</p>
+<h2 data-number="8.7" id="specification-of-nonsymmetric-rank-1-update-functions"><span class="header-section-number">8.7</span> Specification of nonsymmetric
 rank-1 update functions<a href="#specification-of-nonsymmetric-rank-1-update-functions" class="self-link"></a></h2>
 <blockquote>
 <p>Replace the entire contents of [linalg.algs.blas2.rank1] with the
@@ -2974,7 +3005,7 @@ equivalent to:</p>
 <p><span class="marginalizedparent"><a class="marginalized">(11.2)</a></span>
 otherwise, equivalent to:</p>
 <div class="sourceCode" id="cb49"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>matrix_rank_1_update<span class="op">(</span>std<span class="op">::</span>forward<span class="op">&lt;</span>ExecutionPolicy<span class="op">&gt;(</span>exec<span class="op">)</span>, x, conjugated<span class="op">(</span>y<span class="op">)</span>, A<span class="op">)</span>;</span></code></pre></div>
-<h2 data-number="8.7" id="specification-of-symmetric-and-hermitian-rank-1-update-functions"><span class="header-section-number">8.7</span> Specification of symmetric and
+<h2 data-number="8.8" id="specification-of-symmetric-and-hermitian-rank-1-update-functions"><span class="header-section-number">8.8</span> Specification of symmetric and
 Hermitian rank-1 update functions<a href="#specification-of-symmetric-and-hermitian-rank-1-update-functions" class="self-link"></a></h2>
 <blockquote>
 <p>Replace the entire contents of [linalg.algs.blas2.symherrank1] with
@@ -3101,7 +3132,7 @@ into account the <code>Triangle</code> parameter that applies to
 <em>Effects</em>: Computes <span class="math inline"><em>A</em> = <em>E</em> + <em>α</em><em>x</em><em>x</em><sup><em>H</em></sup></span>,
 where the scalar <span class="math inline"><em>α</em></span> is
 <em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
-<h2 data-number="8.8" id="specification-of-symmetric-and-hermitian-rank-2-update-functions"><span class="header-section-number">8.8</span> Specification of symmetric and
+<h2 data-number="8.9" id="specification-of-symmetric-and-hermitian-rank-2-update-functions"><span class="header-section-number">8.9</span> Specification of symmetric and
 Hermitian rank-2 update functions<a href="#specification-of-symmetric-and-hermitian-rank-2-update-functions" class="self-link"></a></h2>
 <blockquote>
 <p>Replace the entire contents of [linalg.algs.blas2.rank2] with the
@@ -3227,7 +3258,7 @@ into account the <code>Triangle</code> parameter that applies to
 <code>A</code> and <code>E</code> ([linalg.general]).</p>
 <p><span class="marginalizedparent"><a class="marginalized">14</a></span>
 Effects: Computes <span class="math inline"><em>A</em> = <em>E</em> + <em>x</em><em>y</em><sup><em>H</em></sup> + <em>y</em><em>x</em><sup><em>H</em></sup></span>.</p>
-<h2 data-number="8.9" id="specification-of-rank-k-update-functions"><span class="header-section-number">8.9</span> Specification of rank-k update
+<h2 data-number="8.10" id="specification-of-rank-k-update-functions"><span class="header-section-number">8.10</span> Specification of rank-k update
 functions<a href="#specification-of-rank-k-update-functions" class="self-link"></a></h2>
 <blockquote>
 <p>Replace the entire contents of [linalg.algs.blas3.rankk] with the
@@ -3399,7 +3430,7 @@ where the scalar <span class="math inline"><em>α</em></span> is
 <em>Effects:</em> Computes <span class="math inline"><em>C</em> = <em>E</em> + <em>α</em><em>A</em><em>A</em><sup><em>H</em></sup></span>,
 where the scalar <span class="math inline"><em>α</em></span> is
 <em><code>real-if-needed</code></em><code>(alpha)</code>.</p>
-<h2 data-number="8.10" id="specification-of-rank-2k-update-functions"><span class="header-section-number">8.10</span> Specification of rank-2k
+<h2 data-number="8.11" id="specification-of-rank-2k-update-functions"><span class="header-section-number">8.11</span> Specification of rank-2k
 update functions<a href="#specification-of-rank-2k-update-functions" class="self-link"></a></h2>
 <blockquote>
 <p>Replace the entire contents of [linalg.algs.blas3.rank2k] with the
