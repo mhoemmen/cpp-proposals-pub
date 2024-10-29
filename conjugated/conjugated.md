@@ -1,8 +1,8 @@
 
 ---
 title: "Fix C++26 by optimizing linalg::conjugated for noncomplex value types"
-document: D3050R3
-date: 2024-10-24
+document: P3050R3
+date: 2024-10-29
 audience: LWG
 author:
   - name: Mark Hoemmen
