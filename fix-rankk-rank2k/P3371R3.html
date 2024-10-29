@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2024-10-28" />
+  <meta name="dcterms.date" content="2024-10-29" />
   <title>Fix C++26 by making the rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS</title>
   <style>
 code{white-space: pre-wrap;}
@@ -426,7 +426,7 @@ BLAS</h1>
   </tr>
   <tr>
     <td>Date: </td>
-    <td>2024-10-28</td>
+    <td>2024-10-29</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project: </td>
@@ -648,11 +648,9 @@ with nonzero imaginary part”).</p></li>
 update functions without a <code>Scalar alpha</code> parameter. Retain
 only those overloads that have a <code>Scalar alpha</code> parameter. In
 case WG21 wants to add those overloads or similar ones later, constrain
-<code>Scalar</code> (specifically, linear algebra value types) to be
-neither <code>mdspan</code> nor execution policies
-(<code>is_execution_policy_v&lt;Scalar&gt;</code> is
-<code>false</code>). This avoids potentially ambiguous
-overloads.</p></li>
+linear algebra value types (and therefore <code>Scalar</code>) to be
+neither <code>mdspan</code> nor an execution policy. This avoids
+potentially ambiguous overloads.</p></li>
 </ol>
 <p>Items (2), (3), and (4) are breaking changes to the current Working
 Draft. Thus, we must finish this before finalization of C++26.</p>
@@ -1832,9 +1830,9 @@ that would be affected are the symmetric and Hermitian rank-1 and rank-k
 updates.</p>
 <p>This change halves the number of overloads of the symmetric and
 Hermitian rank-1 and rank-k functions. This mitigates the addition of
-updating overloads. Removing the <code>alpha</code> overloads also makes
-correct use of this interface more obvious. For example, if users want
-to perform a symmetric rank-k update <span class="math inline"><em>C</em> = <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>,
+updating overloads. Retaining only the <code>alpha</code> overloads also
+makes correct use of this interface more obvious. For example, if users
+want to perform a symmetric rank-k update <span class="math inline"><em>C</em> = <em>C</em> + <em>α</em><em>A</em><em>A</em><sup><em>T</em></sup></span>,
 they would have to write it like this.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>symmetric_matrix_rank_k_update<span class="op">(</span>alpha, A, C, C, Triangle<span class="op">{})</span>;</span></code></pre></div>
 <p>Users no longer would be able to write code like the following, which
@@ -1871,8 +1869,7 @@ special interfaces for the case <code>alpha = 1</code>, either.</p>
 factors that we do not propose changing<a href="#things-relating-to-scaling-factors-that-we-do-not-propose-changing" class="self-link"></a></h2>
 <h3 data-number="4.5.1" id="hermitian-matrix-vector-and-matrix-matrix-products"><span class="header-section-number">4.5.1</span> Hermitian matrix-vector and
 matrix-matrix products<a href="#hermitian-matrix-vector-and-matrix-matrix-products" class="self-link"></a></h3>
-<p>We pointed out above that
-<code>hermitian_matrix_vector_product</code> and
+<p>Both <code>hermitian_matrix_vector_product</code> and
 <code>hermitian_matrix_product</code> expect that the (possibly scaled)
 input matrix is Hermitian, while the corresponding BLAS routines
 <code>xHEMV</code> and <code>xHEMM</code> expect that the unscaled input

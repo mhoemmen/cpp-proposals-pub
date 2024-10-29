@@ -69,7 +69,7 @@ We propose the following changes to [linalg] that improve consistency of the ran
 
 3. For the overloads of `hermitian_rank_1_update` and `hermitian_rank_k_update` that have an `alpha` scaling factor parameter, only use _`real-if-needed`_`(alpha)` in the update.  This ensures that the update will be mathematically Hermitian, and makes the behavior well defined if `alpha` has nonzero imaginary part.  The change is also consistent with our proposed resolution for LWG 4136 ("Specify behavior of [linalg] Hermitian algorithms on diagonal with nonzero imaginary part").
 
-4. Remove overloads of rank-1 and rank-k symmetric and Hermitian update functions without a `Scalar alpha` parameter.  Retain only those overloads that have a `Scalar alpha` parameter.  In case WG21 wants to add those overloads or similar ones later, constrain `Scalar` (specifically, linear algebra value types) to be neither `mdspan` nor execution policies (`is_execution_policy_v<Scalar>` is `false`).  This avoids potentially ambiguous overloads.
+4. Remove overloads of rank-1 and rank-k symmetric and Hermitian update functions without a `Scalar alpha` parameter.  Retain only those overloads that have a `Scalar alpha` parameter.  In case WG21 wants to add those overloads or similar ones later, constrain linear algebra value types (and therefore `Scalar`) to be neither `mdspan` nor an execution policy.  This avoids potentially ambiguous overloads.
 
 Items (2), (3), and (4) are breaking changes to the current Working Draft.  Thus, we must finish this before finalization of C++26.
 
@@ -610,7 +610,7 @@ Another option would be to constrain `Scalar` to be multipliable by something.  
 
 We propose to go further.  For any algorithm that needs an `alpha` parameter overload in order to make sense, we propose discarding the overloads that do *not* have an `alpha` parameter, and keeping only the overloads that do.  The only algorithms that would be affected are the symmetric and Hermitian rank-1 and rank-k updates.
 
-This change halves the number of overloads of the symmetric and Hermitian rank-1 and rank-k functions.  This mitigates the addition of updating overloads.  Removing the `alpha` overloads also makes correct use of this interface more obvious.  For example, if users want to perform a symmetric rank-k update $C = C + \alpha A A^T$, they would have to write it like this.
+This change halves the number of overloads of the symmetric and Hermitian rank-1 and rank-k functions.  This mitigates the addition of updating overloads.  Retaining only the `alpha` overloads also makes correct use of this interface more obvious.  For example, if users want to perform a symmetric rank-k update $C = C + \alpha A A^T$, they would have to write it like this.
 ```c++
 symmetric_matrix_rank_k_update(alpha, A, C, C, Triangle{});
 ```
@@ -627,7 +627,7 @@ In terms of performance, one argument for retaining `alpha` overloads is to spee
 
 ### Hermitian matrix-vector and matrix-matrix products
 
-We pointed out above that `hermitian_matrix_vector_product` and `hermitian_matrix_product` expect that the (possibly scaled) input matrix is Hermitian, while the corresponding BLAS routines `xHEMV` and `xHEMM` expect that the unscaled input matrix is Hermitian and permit the scaling factor `alpha` to have nonzero imaginary part.  However, this does not affect the ability of these [linalg] algorithms to compute what the BLAS can compute.  Users who want to supply `alpha` with nonzero imaginary part should *not* scale the matrix `A` (as in `scaled(alpha, A)`).  Instead, they should scale the input vector `x`, as in the following.
+Both `hermitian_matrix_vector_product` and `hermitian_matrix_product` expect that the (possibly scaled) input matrix is Hermitian, while the corresponding BLAS routines `xHEMV` and `xHEMM` expect that the unscaled input matrix is Hermitian and permit the scaling factor `alpha` to have nonzero imaginary part.  However, this does not affect the ability of these [linalg] algorithms to compute what the BLAS can compute.  Users who want to supply `alpha` with nonzero imaginary part should *not* scale the matrix `A` (as in `scaled(alpha, A)`).  Instead, they should scale the input vector `x`, as in the following.
 ```c++
 auto alpha = std::complex{0.0, 1.0};
 hermitian_matrix_vector_product(A, upper_triangle, scaled(alpha, x), y);
