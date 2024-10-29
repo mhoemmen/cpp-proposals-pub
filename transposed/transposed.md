@@ -1,8 +1,8 @@
 
 ---
 title: "Fix C++26 by adding transposed special cases for P2642 layouts"
-document: D3222R1
-date: 2024-10-24
+document: P3222R1
+date: 2024-10-29
 audience: LEWG
 author:
   - name: Mark Hoemmen
