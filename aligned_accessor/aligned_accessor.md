@@ -122,6 +122,8 @@ toc: true
 
     * Add alignment precondition to `aligned_accessor` class, and add nonwording section "Standard accessors already impose preconditions that propagate to `mdspan` construction" that explains the "class-wide" preconditions on data handles given to `default_accessor` and `aligned_accessor`.
 
+    * Make conversion operator to `default_accessor` `noexcept`, as is the converting constructor from greater to lesser alignment.
+
 # Purpose of this paper
 
 We propose adding `aligned_accessor` to the C++ Standard Library.
@@ -501,7 +503,7 @@ public:
 
     // Conversion is implicit because it has no precondition.
     constexpr operator element_type* () const noexcept {
-      return data();
+      return assume_aligned<byte_alignment>(data());
     }
 
   private:
@@ -518,7 +520,7 @@ public:
 
   constexpr typename offset_policy::data_handle_type
   offset(data_handle_type p, size_t i) const noexcept {
-    return (element_type*)(p) + i;
+    return assume_aligned<byte_alignment>((element_type*)(p)) + i;
   }
 };
 ```
@@ -1389,7 +1391,7 @@ struct aligned_accessor {
     explicit constexpr aligned_accessor(
       default_accessor<OtherElementType>) noexcept;
 
-  constexpr operator default_accessor<element_type>() const {
+  constexpr operator default_accessor<element_type>() const noexcept {
     return {};
   }
 
@@ -1447,7 +1449,9 @@ constexpr reference
   access(data_handle_type p, size_t i) const noexcept;
 ```
 
-[3]{.pnum} *Effects*: Equivalent to:
+[3]{.pnum} *Preconditions*: $[$ `p`, `p + i + 1` $)$ is an accessible range for `*this`.
+
+[4]{.pnum} *Effects*: Equivalent to:
 `return assume_aligned<byte_alignment>(p)[i];`
 
 ```c++
@@ -1455,9 +1459,9 @@ constexpr typename offset_policy::data_handle_type
   offset(data_handle_type p, size_t i) const noexcept;
 ```
 
-[4]{.pnum} *Preconditions*: `p` points to an object `X` of a type similar (**[conv.qual]**) to `element_type`, where `X` has alignment `byte_alignment` (**[basic.align]**).
+[5]{.pnum} *Preconditions*: $[$ `p`, `p + i + 1` $)$ is an accessible range for `*this`.
 
-[5]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
+[6]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
 
 [*Example:*
 The following function `compute` uses `is_sufficiently_aligned`
