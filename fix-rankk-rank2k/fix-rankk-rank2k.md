@@ -890,12 +890,14 @@ The following function overload sets need changing.
 * `symmetric_matrix_rank_2k_update`
 * `hermitian_matrix_rank_2k_update`
 
-As of 2024/10/04, <a href="https://github.com/kokkos/stdBLAS/pull/293">Pull request 293</a> in the reference std::linalg implementation implements changes to the following functions, and adds tests to ensure test coverage of the new overloads.
+As of 2024/10/29, <a href="https://github.com/kokkos/stdBLAS/pull/293">Pull Request 293</a> in the reference std::linalg implementation implements changes to the following functions, and adds tests to ensure test coverage of the new overloads.
 
 * `matrix_rank_1_update`
 * `matrix_rank_1_update_c`
 * `symmetric_matrix_rank_1_update`
 * `hermitian_matrix_rank_1_update`
+* `symmetric_matrix_rank_k_update`
+* `hermitian_matrix_rank_k_update`
 
 # Acknowledgments
 
@@ -922,7 +924,7 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
 > Add the declaration of the new exposition-only concept _`possibly-packed-out-matrix`_ to the header `<linalg>` synopsis **[linalg.syn]**, just after the declaration of the exposition-only concept _`inout-matrix`_, and remove the declaration of the exposition-only concept _`possibly-packed-inout-matrix`_.
 
-```c++
+```
   template<class T>
     concept @_inout-matrix_@ = @_see below_@;                // @_exposition only_@
 ```
@@ -933,7 +935,7 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 ```
 :::
 ::: rm
-```c++
+```
   template<class T>
     concept @_possibly-packed-inout-matrix_@ = @_see below_@; // @_exposition only_@
 ```
