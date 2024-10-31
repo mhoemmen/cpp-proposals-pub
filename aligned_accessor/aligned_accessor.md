@@ -2,7 +2,7 @@
 ---
 title: "`aligned_accessor`: An mdspan accessor expressing pointer overalignment"
 document: D2897R6
-date: 2024-10-25
+date: 2024-10-31
 audience: LEWG
 author:
   - name: Mark Hoemmen
