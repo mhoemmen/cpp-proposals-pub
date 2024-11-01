@@ -1,6 +1,6 @@
 
 ---
-title: "`aligned_accessor`: An mdspan accessor expressing pointer overalignment"
+title: "`aligned_accessor`: An mdspan accessor expressing pointer over-alignment"
 document: D2897R6
 date: 2024-10-31
 audience: LEWG
@@ -37,10 +37,10 @@ toc: true
         * Change `gcd` converting constructor Constraint to a Mandate
 
         * Add Example in the wording section that uses `is_sufficiently_aligned`
-            to check the pointer overalignment precondition
+            to check the pointer over-alignment precondition
 
         * Add Example in the wording section that uses `aligned_alloc`
-            to create an overaligned allocation,
+            to create an over-aligned allocation,
             to show that `aligned_accessor` exists as part of a system
 
         * Add an `explicit` constructor from default_accessor,
@@ -106,7 +106,9 @@ toc: true
     * Give `is_sufficiently_aligned` a "*Throws*: Nothing" clause
         and add nonwording text explaining why
 
-* Revision 6 to be submitted after LWG review (started 2024-10-25)
+* Revision 6 to be submitted after LWG review
+
+    * LWG reviewed the paper via virtual meeting 2024-10-25 and 2024-11-01.  The second meeting did not have quorum, but attendees walked through the entire wording.  LWG plans to see this paper again.
 
     * Change all template parameter names to be PascalCase, per Library convention (the only exceptions are `charT` and `traits`).
 
@@ -114,15 +116,21 @@ toc: true
 
     * Use `assume_aligned` in `offset` as well as in `access`.
 
-    * Change `gcd` requirement in `aligned_accessor` converting constructor back from Mandate to Constraint.  Add explanation with example in nonwording Section 5.9.
+    * Change `gcd` requirement in `aligned_accessor` converting constructor back from Mandate to Constraint.  Add explanation with example in nonwording Section 5.9.  Since both alignments are powers of two, just say "`OtherByteAlignment >= byte_alignment` is `true`."
 
     * Remove `access` Precondition, since it is implied by the Effects being equivalent to using `assume_aligned`.
 
-    * Update Compiler Explorer <a href="https://godbolt.org/z/x1erq98cK">implementation link</a>.
+    * Update Compiler Explorer <a href="https://godbolt.org/z/dWfoGr5Y7">implementation link</a>.
 
     * Add alignment precondition to `aligned_accessor` class, and add nonwording section "Standard accessors already impose preconditions that propagate to `mdspan` construction" that explains the "class-wide" preconditions on data handles given to `default_accessor` and `aligned_accessor`.
 
     * Make conversion operator to `default_accessor` `noexcept`, as is the converting constructor from greater to lesser alignment.
+
+    * Fix accessible range preconditions of `access` and `offset` to use index ranges instead of pointer ranges.
+
+    * Make conversion operator to `default_accessor` templated on the result's element type.
+
+    * Remove second Example (the long one), and move first example to right after the class overview.
 
 # Purpose of this paper
 
@@ -160,12 +168,12 @@ reach their maximum value.
 
     * from nonconst to const `ElementType`,
 
-    * from more overalignment to less overalignment, and
+    * from more over-alignment to less over-alignment, and
 
-    * from overalignment to no overalignment (`default_accessor`)
+    * from over-alignment to no over-alignment (`default_accessor`)
 
 * `explicit` converting constructor from `default_accessor`
-    lets users assert overalignment
+    lets users assert over-alignment
 
 * New nonmember function `is_sufficiently_aligned`
     lets users check a pointer's alignment
@@ -191,7 +199,7 @@ is analogous to `default_accessor`'s constructor,
 in that it exists to permit conversion
 from nonconst `element_type` to const `element_type`.
 It additionally permits implicit conversion
-from more overalignment to less overalignment --
+from more over-alignment to less over-alignment --
 something that we expect users may need to do.
 For example, users may start with `aligned_accessor<float, 128>`,
 because their allocation function promises 128-byte alignment.
@@ -200,7 +208,7 @@ that takes an `mdspan` with `aligned_accessor<float, 32>`,
 which declares the function's intent to use 8-wide SIMD of `float`.
 
 The `explicit` converting constructor from `default_accessor`
-lets users assert that an `mdspan`'s pointer is overaligned.
+lets users assert that an `mdspan`'s pointer is over-aligned.
 This follows the idiom of existing `mdspan` layout mappings
 and accessors, where all conversions with preconditions
 are expressed as `explicit` constructors or conversion operators.
@@ -226,7 +234,7 @@ Instead, it is a nonmember function in the `<memory>` header.
 We considered making `aligned_accessor` "wrap" any accessor type
 that meets the right requirements.
 For example, `aligned_accessor` could take the inner accessor as a template parameter, store an instance of it, and dispatch to its member functions.
-That would give users a way to apply multiple accessor "attributes" to their data handle, such as atomic access (see P2689) and overalignment.
+That would give users a way to apply multiple accessor "attributes" to their data handle, such as atomic access (see P2689) and over-alignment.
 
 We decided against this approach for three reasons.
 First, we would have no way to validate that the user's accessor type has the correct behavior.
@@ -328,7 +336,7 @@ aligned_matrix_t aligned_matrix{matrix};
 
 As explained in the previous section,
 `aligned_accessor` has an `explicit` converting constructor
-from `default_accessor` so that users can assert overalignment.
+from `default_accessor` so that users can assert over-alignment.
 It also has an (implicit) converting constructor
 from another `aligned_accessor` with more alignment,
 to an `aligned_accessor` with less alignment.
@@ -345,7 +353,7 @@ Consider the three typical use cases for `aligned_accessor`.
     but not at compile time.  For example, the value might depend
     on run-time detection of particular hardware features.
 
-3. User doesn't know whether an allocation is overaligned.
+3. User doesn't know whether an allocation is over-aligned.
     They might need to ask some system at run time,
     or check the pointer value themselves, in order to decide
     whether to call code that expects a particular alignment.
@@ -372,7 +380,7 @@ None of these cases involve starting with more alignment,
 going to less (but still some) alignment,
 and then going back to more alignment again.
 Code that does that probably does not correctly use the types
-of function parameters to express its overalignment requirements.
+of function parameters to express its over-alignment requirements.
 It's like code that uses `dynamic_cast` a lot.
 Users can still convert from less or more alignment
 by creating the result's `aligned_accessor` manually.
@@ -990,7 +998,7 @@ We do not agree with this idea; this section explains why.
 
 Suppose that some function that users can't change
 returns an `mdspan` of `float` with `default_accessor`, even though
-users know that the `mdspan` is overaligned to `8 * sizeof(float)` bytes.
+users know that the `mdspan` is over-aligned to `8 * sizeof(float)` bytes.
 The function's parameter(s) don't matter for this example.
 
 ```c++
@@ -1212,7 +1220,7 @@ extern void compute(
     std::aligned_accessor<float, 4 * alignof(float)>> x); 
 ```
 
-Suppose that the user has an 8x overaligned mdspan `mdspan<float, dims<1>, aligned_accessor<float, 8 * alignof(float)>> x`, and calls `compute(x)`.  With the Constraint design, the 4x overload would be called, which is the correct and expected behavior.  With the Mandate design, the `compute(x)` call would be ambiguous.
+Suppose that the user has an 8x over-aligned mdspan `mdspan<float, dims<1>, aligned_accessor<float, 8 * alignof(float)>> x`, and calls `compute(x)`.  With the Constraint design, the 4x overload would be called, which is the correct and expected behavior.  With the Mandate design, the `compute(x)` call would be ambiguous.
 
 # Implementation
 
@@ -1241,7 +1249,7 @@ extern float vectorized_norm(aligned_mdspan<32> y);
 extern void fill_x(aligned_mdspan<16> x);
 extern void fill_y(aligned_mdspan<16> y);
 
-// Helper functions for overaligned array allocations.
+// Helper functions for over-aligned array allocations.
 
 template<class ElementType>
 struct delete_raw {
@@ -1391,9 +1399,8 @@ struct aligned_accessor {
     explicit constexpr aligned_accessor(
       default_accessor<OtherElementType>) noexcept;
 
-  constexpr operator default_accessor<element_type>() const noexcept {
-    return {};
-  }
+  template<class OtherElementType>
+  constexpr operator default_accessor<OtherElementType>() const noexcept;
 
   constexpr reference access(data_handle_type p, size_t i) const noexcept;
 
@@ -1422,58 +1429,17 @@ struct aligned_accessor {
 
 <i>[Editorial note:</i> Condition 5.2 is new as of version 6. <i>— end editorial note]</i>
 
-## Members [mdspan.accessor.aligned.members]
-
-```c++
-template<class OtherElementType, size_t OtherByteAlignment>
-  constexpr aligned_accessor(
-    aligned_accessor<OtherElementType, OtherByteAlignment>) noexcept {}
-```
-
-[1]{.pnum} *Constraints*:
-
-* [1.1]{.pnum} `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
-
-* [1.2]{.pnum} `gcd(OtherByteAlignment, byte_alignment) == byte_alignment` is `true`.
-
-```c++
-template<class OtherElementType>
-  explicit constexpr aligned_accessor(
-    default_accessor<OtherElementType>) noexcept {};
-```
-
-[2]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
-
-```c++
-constexpr reference
-  access(data_handle_type p, size_t i) const noexcept;
-```
-
-[3]{.pnum} *Preconditions*: $[$ `p`, `p + i + 1` $)$ is an accessible range for `*this`.
-
-[4]{.pnum} *Effects*: Equivalent to:
-`return assume_aligned<byte_alignment>(p)[i];`
-
-```c++
-constexpr typename offset_policy::data_handle_type
-  offset(data_handle_type p, size_t i) const noexcept;
-```
-
-[5]{.pnum} *Preconditions*: $[$ `p`, `p + i + 1` $)$ is an accessible range for `*this`.
-
-[6]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
-
 [*Example:*
 The following function `compute` uses `is_sufficiently_aligned`
 to check whether a given `mdspan` with `default_accessor`
 has a data handle with sufficient alignment
 to be used with `aligned_accessor<float, 4 * sizeof(float)>`.
 If so, the function dispatches to a function `compute_using_fourfold_overalignment`
-that requires fourfold overalignment of arrays,
+that requires fourfold over-alignment of arrays,
 but can therefore use hardware-specific instructions, such as
 four-wide SIMD (Single Instruction Multiple Data) instructions.
 Otherwise, `compute` dispatches to a possibly less optimized function
-`compute_without_requiring_overalignment` that has no overalignment requirement.
+`compute_without_requiring_overalignment` that has no over-alignment requirement.
 
 ```c++
 extern void
@@ -1503,74 +1469,59 @@ void compute(std::mdspan<float, std::dims<1>> x)
 ```
 --*end example*]
 
-[*Example:*
-The following example shows how users can fulfill
-the preconditions of `aligned_accessor` by using
-existing C++ Standard Library functionality
-to create overaligned allocations.
-The example's `allocate_overaligned` function
-uses `aligned_alloc` to create an overaligned allocation.
+## Members [mdspan.accessor.aligned.members]
 
 ```c++
-template<class ElementType>
-struct delete_with_free {
-  void operator()(ElementType* p) const {
-    std::free(p);
-  }
-};
-
-template<class ElementType>
-using allocation = std::unique_ptr<ElementType[], delete_with_free<ElementType>>;
-
-template<class ElementType, size_t ByteAlignment>
-allocation<ElementType>
-  allocate_overaligned(const size_t num_elements)
-{
-  const size_t num_bytes = num_elements * sizeof(ElementType);
-  void* ptr = std::aligned_alloc(ByteAlignment, num_bytes);
-  return {ptr, delete_with_free<ElementType>{}};
-}
+template<class OtherElementType, size_t OtherByteAlignment>
+  constexpr aligned_accessor(
+    aligned_accessor<OtherElementType, OtherByteAlignment>) noexcept;
 ```
 
-The example's functions `vectorized_axpy` and `vectorized_norm`
-require their input arrays to have 32-byte alignment.
+[1]{.pnum} *Constraints*:
+
+* [1.1]{.pnum} `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
+
+* [1.2]{.pnum} `OtherByteAlignment >= byte_alignment` is `true`.
+
+[1]{.pnum} *Effects*: None.
 
 ```c++
-template<size_t ByteAlignment>
-using aligned_mdspan = std::mdspan<
-  float, std::dims<1, int>,
-  std::layout_right,
-  std::aligned_accessor<float, ByteAlignment>>;
-
-extern void vectorized_axpy(
-  aligned_mdspan<32> y, float alpha, aligned_mdspan<32> x);
-extern float vectorized_norm(aligned_mdspan<32> y);
+template<class OtherElementType>
+  explicit constexpr aligned_accessor(
+    default_accessor<OtherElementType>) noexcept;
 ```
 
-The user's function `user_function` would begin
-by allocating "raw" overaligned arrays with `allocate_overaligned`.
-It would then create aligned `mdspan` with them,
-and pass the resulting `mdspan` into the library's functions.
+[2]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
+
+[2]{.pnum} *Effects*: None.
 
 ```c++
-float user_function(size_t num_elements, float alpha)
-{
-  constexpr size_t max_byte_alignment = 32;
-  auto x_alloc =
-    allocate_overaligned<float, max_byte_alignment>(num_elements);
-  auto y_alloc =
-    allocate_overaligned<float, max_byte_alignment>(num_elements);
-
-  aligned_mdspan<max_byte_alignment> x(x_alloc.get());
-  aligned_mdspan<max_byte_alignment> y(y_alloc.get());
-
-  // ... fill the elements of x and y ...
-
-  vectorized_axpy(y, alpha, x);
-  return vectorized_norm(y);
-}
+constexpr reference
+  access(data_handle_type p, size_t i) const noexcept;
 ```
---*end example*]
+
+[3]{.pnum} *Preconditions*: $[0$, `i` + 1 $)$ is an accessible range for `p` and `*this`.
+
+[4]{.pnum} *Effects*: Equivalent to:
+`return assume_aligned<byte_alignment>(p)[i];`
+
+```c++
+template<class OtherElementType>
+  constexpr operator default_accessor<OtherElementType>() const noexcept;
+```
+
+[2]{.pnum} *Constraints*: `is_convertible_v<element_type(*)[], OtherElementType(*)[]>` is `true`.
+
+[2]{.pnum} *Effects*: Equivalent to: `return {};`
+
+```c++
+constexpr typename offset_policy::data_handle_type
+  offset(data_handle_type p, size_t i) const noexcept;
+```
+
+[5]{.pnum} *Preconditions*: $[0$, `i` + 1 $)$ is an accessible range for `p` and `*this`.
+
+[6]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
 
 # Appendix A: `detectably_invalid` nonmember function example
 
@@ -1735,7 +1686,7 @@ int main()
 
 # Appendix B: Implementation and demo
 
-<a href="https://godbolt.org/z/x1erq98cK">This Compiler Explorer link</a>
+<a href="https://godbolt.org/z/dWfoGr5Y7">This Compiler Explorer link</a>
 gives a full implementation of `aligned_accessor` and a demonstration.
 We show the full source code from that link here below.
 
@@ -1752,6 +1703,8 @@ We show the full source code from that link here below.
 #include <memory>
 #include <numeric>
 #include <type_traits>
+
+#define TEMPLATED_CONVERSION_TO_DEFAULT_ACCESSOR 1
 
 namespace stdex = std::experimental;
 
@@ -1802,8 +1755,18 @@ public:
     stdex::default_accessor<OtherElementType>) noexcept
   {}
  
+#if defined(TEMPLATED_CONVERSION_TO_DEFAULT_ACCESSOR)
+  template<class OtherElementType>
+    requires(is_convertible_v<
+      element_type(*)[],
+      OtherElementType(*)[]
+    >)
   constexpr
-    operator stdex::default_accessor<element_type>() const
+    operator stdex::default_accessor<OtherElementType>() const noexcept
+#else
+  constexpr
+    operator stdex::default_accessor<element_type>() const noexcept
+#endif
   {
     return {};
   }
@@ -1911,10 +1874,64 @@ float user_function(size_t num_elements, float alpha, float beta)
 
 } // namespace (anonymous)
 
+namespace test_conversion_to_default_accessor {
+
+template<class ElementType>
+void take_default_accessor_generic(stdex::default_accessor<ElementType>) {}
+
+template<class ElementType>
+  requires(std::is_const_v<ElementType>)
+void take_default_accessor_generic_const(stdex::default_accessor<ElementType>) {}
+
+void take_default_accessor(stdex::default_accessor<float>) {}
+
+void take_default_accessor_const(stdex::default_accessor<const float>) {}
+
+void test() {
+  // Test new templated conversion operator to default_accessor.
+  {
+    std::aligned_accessor<float, 32> aligned_acc_f_nc;
+    [[maybe_unused]] stdex::default_accessor<float> acc_f_nc{ aligned_acc_f_nc };
+    [[maybe_unused]] stdex::default_accessor<float> acc_f_nc_2 = aligned_acc_f_nc;
+#if defined(TEMPLATED_CONVERSION_TO_DEFAULT_ACCESSOR)
+    [[maybe_unused]] stdex::default_accessor<const float> acc_f_c{ aligned_acc_f_nc };
+    [[maybe_unused]] stdex::default_accessor<const float> acc_f_c_2 = aligned_acc_f_nc;
+#endif
+
+    // CTAD didn't work before anyway.
+    //[[maybe_unused]] stdex::default_accessor acc_f{ aligned_acc_f_nc };
+
+    take_default_accessor(aligned_acc_f_nc);
+#if defined(TEMPLATED_CONVERSION_TO_DEFAULT_ACCESSOR)
+    take_default_accessor_const(aligned_acc_f_nc);
+#endif
+
+    // Doesn't work either way.
+    //take_default_accessor_generic(aligned_acc_f_nc);
+  }
+  {
+    std::aligned_accessor<const float, 32> aligned_acc_f_c;
+    [[maybe_unused]] stdex::default_accessor<const float> acc_f_c{ aligned_acc_f_c };
+    [[maybe_unused]] stdex::default_accessor<const float> acc_f_c_2 = aligned_acc_f_c;
+
+    // CTAD didn't work before anyway.
+    //[[maybe_unused]] stdex::default_accessor acc_f{ aligned_acc_f_c };
+
+    take_default_accessor_const(aligned_acc_f_c);
+
+    // Neither of these work either way.
+    //take_default_accessor_generic(aligned_acc_f_c);
+    //take_default_accessor_generic_const(aligned_acc_f_c);
+  }
+}
+}
+
 int main(int argc, char* argv[])
 {
   float result = user_function(10, 1.0f, -1.0f);
   assert(result == 30.0f); // 3 + 3 + ... + 3 = 30
+  test_conversion_to_default_accessor::test();
+
   return 0;
 }
 ```
