@@ -1,8 +1,8 @@
 
 ---
 title: "`aligned_accessor`: An mdspan accessor expressing pointer over-alignment"
-document: D2897R6
-date: 2024-10-31
+document: P2897R7
+date: 2024-11-22
 audience: LEWG
 author:
   - name: Mark Hoemmen
@@ -131,6 +131,16 @@ toc: true
     * Make conversion operator to `default_accessor` templated on the result's element type.
 
     * Remove second Example (the long one), and move first example to right after the class overview.
+
+* Revision 7 (during Wrocław) to be submitted 2024-11-22
+
+    * Purely editorial change, requested by the editors: Mark all added sections in green text.
+
+    * Purely editorial change: Make it clear that "Members [mdspan.accessor.aligned.members]" is a section to be added, and not just a section of the proposal.
+
+    * Purely editorial change: Remove Editorial note ("Condition 5.2 is new as of version 6").
+
+    * Purely editorial change: Fix paragraph numbers in [mdspan.accessor.aligned.members].
 
 # Purpose of this paper
 
@@ -1324,10 +1334,12 @@ Available online [last accessed 2024-07-05]:
 >
 > In **[version.syn]**, add
 
-```c++
+::: add
+```
 #define __cpp_lib_aligned_accessor YYYYMML // also in <mdspan>
 #define __cpp_lib_is_sufficiently_aligned YYYYMML // also in <memory>
 ```
+:::
 
 > Adjust the placeholder value `YYYYMML` as needed
 > so as to denote this proposal's date of adoption.
@@ -1337,14 +1349,17 @@ Available online [last accessed 2024-07-05]:
 > before the declarations of functions in **[obj.lifetime]**,
 > add the following.
 
-```c++
+::: add
+```
 template<size_t Alignment, class T>
   bool is_sufficiently_aligned(T* ptr);
 ```
+:::
 
 > At the end of **[ptr.align]**, add the following.
 
-```c++
+::: add
+```
 template<size_t Alignment, class T>
   bool is_sufficiently_aligned(T* ptr);
 ```
@@ -1356,6 +1371,7 @@ of a type similar (**[conv.qual]**) to `T`.
 at least `Alignment`, else `false`.
 
 [12]{.pnum} *Throws*: Nothing.
+:::
 
 > To the Header `<mdspan>` synopsis **[mdspan.syn]**,
 > after `class default_accessor` and before `class mdspan`,
@@ -1363,11 +1379,13 @@ at least `Alignment`, else `false`.
 
 ## Add `aligned_accessor` declaration to `<mdspan>` header synopsis
 
-```c++
+::: add
+```
 // [mdspan.accessor.aligned], class template aligned_accessor
 template<class ElementType, size_t ByteAlignment>
   class aligned_accessor;
 ```
+:::
 
 > At the end of **[mdspan.accessor.default]**
 > and before **[mdspan.mdspan]**,
@@ -1375,11 +1393,12 @@ template<class ElementType, size_t ByteAlignment>
 
 ## Add subsection � [mdspan.accessor.aligned] with the following
 
+::: add
 <b> � Class template `aligned_accessor` [mdspan.accessor.aligned] </b>
 
 <b> �.1 Overview [mdspan.accessor.aligned.overview] </b>
 
-```c++
+```
 template<class ElementType, size_t ByteAlignment>
 struct aligned_accessor {
   using offset_policy = default_accessor<ElementType>;
@@ -1427,8 +1446,6 @@ struct aligned_accessor {
 
 * [5.2]{.pnum} if $n$ is greater than zero, then `is_sufficiently_aligned<byte_alignment>(p)` is `true`.
 
-<i>[Editorial note:</i> Condition 5.2 is new as of version 6. <i>— end editorial note]</i>
-
 [*Example:*
 The following function `compute` uses `is_sufficiently_aligned`
 to check whether a given `mdspan` with `default_accessor`
@@ -1441,7 +1458,7 @@ four-wide SIMD (Single Instruction Multiple Data) instructions.
 Otherwise, `compute` dispatches to a possibly less optimized function
 `compute_without_requiring_overalignment` that has no over-alignment requirement.
 
-```c++
+```
 extern void
 compute_using_fourfold_overalignment(
   std::mdspan<float, std::dims<1>, std::layout_right,
@@ -1469,9 +1486,9 @@ void compute(std::mdspan<float, std::dims<1>> x)
 ```
 --*end example*]
 
-## Members [mdspan.accessor.aligned.members]
+<b> �.2 Members [mdspan.accessor.aligned.members] </b>
 
-```c++
+```
 template<class OtherElementType, size_t OtherByteAlignment>
   constexpr aligned_accessor(
     aligned_accessor<OtherElementType, OtherByteAlignment>) noexcept;
@@ -1483,45 +1500,46 @@ template<class OtherElementType, size_t OtherByteAlignment>
 
 * [1.2]{.pnum} `OtherByteAlignment >= byte_alignment` is `true`.
 
-[1]{.pnum} *Effects*: None.
+[2]{.pnum} *Effects*: None.
 
-```c++
+```
 template<class OtherElementType>
   explicit constexpr aligned_accessor(
     default_accessor<OtherElementType>) noexcept;
 ```
 
-[2]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
+[3]{.pnum} *Constraints*: `is_convertible_v<OtherElementType(*)[], element_type(*)[]>` is `true`.
 
-[2]{.pnum} *Effects*: None.
+[4]{.pnum} *Effects*: None.
 
-```c++
+```
 constexpr reference
   access(data_handle_type p, size_t i) const noexcept;
 ```
 
-[3]{.pnum} *Preconditions*: $[0$, `i` + 1 $)$ is an accessible range for `p` and `*this`.
+[5]{.pnum} *Preconditions*: $[0$, `i` + 1 $)$ is an accessible range for `p` and `*this`.
 
-[4]{.pnum} *Effects*: Equivalent to:
+[6]{.pnum} *Effects*: Equivalent to:
 `return assume_aligned<byte_alignment>(p)[i];`
 
-```c++
+```
 template<class OtherElementType>
   constexpr operator default_accessor<OtherElementType>() const noexcept;
 ```
 
-[2]{.pnum} *Constraints*: `is_convertible_v<element_type(*)[], OtherElementType(*)[]>` is `true`.
+[7]{.pnum} *Constraints*: `is_convertible_v<element_type(*)[], OtherElementType(*)[]>` is `true`.
 
-[2]{.pnum} *Effects*: Equivalent to: `return {};`
+[8]{.pnum} *Effects*: Equivalent to: `return {};`
 
-```c++
+```
 constexpr typename offset_policy::data_handle_type
   offset(data_handle_type p, size_t i) const noexcept;
 ```
 
-[5]{.pnum} *Preconditions*: $[0$, `i` + 1 $)$ is an accessible range for `p` and `*this`.
+[9]{.pnum} *Preconditions*: $[0$, `i` + 1 $)$ is an accessible range for `p` and `*this`.
 
-[6]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
+[10]{.pnum} *Effects*: Equivalent to: `return assume_aligned<byte_alignment>(p) + i;`
+:::
 
 # Appendix A: `detectably_invalid` nonmember function example
 
