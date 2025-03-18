@@ -930,7 +930,7 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
 > To the header `<linalg>` synopsis **[linalg.syn]**, just after the declaration of the exposition-only concept _`inout-matrix`_, replace the exposition-only concept _`possibly-packed-inout-matrix`_ with the new exposition-only concept _`possibly-packed-out-matrix`_.
 
-```c++
+```
   template<class T>
     concept @_inout-matrix_@ = @_see below_@;                // @_exposition only_@
   template<class T>
@@ -939,7 +939,7 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
 > Then, in **[linalg.helpers.concepts]**, just after the definition of the exposition-only variable template _`is-layout-blas-packed`_, replace the exposition-only concept _`possibly-packed-inout-matrix`_ with the new exposition-only concept _`possibly-packed-out-matrix`_.  The two concepts have the same definitions and thus differ only in name.
 
-```c++
+```
   template<class T>
     constexpr bool @_is-layout-blas-packed_@ = false; // @_exposition only_@
 
@@ -1122,28 +1122,33 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 
 ## Rank-k update functions in synopsis
 
-> In the header `<linalg>` synopsis **[linalg.syn]**, update the declarations of the `symmetric_matrix_rank_k_update` and `hermitian_matrix_rank_k_update` overloads as follows.
+> In the header `<linalg>` synopsis **[linalg.syn]**, update the declarations of the `symmetric_matrix_rank_k_update` and `hermitian_matrix_rank_k_update` overloads as follows.  <i>[Editorial Note:</i> There are three sets of changes here.
+>
+> 1. The existing overloads become "overwriting" overloads.
+> 2. New "updating" overloads are added.
+> 3. Any overloads of the symmetric and Hermitian rank-k update functions that do *not* have a `Scalar alpha` parameter are removed.
+> <i>-- end note]</i>
 
 ```
   // [linalg.algs.blas3.rankk], rank-k update of a symmetric or Hermitian matrix
 
-```
-::: rm
-```
-  // rank-k symmetric matrix update
+  // @[`overwriting`]{.add}@ rank-k symmetric matrix update
   template<class Scalar,
            @_in-matrix_@ InMat,
-           @_possibly-packed-inout-matrix_@ InOutMat,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat,
            class Triangle>
-    void symmetric_matrix_rank_k_update(Scalar alpha, InMat A, InOutMat C, Triangle t);
+    void symmetric_matrix_rank_k_update(Scalar alpha, InMat A, @[`In`]{.rm}@OutMat C, Triangle t);
   template<class ExecutionPolicy,
            class Scalar,
            @_in-matrix_@ InMat,
-           @_possibly-packed-inout-matrix_@ InOutMat,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat,
            class Triangle>
     void symmetric_matrix_rank_k_update(ExecutionPolicy&& exec,
-                                        Scalar alpha, InMat A, InOutMat C, Triangle t);
+                                        Scalar alpha, InMat A, @[`In`]{.rm}@OutMat C, Triangle t);
 
+```
+::: rm
+```
   template<@_in-matrix_@ InMat,
            @_possibly-packed-inout-matrix_@ InOutMat,
            class Triangle>
@@ -1156,24 +1161,39 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
                                         InMat A, InOutMat C, Triangle t);
 ```
 :::
-
-::: add
 ```
-  // overwriting symmetric rank-k matrix update
+  // @[`overwriting`]{.add}@ rank-k Hermitian matrix update
   template<class Scalar,
            @_in-matrix_@ InMat,
-           @_possibly-packed-out-matrix_@ OutMat,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat,
            class Triangle>
-    void symmetric_matrix_rank_k_update(
-      Scalar alpha, InMat A, OutMat C, Triangle t);
-  template<class ExecutionPolicy, class Scalar,
+    void hermitian_matrix_rank_k_update(Scalar alpha, InMat A, @[`In`]{.rm}@OutMat C, Triangle t);
+  template<class ExecutionPolicy,
+           class Scalar,
            @_in-matrix_@ InMat,
-           @_possibly-packed-out-matrix_@ OutMat,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat,
            class Triangle>
-    void symmetric_matrix_rank_k_update(
-      ExecutionPolicy&& exec, Scalar alpha, InMat A, OutMat C, Triangle t);
+    void hermitian_matrix_rank_k_update(ExecutionPolicy&& exec,
+                                        Scalar alpha, InMat A, @[`In`]{.rm}@OutMat C, Triangle t);
 
-  // updating symmetric rank-k matrix update
+```
+::: rm
+```
+  template<@_in-matrix_@ InMat,
+           @_possibly-packed-inout-matrix_@ InOutMat,
+           class Triangle>
+    void hermitian_matrix_rank_k_update(InMat A, InOutMat C, Triangle t);
+  template<class ExecutionPolicy,
+           @_in-matrix_@ InMat,
+           @_possibly-packed-inout-matrix_@ InOutMat,
+           class Triangle>
+    void hermitian_matrix_rank_k_update(ExecutionPolicy&& exec,
+                                        InMat A, InOutMat C, Triangle t);
+```
+:::
+::: add
+```
+  // updating rank-k symmetric matrix update
   template<class Scalar,
            @_in-matrix_@ InMat1,
            @_in-matrix_@ InMat2,
@@ -1190,51 +1210,6 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
     void symmetric_matrix_rank_k_update(
       ExecutionPolicy&& exec, Scalar alpha,
       InMat1 A, InMat2 E, OutMat C, Triangle t);
-```
-:::
-::: rm
-```
-  // rank-k Hermitian matrix update
-  template<class Scalar,
-           @_in-matrix_@ InMat,
-           @_possibly-packed-inout-matrix_@ InOutMat,
-           class Triangle>
-    void hermitian_matrix_rank_k_update(Scalar alpha, InMat A, InOutMat C, Triangle t);
-  template<class ExecutionPolicy,
-           class Scalar,
-           @_in-matrix_@ InMat,
-           @_possibly-packed-inout-matrix_@ InOutMat,
-           class Triangle>
-    void hermitian_matrix_rank_k_update(ExecutionPolicy&& exec,
-                                        Scalar alpha, InMat A, InOutMat C, Triangle t);
-
-  template<@_in-matrix_@ InMat,
-           @_possibly-packed-inout-matrix_@ InOutMat,
-           class Triangle>
-    void hermitian_matrix_rank_k_update(InMat A, InOutMat C, Triangle t);
-  template<class ExecutionPolicy,
-           @_in-matrix_@ InMat,
-           @_possibly-packed-inout-matrix_@ InOutMat,
-           class Triangle>
-    void hermitian_matrix_rank_k_update(ExecutionPolicy&& exec,
-                                        InMat A, InOutMat C, Triangle t);
-```
-:::
-::: add
-```
-  // overwriting rank-k Hermitian matrix update
-  template<class Scalar,
-           @_in-matrix_@ InMat,
-           @_possibly-packed-out-matrix_@ OutMat,
-           class Triangle>
-    void hermitian_matrix_rank_k_update(
-      Scalar alpha, InMat A, OutMat C, Triangle t);
-  template<class ExecutionPolicy, class Scalar,
-           @_in-matrix_@ InMat,
-           @_possibly-packed-out-matrix_@ OutMat,
-           class Triangle>
-    void hermitian_matrix_rank_k_update(
-      ExecutionPolicy&& exec, Scalar alpha, InMat A, OutMat C, Triangle t);
 
   // updating rank-k Hermitian matrix update
   template<class Scalar,
