@@ -1,7 +1,7 @@
 
 ---
 title: "Fix C++26 by making the rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS"
-document: P3371R3
+document: D3371R4
 date: today
 audience: LEWG
 author:
@@ -58,6 +58,12 @@ toc: true
     * Constrain "linear algebra value type" to be neither `mdspan` nor an execution policy (`is_execution_policy_v<Scalar>` is `false`).  This will prevent ambiguous overloads, even if we retain overloads without `Scalar alpha` or add them later.
 
     * Add nonwording sections motivating this change.
+
+* Revision 4 to be submitted 2025-04-??
+
+    * LEWG voted to forward R3 on 2025-03-18.
+
+    * Make wording diff more compact by improving formatting.  No change to design or wording since R3.
 
 # Abstract
 
@@ -922,26 +928,16 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
 ## New exposition-only concepts for possibly-packed input and output matrices
 
-> Add the declaration of the new exposition-only concept _`possibly-packed-out-matrix`_ to the header `<linalg>` synopsis **[linalg.syn]**, just after the declaration of the exposition-only concept _`inout-matrix`_, and remove the declaration of the exposition-only concept _`possibly-packed-inout-matrix`_.
+> To the header `<linalg>` synopsis **[linalg.syn]**, just after the declaration of the exposition-only concept _`inout-matrix`_, replace the exposition-only concept _`possibly-packed-inout-matrix`_ with the new exposition-only concept _`possibly-packed-out-matrix`_.
 
-```
+```c++
   template<class T>
     concept @_inout-matrix_@ = @_see below_@;                // @_exposition only_@
-```
-::: add
-```
   template<class T>
-    concept @_possibly-packed-out-matrix_@ = @_see below_@;  // @_exposition only_@
+    concept @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ = @_see below_@;  // @_exposition only_@
 ```
-:::
-::: rm
-```
-  template<class T>
-    concept @_possibly-packed-inout-matrix_@ = @_see below_@; // @_exposition only_@
-```
-:::
 
-> Then, add the following lines to **[linalg.helpers.concepts]**, just after the definition of the exposition-only variable template _`is-layout-blas-packed`_, and remove the definition of the exposition-only concept _`possibly-packed-inout-matrix`_.
+> Then, in **[linalg.helpers.concepts]**, just after the definition of the exposition-only variable template _`is-layout-blas-packed`_, replace the exposition-only concept _`possibly-packed-inout-matrix`_ with the new exposition-only concept _`possibly-packed-out-matrix`_.  The two concepts have the same definitions and thus differ only in name.
 
 ```c++
   template<class T>
@@ -949,29 +945,17 @@ Many thanks (with permission) to Raffaele Solcà (CSCS Swiss National Supercompu
 
   template<class Triangle, class StorageOrder>
     constexpr bool @_is-layout-blas-packed_@<layout_blas_packed<Triangle, StorageOrder>> = true;
-```
-::: add
-```
+
   template<class T>
-    concept @_possibly-packed-out-matrix_@ =
+    concept @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ =
       @_is-mdspan_@<T> && T::rank() == 2 &&
       is_assignable_v<typename T::reference, typename T::element_type> &&
       (T::is_always_unique() || @_is-layout-blas-packed_@<typename T::layout_type>);
 ```
-:::
-::: rm
-```
-  template<class T>
-    concept @_possibly-packed-inout-matrix_@ =
-      @_is-mdspan_@<T> && T::rank() == 2 &&
-      is_assignable_v<typename T::reference, typename T::element_type> &&
-      (T::is_always_unique() || @_is-layout-blas-packed_@<typename T::layout_type>);
-```
-:::
 
-> Then, in [linalg.helpers.concepts], change paragraph 3 to read as follows (new content "or _`possibly-packed-out-matrix`_" in green; removed content "or _`possibly-packed-inout-matrix`_" in red).
+> Then, in [linalg.helpers.concepts], change paragraph 3 to rename _`possibly-packed-inout-matrix`_ to _`possibly-packed-out-matrix`_.
 
-Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-object`_, _`out-vector`_, _`out-matrix`_, _`out-object`_, [or _`possibly-packed-out-matrix`_]{.add}[, or _`possibly-packed-inout-matrix`_]{.rm} parameter of a function in [linalg] shall not overlap any other `mdspan` parameter of the function.
+Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-object`_, _`out-vector`_, _`out-matrix`_, _`out-object`_, or _`possibly-packed-`_[_`in`_]{.rm}_`out-matrix`_ parameter of a function in [linalg] shall not overlap any other `mdspan` parameter of the function.
 
 ## Rank-1 update functions in synopsis
 
@@ -987,37 +971,22 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 ```
   // [linalg.algs.blas2.rank1], nonsymmetric rank-1 matrix update
 
-```
-::: rm
-```
-  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_inout-matrix_@ InOutMat>
-    void matrix_rank_1_update(InVec1 x, InVec2 y, InOutMat A);
-  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_inout-matrix_@ InOutMat>
+  @[`// overwriting nonsymmetric rank-1 matrix update`]{.add}@
+  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat>
+    void matrix_rank_1_update(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
+  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat>
     void matrix_rank_1_update(ExecutionPolicy&& exec,
-                              InVec1 x, InVec2 y, InOutMat A);
+                              InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
 
-  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_inout-matrix_@ InOutMat>
-    void matrix_rank_1_update_c(InVec1 x, InVec2 y, InOutMat A);
-  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_inout-matrix_@ InOutMat>
+  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat>
+    void matrix_rank_1_update_c(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
+  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat>
     void matrix_rank_1_update_c(ExecutionPolicy&& exec,
-                                InVec1 x, InVec2 y, InOutMat A);
+                                InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
+
 ```
-:::
 ::: add
 ```
-  // overwriting nonsymmetric rank-1 matrix update
-  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-    void matrix_rank_1_update(InVec1 x, InVec2 y, OutMat A);
-  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-    void matrix_rank_1_update(ExecutionPolicy&& exec,
-                              InVec1 x, InVec2 y, OutMat A);
-
-  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-    void matrix_rank_1_update_c(InVec1 x, InVec2 y, OutMat A);
-  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-    void matrix_rank_1_update_c(ExecutionPolicy&& exec,
-                                InVec1 x, InVec2 y, OutMat A);
-
   // updating nonsymmetric rank-1 matrix update
   template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_in-matrix_@ InMat, @_out-matrix_@ OutMat>
     void matrix_rank_1_update(InVec1 x, InVec2 y, InMat E, OutMat A);
