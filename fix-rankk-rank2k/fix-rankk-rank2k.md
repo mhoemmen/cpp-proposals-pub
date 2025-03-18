@@ -960,8 +960,8 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 ## Rank-1 update functions in synopsis
 
 > In the header `<linalg>` synopsis **[linalg.syn]**, change the declarations of the `matrix_rank_1_update`, `matrix_rank_1_update_c`, `symmetric_matrix_rank_1_update`, and `hermitian_matrix_rank_1_update` overloads as follows.
-> <i>[Editorial Note:</i> 
-> There are three changes here.
+> <i>[Editorial Note:</i>
+> There are three sets of changes here.
 >
 > 1. The existing overloads become "overwriting" overloads.
 > 2. New "updating" overloads are added.
@@ -1025,10 +1025,10 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 ```
 
   @[`// overwriting Hermitian rank-1 matrix update`]{.add}@ 
-  template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+  template<class Scalar, @_in-vector_@ InVec, @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, @[`In`]{.rm}@OutMat A, Triangle t);
   template<class ExecutionPolicy,
-           class Scalar, @_in-vector_@ InVec, @_possibly-packed-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+           class Scalar, @_in-vector_@ InVec, @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
     void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
                                         Scalar alpha, InVec x, @[`In`]{.rm}@OutMat A, Triangle t);
 ```
@@ -1066,34 +1066,36 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 ## Rank-2 update functions in synopsis
 
 > In the header `<linalg>` synopsis **[linalg.syn]**, change the declarations of the `symmetric_matrix_rank_2_update` and `hermitian_matrix_rank_2_update` overloads as follows.
+> <i>[Editorial Note:</i>
+> There are two sets of changes here.
+>
+> 1. The existing overloads become "overwriting" overloads.
+> 2. New "updating" overloads are added.
+> <i>-- end note]</i>
 
 ```
   // [linalg.algs.blas2.rank2], symmetric and Hermitian rank-2 matrix updates
 
-```
-::: rm
-```
-  // symmetric rank-2 matrix update
+  // @[`overwriting`]{.add}@ symmetric rank-2 matrix update
   template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
-    void symmetric_matrix_rank_2_update(InVec1 x, InVec2 y, InOutMat A, Triangle t);
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+    void symmetric_matrix_rank_2_update(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
   template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ InOutMat, class Triangle>
     void symmetric_matrix_rank_2_update(ExecutionPolicy&& exec,
-                                        InVec1 x, InVec2 y, InOutMat A, Triangle t);
+                                        InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
+
+  // @[`overwriting`]{.add}@ Hermitian rank-2 matrix update
+  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+    void hermitian_matrix_rank_2_update(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
+  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_out-matrix_@ InOutMat, class Triangle>
+    void hermitian_matrix_rank_2_update(ExecutionPolicy&& exec,
+                                        InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
 ```
-:::
 ::: add
 ```
-  // overwriting symmetric rank-2 matrix update
-  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void symmetric_matrix_rank_2_update(InVec1 x, InVec2 y, OutMat A, Triangle t);
-  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void symmetric_matrix_rank_2_update(ExecutionPolicy&& exec,
-                                        InVec1 x, InVec2 y, OutMat A, Triangle t);
-
   // updating symmetric rank-2 matrix update
   template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
            @_in-matrix_@ InMat,
@@ -1104,30 +1106,6 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_2_update(ExecutionPolicy&& exec,
                                         InVec1 x, InVec2 y, InMat E, OutMat A, Triangle t);
-```
-:::
-::: rm
-```
-  // Hermitian rank-2 matrix update
-  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
-    void hermitian_matrix_rank_2_update(InVec1 x, InVec2 y, InOutMat A, Triangle t);
-  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
-    void hermitian_matrix_rank_2_update(ExecutionPolicy&& exec,
-                                        InVec1 x, InVec2 y, InOutMat A, Triangle t);
-```
-:::
-::: add
-```
-  // overwriting Hermitian rank-2 matrix update
-  template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void hermitian_matrix_rank_2_update(InVec1 x, InVec2 y, OutMat A, Triangle t);
-  template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void hermitian_matrix_rank_2_update(ExecutionPolicy&& exec,
-                                        InVec1 x, InVec2 y, OutMat A, Triangle t);
 
   // updating Hermitian rank-2 matrix update
   template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
