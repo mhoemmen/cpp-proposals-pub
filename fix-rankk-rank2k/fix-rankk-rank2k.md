@@ -1521,22 +1521,36 @@ template<class ExecutionPolicy,
 [10]{.pnum} *Effects*: Computes $A = E + \alpha x x^T$, where the scalar $\alpha$ is `alpha`.
 :::
 
-FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE
-
-```c++
-template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-  void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, OutMat A, Triangle t);
+```
+template<class Scalar, @_in-vector_@ InVec, @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+  void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, @[`In`]{.rm}@OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         class Scalar, @_in-vector_@ InVec, @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
-                                      Scalar alpha, InVec x, OutMat A, Triangle t);
+                                      Scalar alpha, InVec x, @[`In`]{.rm}@OutMat A, Triangle t);
 ```
 
 [11]{.pnum} These functions perform an overwriting Hermitian rank-1 update of the Hermitian matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
 
-[12]{.pnum} *Effects*: Computes $A = \alpha x x^H$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
+[12]{.pnum} *Effects*: Computes [a matrix $A'$ such that $A' = A + \alpha x x^H$]{.rm}[$A = \alpha x x^H$]{.add}, where the scalar $\alpha$ is [`alpha`]{.rm}[_`real-if-needed`_(alpha)]{.add}[, and assigns each element of $A'$ to the corresponding element of $A$]{.rm}.
 
-```c++
+::: rm
+```
+template<@_in-vector_@ InVec, @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
+  void hermitian_matrix_rank_1_update(InVec x, InOutMat A, Triangle t);
+template<class ExecutionPolicy,
+         @_in-vector_@ InVec, @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
+  void hermitian_matrix_rank_1_update(ExecutionPolicy&& exec,
+                                      InVec x, InOutMat A, Triangle t);
+```
+
+[13]{.pnum} These functions perform a Hermitian rank-1 update of the Hermitian matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
+
+[14]{.pnum} *Effects*: Computes a matrix $A'$ such that $A' = A + x x^H$ and assigns each element of $A'$ to the corresponding element of $A$.
+:::
+
+::: add
+```
 template<class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void hermitian_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy,
@@ -1545,9 +1559,12 @@ template<class ExecutionPolicy,
                                       Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 ```
 
-[13]{.pnum} These functions perform an updating Hermitian rank-1 update of the Hermitian matrix `A` using the Hermitian matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
+[15]{.pnum} These functions perform an updating Hermitian rank-1 update of the Hermitian matrix `A` using the Hermitian matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
 
-[14]{.pnum} *Effects*: Computes $A = E + \alpha x x^H$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
+[16]{.pnum} *Effects*: Computes $A = E + \alpha x x^H$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
+:::
+
+FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE
 
 ## Specification of symmetric and Hermitian rank-2 update functions
 
