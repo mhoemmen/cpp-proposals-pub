@@ -1233,37 +1233,38 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 
 ## Rank-2k update functions in synopsis
 
-> In the header `<linalg>` synopsis **[linalg.syn]**, update the declarations of the `symmetric_matrix_rank_2k_update` and `hermitian_matrix_rank_2k_update` overloads as follows.
+> In the header `<linalg>` synopsis **[linalg.syn]**, update the declarations of the `symmetric_matrix_rank_2k_update` and `hermitian_matrix_rank_2k_update` overloads as follows.  <i>[Editorial Note:</i> There are two sets of changes here.
+>
+> 1. The existing overloads become "overwriting" overloads.
+> 2. New "updating" overloads are added.
+> <i>-- end note]</i>
 
 ```
   // [linalg.algs.blas3.rank2k], rank-2k update of a symmetric or Hermitian matrix
 
-```
-::: rm
-```
-  // rank-2k symmetric matrix update
+  // @[`overwriting`]{.add}@ rank-2k symmetric matrix update
   template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
-    void symmetric_matrix_rank_2k_update(InMat1 A, InMat2 B, InOutMat C, Triangle t);
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat, class Triangle>
+    void symmetric_matrix_rank_2k_update(InMat1 A, InMat2 B, @[`In`]{.rm}@OutMat C, Triangle t);
   template<class ExecutionPolicy,
            @_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat, class Triangle>
     void symmetric_matrix_rank_2k_update(ExecutionPolicy&& exec,
-                                         InMat1 A, InMat2 B, InOutMat C, Triangle t);
+                                         InMat1 A, InMat2 B, @[`In`]{.rm}@OutMat C, Triangle t);
+
+  // @[`overwriting`]{.add}@ rank-2k Hermitian matrix update
+  template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat, class Triangle>
+    void hermitian_matrix_rank_2k_update(InMat1 A, InMat2 B, @[`In`]{.rm}@OutMat C, Triangle t);
+  template<class ExecutionPolicy,
+           @_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
+           @_`possibly-packed-`_@@[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat, class Triangle>
+    void hermitian_matrix_rank_2k_update(ExecutionPolicy&& exec,
+                                         InMat1 A, InMat2 B, @[`In`]{.rm}@OutMat C, Triangle t);
+
 ```
-:::
 ::: add
 ```
-  // overwriting symmetric rank-2k matrix update
-  template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void symmetric_matrix_rank_2k_update(InMat1 A, InMat2 B, OutMat C, Triangle t);
-  template<class ExecutionPolicy,
-           @_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void symmetric_matrix_rank_2k_update(ExecutionPolicy&& exec,
-                                         InMat1 A, InMat2 B, OutMat C, Triangle t);
-
   // updating symmetric rank-2k matrix update
   template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
            @_in-matrix_@ InMat3,
@@ -1275,32 +1276,6 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
            @_possibly-packed-out-matrix_@ OutMat, class Triangle>
     void symmetric_matrix_rank_2k_update(ExecutionPolicy&& exec,
                                          InMat1 A, InMat2 B, InMat3 E, OutMat C, Triangle t);
-```
-:::
-::: rm
-```
-  // rank-2k Hermitian matrix update
-  template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
-    void hermitian_matrix_rank_2k_update(InMat1 A, InMat2 B, InOutMat C, Triangle t);
-  template<class ExecutionPolicy,
-           @_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
-    void hermitian_matrix_rank_2k_update(ExecutionPolicy&& exec,
-                                         InMat1 A, InMat2 B, InOutMat C, Triangle t);
-```
-:::
-::: add
-```
-  // overwriting Hermitian rank-2k matrix update
-  template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void hermitian_matrix_rank_2k_update(InMat1 A, InMat2 B, OutMat C, Triangle t);
-  template<class ExecutionPolicy,
-           @_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
-           @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-    void hermitian_matrix_rank_2k_update(ExecutionPolicy&& exec,
-                                         InMat1 A, InMat2 B, OutMat C, Triangle t);
 
   // updating Hermitian rank-2k matrix update
   template<@_in-matrix_@ InMat1, @_in-matrix_@ InMat2,
