@@ -63,7 +63,7 @@ toc: true
 
     * LEWG voted to forward R3 on 2025-03-18.
 
-    * Make wording diff more compact by improving formatting.  No change to design or wording since R3.
+    * Make wording diff more compact by improving formatting.
 
 # Abstract
 
@@ -1313,8 +1313,9 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 
 ## Specification of nonsymmetric rank-1 update functions
 
-> Replace the entire contents of [linalg.algs.blas2.rank1] with the following.
+> Change [linalg.algs.blas2.rank1] as follows.
 
+::: add
 [1]{.pnum} The following elements apply to all functions in [linalg.algs.blas2.rank1].
 
 [2]{.pnum} *Mandates*:
@@ -1330,23 +1331,39 @@ Unless explicitly permitted, any _`inout-vector`_, _`inout-matrix`_, _`inout-obj
 [3.2]{.pnum} _`addable`_`(A, E, A)` is `true` for those overloads that take an `E` parameter.
 
 [4]{.pnum} *Complexity*: $O($ `x.extent(0)` × `y.extent(0)` $)$.
+:::
 
-```c++
-template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-  void matrix_rank_1_update(InVec1 x, InVec2 y, OutMat A);
-template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-  void matrix_rank_1_update(ExecutionPolicy&& exec, InVec1 x, InVec2 y, OutMat A);
+```
+template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat>
+  void matrix_rank_1_update(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
+template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat>
+  void matrix_rank_1_update(ExecutionPolicy&& exec, InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
 ```
 
-[5]{.pnum} These functions perform a overwriting nonsymmetric nonconjugated rank-1 update.
+[5]{.pnum} These functions perform a[n overwriting]{.add} nonsymmetric nonconjugated rank-1 update.
 
 <i>[Note:</i>
 These functions correspond to the BLAS functions `xGER` (for real element types) and `xGERU` (for complex element types)[bib].
 <i>-- end note]</i>
 
-[6]{.pnum} *Effects*: Computes $A = x y^T$.
+::: rm
+[2]{.pnum} *Mandates*: _`possibly-multipliable`_`<InOutMat, InVec2, InVec1>()` is `true`.
 
-```c++
+[3]{.pnum} *Preconditions*: _`multipliable`_`(A, y, x)` is `true`.
+
+[4]{.pnum} *Effects*: Computes a matrix $A'$ such that $A' = A + x y^T$, and assigns each element of $A'$ to the corresponding element of $A$.
+:::
+
+::: add
+[6]{.pnum} *Effects*: Computes $A = x y^T$.
+:::
+
+::: rm
+[5]{.pnum} *Complexity*: $O($ `x.extent(0)` × `y.extent(0)` $)$.
+:::
+
+::: add
+```
 template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_in-matrix_@ InMat, @_out-matrix_@ OutMat>
   void matrix_rank_1_update(InVec1 x, InVec2 y, InMat E, OutMat A);
 template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_in-matrix_@ InMat, @_out-matrix_@ OutMat>
@@ -1362,15 +1379,16 @@ These functions correspond to the BLAS functions `xGER` (for real element types)
 [8]{.pnum} *Effects*: Computes $A = E + x y^T$.
 
 [9]{.pnum} *Remarks*: `A` may alias `E`.
+:::
 
-```c++
-template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-  void matrix_rank_1_update_c(InVec1 x, InVec2 y, OutMat A);
-template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_out-matrix_@ OutMat>
-  void matrix_rank_1_update_c(ExecutionPolicy&& exec, InVec1 x, InVec2 y, OutMat A);
+```
+template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat>
+  void matrix_rank_1_update_c(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
+template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @[_`in`_]{.rm}@@_`out-matrix`_@ @[`In`]{.rm}@OutMat>
+  void matrix_rank_1_update_c(ExecutionPolicy&& exec, InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A);
 ```
 
-[10]{.pnum} These functions perform a overwriting nonsymmetric conjugated rank-1 update.
+[10]{.pnum} These functions perform a[n overwriting]{.add} nonsymmetric conjugated rank-1 update.
 
 <i>[Note:</i>
 These functions correspond to the BLAS functions `xGER` (for real element types) and `xGERC` (for complex element types)[bib].
@@ -1378,15 +1396,42 @@ These functions correspond to the BLAS functions `xGER` (for real element types)
 
 [11]{.pnum} *Effects*:
 
-[11.1]{.pnum} For the overloads without an `ExecutionPolicy` argument, equivalent to: 
-```c++
+[11.1]{.pnum} For the overloads without an `ExecutionPolicy` argument, equivalent to:
+```
 matrix_rank_1_update(x, conjugated(y), A);
 ```
 
 [11.2]{.pnum} otherwise, equivalent to:
-```c++
+```
 matrix_rank_1_update(std::forward<ExecutionPolicy>(exec), x, conjugated(y), A);
 ```
+
+::: add
+```
+template<@_in-vector_@ InVec1, @_in-vector_@ InVec2, @_in-matrix_@ InMat, @_out-matrix_@ OutMat>
+  void matrix_rank_1_update_c(InVec1 x, InVec2 y, InMat E, OutMat A);
+template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2, @_in-matrix_@ InMat, @_out-matrix_@ OutMat>
+  void matrix_rank_1_update_c(ExecutionPolicy&& exec, InVec1 x, InVec2 y, InMat E, OutMat A);
+```
+
+[12]{.pnum} These functions perform an updating nonsymmetric conjugated rank-1 update.
+
+<i>[Note:</i>
+These functions correspond to the BLAS functions `xGER` (for real element types) and `xGERU` (for complex element types)[bib].
+<i>-- end note]</i>
+
+[13]{.pnum} *Effects*:
+
+[13.1]{.pnum} For the overloads without an `ExecutionPolicy` argument, equivalent to:
+```
+matrix_rank_1_update(x, conjugated(y), E, A);
+```
+
+[13.2]{.pnum} otherwise, equivalent to:
+```
+matrix_rank_1_update(std::forward<ExecutionPolicy>(exec), x, conjugated(y), E, A);
+```
+:::
 
 ## Specification of symmetric and Hermitian rank-1 update functions
 
