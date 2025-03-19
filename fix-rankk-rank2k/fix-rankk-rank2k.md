@@ -1564,60 +1564,67 @@ template<class ExecutionPolicy,
 [16]{.pnum} *Effects*: Computes $A = E + \alpha x x^H$, where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 :::
 
-FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE
-
 ## Specification of symmetric and Hermitian rank-2 update functions
 
-> Replace the entire contents of [linalg.algs.blas2.rank2] with the following.
+> Change [linalg.algs.blas2.rank2] as follows.
 
 [1]{.pnum} <i>[Note:</i> These functions correspond to the BLAS functions
 `xSYR2`, `xSPR2`, `xHER2`, and `xHPR2` [bib]. <i>-- end note]</i>
 
 [2]{.pnum} The following elements apply to all functions in [linalg.algs.blas2.rank2].
 
+::: add
 [3]{.pnum} For any function `F` in this section that takes a parameter named `t`, an `InMat` template parameter, and a function parameter `InMat E`, `t` applies to accesses done through the parameter `E`.  `F` will only access the triangle of `E` specified by `t`.  For accesses of diagonal elements `E[i, i]`, `F` will use the value _`real-if-needed`_`(E[i, i])` if the name of `F` starts with `hermitian`.  For accesses `E[i, j]` outside the triangle specified by `t`, `F` will use the value
 
-[3.1]{.pnum} _`conj-if-needed`_`(E[j, i])` if the name of `F` starts with `hermitian`, or
+* [3.1]{.pnum} _`conj-if-needed`_`(E[j, i])` if the name of `F` starts with `hermitian`, or
 
-[3.2]{.pnum} `E[j, i]` if the name of `F` starts with `symmetric`.
+* [3.2]{.pnum} `E[j, i]` if the name of `F` starts with `symmetric`.
+:::
 
 [4]{.pnum} *Mandates*:
 
-[4.1]{.pnum} If `OutMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
+* [4.1]{.pnum} If [`In`]{.rm}`OutMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
 
-[4.2]{.pnum} If the function has an `InMat` template parameter and `InMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
+::: add
+* [4.2]{.pnum} If the function has an `InMat` template parameter and `InMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
+:::
 
-[4.3]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)` is `true`;
+* [4.3]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)` is `true`;
 
-[4.4]{.pnum} _`possibly-multipliable`_`<decltype(A), decltype(x), decltype(y)>()` is `true`; and
+* [4.4]{.pnum} _`possibly-multipliable`_`<decltype(A), decltype(x), decltype(y)>()` is `true`[.]{.rm}[; and]{.add}
 
-[4.5]{.pnum} _`possibly-addable`_`<decltype(A), decltype(E), decltype(A)>` is `true` for those overloads that take an `E` parameter.
+::: add
+* [4.5]{.pnum} _`possibly-addable`_`<decltype(A), decltype(E), decltype(A)>` is `true` for those overloads that take an `E` parameter.
+:::
 
 [5]{.pnum} *Preconditions*:
 
-[5.1]{.pnum} `A.extent(0)` equals `A.extent(1)`,
+* [5.1]{.pnum} `A.extent(0)` equals `A.extent(1)`, [and]{.rm}
 
-[5.2]{.pnum} _`multipliable`_`(A, x, y)` is `true`, and
+* [5.2]{.pnum} _`multipliable`_`(A, x, y)` is `true`[.]{.rm}[, and]{.add}
 
-[5.3]{.pnum} _`addable`_`(A, E, A)` is `true` for those overloads that take an `E` parameter.
+::: add
+* [5.3]{.pnum} _`addable`_`(A, E, A)` is `true` for those overloads that take an `E` parameter.
+:::
 
 [6]{.pnum} *Complexity*: $O($ `x.extent(0)` × `y.extent(0)` $)$.
 
-```c++
+```
 template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-  void symmetric_matrix_rank_2_update(InVec1 x, InVec2 y, OutMat A, Triangle t);
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+  void symmetric_matrix_rank_2_update(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
 template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
   void symmetric_matrix_rank_2_update(ExecutionPolicy&& exec,
-                                      InVec1 x, InVec2 y, OutMat A, Triangle t);
+                                      InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
 ```
 
-[7]{.pnum} These functions perform an overwriting symmetric rank-2 update of the symmetric matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
+[7]{.pnum} These functions perform a[n overwriting]{.add} symmetric rank-2 update of the symmetric matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
 
-[8]{.pnum} Effects: Computes $A = x y^T + y x^T$.
+[8]{.pnum} Effects: Computes [$A'$ such that $A' = A + x y^T + y x^T$ and assigns each element of $A'$ to the corresponding element of $A$]{.rm}[$A = x y^T + y x^T$]{.add}.
 
-```c++
+::: add
+```
 template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
          @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -1632,22 +1639,24 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
 [9]{.pnum} These functions perform an updating symmetric rank-2 update of the symmetric matrix `A` using the symmetric matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
 
 [10]{.pnum} Effects: Computes $A = E + x y^T + y x^T$.
+:::
 
-```c++
+```
 template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-  void hermitian_matrix_rank_2_update(InVec1 x, InVec2 y, OutMat A, Triangle t);
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+  void hermitian_matrix_rank_2_update(InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
 template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
-         @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
   void hermitian_matrix_rank_2_update(ExecutionPolicy&& exec,
-                                      InVec1 x, InVec2 y, OutMat A, Triangle t);
+                                      InVec1 x, InVec2 y, @[`In`]{.rm}@OutMat A, Triangle t);
 ```
 
-[11]{.pnum} These functions perform an overwriting Hermitian rank-2 update of the Hermitian matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
+[11]{.pnum} These functions perform a[n overwriting]{.add} Hermitian rank-2 update of the Hermitian matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
 
-[12]{.pnum} Effects: Computes $A = x y^H + y x^H$.
+[12]{.pnum} Effects: Computes [$A'$ such that $A' = A + x y^H + y x^H$ and assigns each element of $A'$ to the corresponding element of $A$]{.rm}[$A = x y^H + y x^H$]{.add}.
 
-```c++
+::: add
+```
 template<@_in-vector_@ InVec1, @_in-vector_@ InVec2,
          @_in-matrix_@ InMat,
          @_possibly-packed-out-matrix_@ OutMat, class Triangle>
@@ -1662,102 +1671,176 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
 [13]{.pnum} These functions perform an updating Hermitian rank-2 update of the Hermitian matrix `A` using the Hermitian matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
 
 [14]{.pnum} Effects: Computes $A = E + x y^H + y x^H$.
+:::
 
 ## Specification of rank-k update functions
 
-> Replace the entire contents of [linalg.algs.blas3.rankk] with the following.
+> Change [linalg.algs.blas3.rankk] as follows.
 
 <i>[Note:</i> These functions correspond to the BLAS functions
 `xSYRK` and `xHERK`. <i>-- end note]</i>
 
 [1]{.pnum} The following elements apply to all functions in [linalg.algs.blas3.rankk].
 
+::: add
 [2]{.pnum} For any function `F` in this section that takes a parameter named `t`, an `InMat2` template parameter, and a function parameter `InMat2 E`, `t` applies to accesses done through the parameter `E`.  `F` will only access the triangle of `E` specified by `t`.  For accesses of diagonal elements `E[i, i]`, `F` will use the value _`real-if-needed`_`(E[i, i])` if the name of `F` starts with `hermitian`.  For accesses `E[i, j]` outside the triangle specified by `t`, `F` will use the value
 
-[2.1]{.pnum} _`conj-if-needed`_`(E[j, i])` if the name of `F` starts with `hermitian`, or
+* [2.1]{.pnum} _`conj-if-needed`_`(E[j, i])` if the name of `F` starts with `hermitian`, or
 
-[2.2]{.pnum} `E[j, i]` if the name of `F` starts with `symmetric`.
+* [2.2]{.pnum} `E[j, i]` if the name of `F` starts with `symmetric`.
+:::
 
 [3]{.pnum} *Mandates:*
 
-  * [3.1]{.pnum} If `OutMat` has `layout_blas_packed` layout, then the
-      layout's `Triangle` template argument has the same type as
-      the function's `Triangle` template argument.
+* [3.1]{.pnum} If [`In`]{.rm}`OutMat` has `layout_blas_packed` layout, then the
+    layout's `Triangle` template argument has the same type as
+    the function's `Triangle` template argument;
 
-  * [3.2]{.pnum} If the function takes an `InMat2` template parameter and
-      if `InMat2` has `layout_blas_packed` layout, then the
-      layout's `Triangle` template argument has the same type as
-      the function's `Triangle` template argument.
+::: add
+* [3.2]{.pnum} If the function takes an `InMat2` template parameter and
+    if `InMat2` has `layout_blas_packed` layout, then the
+    layout's `Triangle` template argument has the same type as
+    the function's `Triangle` template argument.
+:::
 
-  * [3.3]{.pnum} _`possibly-multipliable`_`<decltype(A), decltype(transposed(A)), decltype(C)>` is `true`.
+::: rm
+* [3.2]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)` is `true`;
 
-  * [3.4]{.pnum} _`possibly-addable`_`<decltype(C), decltype(E), decltype(C)>` is `true` for those overloads that take an `E` parameter.
+* [3.3]{.pnum} _`compatible-static-extents`_`<decltype(C), decltype(C)>(0, 1)` is `true`; and
+
+* [3.3]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(C)>(0, 0)` is `true`.
+:::
+
+::: add
+* [3.3]{.pnum} _`possibly-multipliable`_`<decltype(A), decltype(transposed(A)), decltype(C)>` is `true`.
+
+* [3.4]{.pnum} _`possibly-addable`_`<decltype(C), decltype(E), decltype(C)>` is `true` for those overloads that take an `E` parameter.
+:::
 
 [4]{.pnum} *Preconditions:*
 
-  * [4.1]{.pnum} _`multipliable`_`(A, transposed(A), C)` is `true`.  <i>[Note:</i> This implies that `C` is square. <i>-- end note]</i>
+::: rm
+* [4.1]{.pnum} `A.extent(0)` equals `A.extent(1)`,
 
-  * [4.2]{.pnum} _`addable`_`(C, E, C)` is `true` for those overloads that take an `E` parameter.
+* [4.2]{.pnum} `C.extent(0)` equals `C.extent(1)`, and
 
-[5]{.pnum} *Complexity:* $O($ `A.extent(0)` $\cdot$ `A.extent(1)` $\cdot$ `A.extent(0)` $)$.
+* [4.3]{.pnum} `A.extent(0)` equals `C.extent(0)`.
+:::
 
+::: add
+* [4.1]{.pnum} _`multipliable`_`(A, transposed(A), C)` is `true`.  <i>[Note:</i> This implies that `C` is square. <i>-- end note]</i>
+
+* [4.2]{.pnum} _`addable`_`(C, E, C)` is `true` for those overloads that take an `E` parameter.
+:::
+
+[5]{.pnum} *Complexity:* $O($ `A.extent(0)` $\cdot$ `A.extent(1)` $\cdot$ [`C`]{.rm}[`A`]{.add}`.extent(0)` $)$.
+
+::: add
 [6]{.pnum} *Remarks:* `C` may alias `E` for those overloads that take an `E` parameter.
+:::
 
-```c++
+```
 template<class Scalar,
          @_in-matrix_@ InMat,
-         @_possibly-packed-out-matrix_@ OutMat,
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@InOutMat,
          class Triangle>
 void symmetric_matrix_rank_k_update(
   Scalar alpha,
   InMat A,
-  OutMat C,
+  @[`In`]{.rm}@OutMat C,
   Triangle t);
 template<class ExecutionPolicy,
          class Scalar,
          @_in-matrix_@ InMat,
-         @_possibly-packed-out-matrix_@ OutMat,
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat,
          class Triangle>
 void symmetric_matrix_rank_k_update(
   ExecutionPolicy&& exec,
   Scalar alpha,
   InMat A,
-  OutMat C,
+  @[`In`]{.rm}@OutMat C,
   Triangle t);
 ```
 
 [7]{.pnum} *Effects:*
-Computes $C = \alpha A A^T$,
-where the scalar $\alpha$ is `alpha`.
+Computes [a matrix $C'$ such that $C' = C + \alpha A A^T$]{.rm}[$C = \alpha A A^T$]{.add}, where the scalar $\alpha$ is `alpha`[, and assigns each element of $C'$ to the corresponding element of $C$]{.rm}[.]{.add}.
 
-```c++
+::: rm
+```
+template<@_in-matrix_@ InMat,
+         @_possibly-packed-inout-matrix_@ InOutMat,
+         class Triangle>
+void symmetric_matrix_rank_k_update(
+  InMat A,
+  InOutMat C,
+  Triangle t);
+template<class ExecutionPolicy,
+         @_in-matrix_@ InMat,
+         @_possibly-packed-inout-matrix_@ InOutMat,
+         class Triangle>
+void symmetric_matrix_rank_k_update(
+  ExecutionPolicy&& exec,
+  InMat A,
+  InOutMat C,
+  Triangle t);
+```
+
+[7]{.pnum} *Effects:*
+Computes a matrix $C'$ such that $C' = C + A A^T$, and assigns each element of $C'$ to the corresponding element of $C$.
+:::
+
+```
 template<class Scalar,
          @_in-matrix_@ InMat,
-         @_possibly-packed-out-matrix_@ OutMat,
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@InOutMat,
          class Triangle>
 void hermitian_matrix_rank_k_update(
   Scalar alpha,
   InMat A,
-  OutMat C,
+  @[`In`]{.rm}@OutMat C,
   Triangle t);
 template<class ExecutionPolicy,
          class Scalar,
          @_in-matrix_@ InMat,
-         @_possibly-packed-out-matrix_@ OutMat,
+         @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat,
          class Triangle>
 void hermitian_matrix_rank_k_update(
   ExecutionPolicy&& exec,
   Scalar alpha,
   InMat A,
-  OutMat C,
+  @[`In`]{.rm}@OutMat C,
   Triangle t);
 ```
 
 [8]{.pnum} *Effects:*
-Computes $C = \alpha A A^H$,
-where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
+Computes [a matrix $C'$ such that $C' = C + \alpha A A^H$]{.rm}[$C = \alpha A A^H$]{.add}, where the scalar $\alpha$ is [`alpha`]{.rm}[_`real-if-needed`_`(alpha)`]{.add}[, and assigns each element of $C'$ to the corresponding element of $C$]{.rm}[.]{.add}.
 
-```c++
+::: rm
+```
+template<@_in-matrix_@ InMat,
+         @_possibly-packed-inout-matrix_@ InOutMat,
+         class Triangle>
+void hermitian_matrix_rank_k_update(
+  InMat A,
+  InOutMat C,
+  Triangle t);
+template<class ExecutionPolicy,
+         @_in-matrix_@ InMat,
+         @_possibly-packed-inout-matrix_@ InOutMat,
+         class Triangle>
+void hermitian_matrix_rank_k_update(
+  ExecutionPolicy&& exec,
+  InMat A,
+  InOutMat C,
+  Triangle t);
+```
+
+[9]{.pnum} *Effects:*
+Computes a matrix $C'$ such that $C' = C + A A^H$, and assigns each element of $C'$ to the corresponding element of $C$.
+:::
+
+::: add
+```
 template<class Scalar,
          @_in-matrix_@ InMat1,
          @_in-matrix_@ InMat2,
@@ -1788,7 +1871,7 @@ void symmetric_matrix_rank_k_update(
 Computes $C = E + \alpha A A^T$,
 where the scalar $\alpha$ is `alpha`.
 
-```c++
+```
 template<class Scalar,
          @_in-matrix_@ InMat1,
          @_in-matrix_@ InMat2,
@@ -1818,6 +1901,9 @@ void hermitian_matrix_rank_k_update(
 [10]{.pnum} *Effects:*
 Computes $C = E + \alpha A A^H$,
 where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
+:::
+
+FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE
 
 ## Specification of rank-2k update functions
 
@@ -1913,7 +1999,8 @@ void hermitian_matrix_rank_2k_update(
 
 [6]{.pnum} *Effects:* Computes $C = A B^H + B A^H$.
 
-```c++
+::: add
+```
 template<@_in-matrix_@ InMat1,
          @_in-matrix_@ InMat2,
          @_in-matrix_@ InMat3,
@@ -1942,7 +2029,7 @@ void symmetric_matrix_rank_2k_update(
 
 [7]{.pnum} *Effects:* Computes $C = E + A B^T + B A^T$. 
 
-```c++
+```
 template<@_in-matrix_@ InMat1,
          @_in-matrix_@ InMat2,
          @_in-matrix_@ InMat3,
@@ -1970,6 +2057,7 @@ void hermitian_matrix_rank_2k_update(
 ```
 
 [8]{.pnum} *Effects:* Computes $C = E + A B^H + B A^H$.
+:::
 
 # Appendix A: Example of a generic numerical algorithm
 
