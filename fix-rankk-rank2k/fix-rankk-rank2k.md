@@ -1435,57 +1435,79 @@ matrix_rank_1_update(std::forward<ExecutionPolicy>(exec), x, conjugated(y), E, A
 
 ## Specification of symmetric and Hermitian rank-1 update functions
 
-> Replace the entire contents of [linalg.algs.blas2.symherrank1] with the following.
+> Change [linalg.algs.blas2.symherrank1] as follows.
 
 [1]{.pnum} <i>[Note:</i>
 These functions correspond to the BLAS functions `xSYR`, `xSPR`, `xHER`, and `xHPR`[bib].
-They take a scaling factor `alpha`, because it would be impossible to express the update $A = A - x x^T$ in noncomplex arithmetic otherwise.
+They take a scaling factor `alpha`, because it would be impossible to express the update $A = A - x x^T$ [in noncomplex arithmetic]{.add} otherwise.
 <i>-- end note]</i>
 
 [2]{.pnum} The following elements apply to all functions in [linalg.algs.blas2.symherrank1].
 
+::: add
 [3]{.pnum} For any function `F` in this section that takes a parameter named `t`, an `InMat` template parameter, and a function parameter `InMat E`, `t` applies to accesses done through the parameter `E`.  `F` will only access the triangle of `E` specified by `t`.  For accesses of diagonal elements `E[i, i]`, `F` will use the value _`real-if-needed`_`(E[i, i])` if the name of `F` starts with `hermitian`.  For accesses `E[i, j]` outside the triangle specified by `t`, `F` will use the value
 
-[3.1]{.pnum} _`conj-if-needed`_`(E[j, i])` if the name of `F` starts with `hermitian`, or
+* [3.1]{.pnum} _`conj-if-needed`_`(E[j, i])` if the name of `F` starts with `hermitian`, or
 
-[3.2]{.pnum} `E[j, i]` if the name of `F` starts with `symmetric`.
+* [3.2]{.pnum} `E[j, i]` if the name of `F` starts with `symmetric`.
+:::
 
 [4]{.pnum} *Mandates*:
 
-[4.1]{.pnum} If `OutMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
+* [4.1]{.pnum} If [`In`]{.rm}`OutMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
 
-[4.2]{.pnum} If the function has an `InMat` template parameter and `InMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
+* [4.2]{.pnum} If the function has an `InMat` template parameter and `InMat` has `layout_blas_packed` layout, then the layout's `Triangle` template argument has the same type as the function's `Triangle` template argument;
 
-[4.3]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)` is `true`;
+* [4.3]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)` is `true`; [and]{.rm}
 
-[4.4]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(x)>(0, 0)` is `true`; and
+* [4.4]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(x)>(0, 0)` is `true`[.]{.rm}[; and]{.add}
 
-[4.5]{.pnum} _`possibly-addable`_`<decltype(A), decltype(E), decltype(A)>` is `true` for those overloads that take an `E` parameter.
+::: add
+* [4.5]{.pnum} _`possibly-addable`_`<decltype(A), decltype(E), decltype(A)>` is `true` for those overloads that take an `E` parameter.
+:::
 
 [5]{.pnum} *Preconditions*:
 
-[5.1]{.pnum} `A.extent(0)` equals `A.extent(1)`,
+* [5.1]{.pnum} `A.extent(0)` equals `A.extent(1)`, [and]{.rm}
 
-[5.2]{.pnum} `A.extent(0)` equals `x.extent(0)`, and
+* [5.2]{.pnum} `A.extent(0)` equals `x.extent(0)`[.]{.rm}[, and]{.add}
 
-[5.3]{.pnum} _`addable`_`(A, E, A)` is `true` for those overloads that take an `E` parameter.
+::: add
+* [5.3]{.pnum} _`addable`_`(A, E, A)` is `true` for those overloads that take an `E` parameter.
+:::
 
 [6]{.pnum} *Complexity*: $O($ `x.extent(0)` × `x.extent(0)` $)$.
 
-```c++
-template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
-  void symmetric_matrix_rank_1_update(Scalar alpha, InVec x, OutMat A, Triangle t);
+```
+template<class Scalar, @_in-vector_@ InVec, @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
+  void symmetric_matrix_rank_1_update(Scalar alpha, InVec x, @[`In`]{.rm}@OutMat A, Triangle t);
 template<class ExecutionPolicy,
-         class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
+         class Scalar, @_in-vector_@ InVec, @_possibly-packed_-@@[_`in`_]{.rm}@@_out-matrix_@ @[`In`]{.rm}@OutMat, class Triangle>
   void symmetric_matrix_rank_1_update(ExecutionPolicy&& exec,
-                                      Scalar alpha, InVec x, OutMat A, Triangle t);
+                                      Scalar alpha, InVec x, @[`In`]{.rm}@OutMat A, Triangle t);
 ```
 
-[7]{.pnum} These functions perform an overwriting symmetric rank-1 update of the symmetric matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
+[7]{.pnum} These functions perform a[n overwriting]{.add} symmetric rank-1 update of the symmetric matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
 
-[8]{.pnum} *Effects*: Computes $A = \alpha x x^T$, where the scalar $\alpha$ is `alpha`.
+[8]{.pnum} *Effects*: Computes [a matrix $A'$ such that $A' = A + \alpha x x^T$]{.rm}[$A = \alpha x x^T$]{.add}, where the scalar $\alpha$ is `alpha`[, and assigns each element of $A'$ to the corresponding element of $A$]{.rm}.
 
-```c++
+::: rm
+```
+template<@_in-vector_@ InVec, @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
+  void symmetric_matrix_rank_1_update(InVec x, InOutMat A, Triangle t);
+template<class ExecutionPolicy,
+         @_in-vector_@ InVec, @_possibly-packed-inout-matrix_@ InOutMat, class Triangle>
+  void symmetric_matrix_rank_1_update(ExecutionPolicy&& exec,
+                                      InVec x, InOutMat A, Triangle t);
+```
+
+[9]{.pnum} These functions perform a symmetric rank-1 update of the symmetric matrix `A`, taking into account the `Triangle` parameter that applies to `A` ([linalg.general]).
+
+[10]{.pnum} *Effects*: Computes a matrix $A'$ such that $A' = A + x x^T$ and assigns each element of $A'$ to the corresponding element of $A$.
+:::
+
+::: add
+```
 template<class Scalar, @_in-vector_@ InVec, @_in-matrix_@ InMat, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
   void symmetric_matrix_rank_1_update(Scalar alpha, InVec x, InMat E, OutMat A, Triangle t);
 template<class ExecutionPolicy,
@@ -1497,6 +1519,9 @@ template<class ExecutionPolicy,
 [9]{.pnum} These functions perform an updating symmetric rank-1 update of the symmetric matrix `A` using the symmetric matrix `E`, taking into account the `Triangle` parameter that applies to `A` and `E` ([linalg.general]).
 
 [10]{.pnum} *Effects*: Computes $A = E + \alpha x x^T$, where the scalar $\alpha$ is `alpha`.
+:::
+
+FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE FIXME BELOW HERE
 
 ```c++
 template<class Scalar, @_in-vector_@ InVec, @_possibly-packed-out-matrix_@ OutMat, class Triangle>
