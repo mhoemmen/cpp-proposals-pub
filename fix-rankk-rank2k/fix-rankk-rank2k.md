@@ -65,6 +65,10 @@ toc: true
 
     * Make wording diff more compact by improving formatting.
 
+    * Update (nonwording) "Implementation status" section.
+
+    * Harmonise wording diff with proposed fix for [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137) (atop which this paper is rebased) and add Editorial Notes explaining where the rebase affects this proposal's wording changes.
+
 # Abstract
 
 We propose the following changes to [linalg] that improve consistency of the rank-1, rank-2, rank-k, and rank-2k update functions with the BLAS.
@@ -883,27 +887,7 @@ We also have two outstanding LWG issues.
 
 # Implementation status
 
-The following function overload sets need changing.
-
-* `matrix_rank_1_update`
-* `matrix_rank_1_update_c`
-* `symmetric_matrix_rank_1_update`
-* `hermitian_matrix_rank_1_update`
-* `symmetric_matrix_rank_2_update`
-* `hermitian_matrix_rank_2_update`
-* `symmetric_matrix_rank_k_update`
-* `hermitian_matrix_rank_k_update`
-* `symmetric_matrix_rank_2k_update`
-* `hermitian_matrix_rank_2k_update`
-
-As of 2024/10/29, <a href="https://github.com/kokkos/stdBLAS/pull/293">Pull Request 293</a> in the reference std::linalg implementation implements changes to the following functions, and adds tests to ensure test coverage of the new overloads.
-
-* `matrix_rank_1_update`
-* `matrix_rank_1_update_c`
-* `symmetric_matrix_rank_1_update`
-* `hermitian_matrix_rank_1_update`
-* `symmetric_matrix_rank_k_update`
-* `hermitian_matrix_rank_k_update`
+<a href="https://github.com/kokkos/stdBLAS/pull/293">Pull Request 293</a> in the reference std::linalg implementation implements the proposed changes.  It also adds tests to ensure test coverage of the new overloads.
 
 # Acknowledgments
 
@@ -1676,6 +1660,10 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
 ## Specification of rank-k update functions
 
 > Change [linalg.algs.blas3.rankk] as follows.
+>
+> <i>[Editorial Note:</i>
+> The changes proposed here are rebased atop the changes proposed in [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms."
+> <i>-- end note]</i>
 
 <i>[Note:</i> These functions correspond to the BLAS functions
 `xSYRK` and `xHERK`. <i>-- end note]</i>
@@ -1703,17 +1691,15 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
     the function's `Triangle` template argument.
 :::
 
-::: rm
-* [3.2]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)` is `true`;
+* [3.3]{.pnum} [ _`possibly-multipliable`_`<decltype(A), decltype(transposed(A)), decltype(C)>`]{.add} [_`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)`]{.rm} is `true`; [and]{.add}
 
+::: rm
 * [3.3]{.pnum} _`compatible-static-extents`_`<decltype(C), decltype(C)>(0, 1)` is `true`; and
 
-* [3.3]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(C)>(0, 0)` is `true`.
+* [3.4]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(C)>(0, 0)` is `true`.
 :::
 
 ::: add
-* [3.3]{.pnum} _`possibly-multipliable`_`<decltype(A), decltype(transposed(A)), decltype(C)>` is `true`.
-
 * [3.4]{.pnum} _`possibly-addable`_`<decltype(C), decltype(E), decltype(C)>` is `true` for those overloads that take an `E` parameter.
 :::
 
@@ -1728,12 +1714,12 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
 :::
 
 ::: add
-* [4.1]{.pnum} _`multipliable`_`(A, transposed(A), C)` is `true`.  <i>[Note:</i> This implies that `C` is square. <i>-- end note]</i>
+* [4.1]{.pnum} _`multipliable`_`(A, transposed(A), C)` is `true`; and <i>[Note:</i> This implies that `C` is square <i>-- end note]</i>
 
 * [4.2]{.pnum} _`addable`_`(C, E, C)` is `true` for those overloads that take an `E` parameter.
 :::
 
-[5]{.pnum} *Complexity:* $O($ `A.extent(0)` $\cdot$ `A.extent(1)` $\cdot$ [`C`]{.rm}[`A`]{.add}`.extent(0)` $)$.
+[5]{.pnum} *Complexity:* $O($ `A.extent(0)` $\cdot$ `A.extent(1)` $\cdot$ [`A`]{.add}[`C`]{.rm}`.extent(0)` $)$.
 
 ::: add
 [6]{.pnum} *Remarks:* `C` may alias `E` for those overloads that take an `E` parameter.
@@ -1906,6 +1892,10 @@ where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 ## Specification of rank-2k update functions
 
 > Change [linalg.algs.blas3.rank2k] as follows.
+>
+> <i>[Editorial Note:</i>
+> The changes proposed here are rebased atop the changes proposed in [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms."
+> <i>-- end note]</i>
 
 [1]{.pnum} <i>[Note:</i> These functions correspond to the BLAS functions
 `xSYR2K` and `xHER2K`[bib]. <i>-- end note]</i>
@@ -1933,37 +1923,29 @@ where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
     the function's `Triangle` template argument;
 :::
 
-::: rm
-* [4.2]{.pnum} _`possibly-addable`_`<decltype(A), decltype(B), decltype(C)>()` is `true`; and
+* [4.2]{.pnum} [_`possibly-multipliable`_`<decltype(A), decltype(transposed(B)), decltype(C)>`]{.add} [_`possibly-addable`_`<decltype(A), decltype(B), decltype(C)>()`]{.rm} is `true`; [and]{.rm}
 
-* [4.3]{.pnum} _`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)` is `true`.
-:::
+* [4.3]{.pnum} [_`possibly-multipliable`_`<decltype(B), decltype(transposed(A)), decltype(C)>`]{.add}[_`compatible-static-extents`_`<decltype(A), decltype(A)>(0, 1)`]{.rm} is `true`[.]{.rm}[; and]{.add}
 
 ::: add
-* [4.3]{.pnum} _`possibly-multipliable`_`<decltype(A), decltype(transposed(B)), decltype(C)>` is `true`;
-
-* [4.4]{.pnum} _`possibly-multipliable`_`<decltype(B), decltype(transposed(A)), decltype(C)>` is `true`; and
-
 * [4.5]{.pnum} _`possibly-addable`_`<decltype(C), decltype(E), decltype(C)>` is `true` for those overloads that take an `E` parameter.
 :::
 
+> <i>[Editorial Note:</i>
+> The proposed fix for [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms," incorrectly adds `(0, 1)` after _`possibly-multipliable`_`<decltype(B), decltype(transposed(A)), decltype(C)>` in paragraph 4.3 above (3.3 in the issue).
+> <i>-- end note]</i>
+
 [5]{.pnum} *Preconditions:*
 
-::: rm
-* [5.1]{.pnum} _`addable`_`(A, B, C)` is `true`, and
+* [5.1]{.pnum} [_`multipliable`_`(A, transposed(B), C)`]{.add} [_`addable`_`(A, B, C)`]{.rm} is `true`, and
 
-* [5.2]{.pnum} `A.extent(0)` equals `A.extent(1)`.
-:::
+* [5.2]{.pnum} [_`multipliable`_`(B, transposed(A), C)` is `true`]{.add} [`A.extent(0)` equals `A.extent(1)`]{.rm}.  [<i>[Note:</i> This and the previous imply that `C` is square. <i>-- end note]</i>]{.add}
 
 ::: add
-* [5.1]{.pnum} _`multipliable`_`(A, transposed(B), C)` is `true`.
-
-* [5.2]{.pnum} _`multipliable`_`(B, transposed(A), C)` is `true`.  <i>[Note:</i> This and the previous imply that `C` is square. <i>-- end note]</i>
-
 * [5.3]{.pnum} _`addable`_`(C, E, C)` is `true` for those overloads that take an `E` parameter.
 :::
 
-[6]{.pnum} *Complexity:* $O($ `A.extent(0)` $\cdot$ `A.extent(1)` $\cdot$ [`C`]{.rm}[`B`]{.add}`.extent(0)` $)$
+[6]{.pnum} *Complexity:* $O($ `A.extent(0)` $\cdot$ `A.extent(1)` $\cdot$ [`B`]{.add}[`C`]{.rm}`.extent(0)` $)$
 
 ::: add
 [7]{.pnum} *Remarks:* `C` may alias `E` for those overloads that take an `E` parameter.
