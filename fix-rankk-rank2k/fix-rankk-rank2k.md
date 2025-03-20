@@ -1,7 +1,7 @@
 
 ---
 title: "Fix C++26 by making the rank-1, rank-2, rank-k, and rank-2k updates consistent with the BLAS"
-document: D3371R4
+document: P3371R4
 date: today
 audience: LEWG
 author:
@@ -67,7 +67,7 @@ toc: true
 
     * Update (nonwording) "Implementation status" section.
 
-    * Harmonise wording diff with proposed fix for [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137) (atop which this paper is rebased) and add Editorial Notes explaining where the rebase affects this proposal's wording changes.
+    * Harmonise wording diff with proposed fix for [LWG4137](https://cplusplus.github.io/LWG/lwg-active.html#4137) (atop which this paper was and is rebased) and add Editorial Notes explaining where the rebase affects this proposal's wording changes.
 
 # Abstract
 
@@ -871,19 +871,19 @@ As with triangular matrix products above, we can think of two ways to fix this i
 
 # Ordering with respect to other proposals and LWG issues
 
-We currently have two other `std::linalg` fix papers in review.
+Note that two other `std::linalg` fix papers were voted into the Working Draft for C++26 at the Wrocław, Poland meeting in November 2024.
 
-* P3222: Fix C++26 by adding `transposed` special cases for P2642 layouts (forwarded by LEWG to LWG on 2024-08-27 pending electronic poll results)
+* <a href="https://wg21.link/p3222">P3222R1</a>: "Fix C++26 by adding `transposed` special cases for P2642 layouts"
 
-* P3050: "Fix C++26 by optimizing `linalg::conjugated` for noncomplex value types" (forwarded by LEWG to LWG on 2024-09-03 pending electronic poll results)
+* <a href="https://wg21.link/p3050">P3050R3</a>: "Fix C++26 by optimizing `linalg::conjugated` for noncomplex value types"
 
-LEWG was aware of these two papers and this pending paper P3371 in its 2024-09-03 review of P3050R2.  All three of these papers increment the value of the `__cpp_lib_linalg` macro.  While this technically causes a conflict between the papers, advice from LEWG on 2024-09-03 was not to introduce special wording changes to avoid this conflict.
+LEWG was aware of these two papers and this proposal P3371 in its 2024-09-03 review of P3050R2.  All three of these papers increment the value of the `__cpp_lib_linalg` macro.  While this technically causes a conflict between the papers, advice from LEWG on 2024-09-03 was not to introduce special wording changes to avoid this conflict.
 
-We also have two outstanding LWG issues.
+Two outstanding LWG issues for std::linalg remain.
 
-* <a href="https://cplusplus.github.io/LWG/lwg-active.html#4136">LWG4136</a> specifies the behavior of Hermitian algorithms on diagonal matrix elements with nonzero imaginary part.  (As the BLAS Standard specifies and the Reference BLAS implements, the Hermitian algorithms do not access the imaginary parts of diagonal elements, and assume they are zero.)  In our view, P3371 does not conflict with LWG4136.
+* <a href="https://cplusplus.github.io/LWG/lwg-active.html#4136">LWG4136</a> specifies the behavior of Hermitian algorithms on diagonal matrix elements with nonzero imaginary part.  LWG4136's proposed fix adds a sentence to [linalg.general].  P3371 does not change [linalg.general].  However, P3371 does add updating overloads of Hermitian algorithms that take another Hermitian matrix parameter `E`.  The proposed fix in LWG4136 does not cover parameters named `E`, so we apply the analog of that fix to the wording here in P3371.
 
-* <a href="https://cplusplus.github.io/LWG/lwg-active.html#4137">LWG4137</a>, "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms," affects several sections touched by this proposal, including [linalg.algs.blas3.rankk] and [linalg.algs.blas3.rank2k].  We consider P3371 rebased atop the wording changes proposed by LWG4137.  While the wording changes may conflict in a formal ("diff") sense, it is our view that they do not conflict in a mathematical or specification sense.
+* <a href="https://cplusplus.github.io/LWG/lwg-active.html#4137">LWG4137</a>, "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms," affects [linalg.algs.blas3.rankk] and [linalg.algs.blas3.rank2k], which this proposal also changes.  We rebase this proposal's changes atop the wording changes in LWG4137's proposed fix.  It is our view that the two sets of changes do not conflict in a mathematical or design specification sense.  Note that this proposal only applies the proposed fixes in LWG4137 to the relevant clauses [linalg.algs.blas3.rankk] and [linalg.algs.blas3.rank2k].  Thus, P3371 does not (completely) resolve LWG4137.
 
 # Implementation status
 
@@ -1662,7 +1662,7 @@ template<class ExecutionPolicy, @_in-vector_@ InVec1, @_in-vector_@ InVec2,
 > Change [linalg.algs.blas3.rankk] as follows.
 >
 > <i>[Editorial Note:</i>
-> The changes proposed here are rebased atop the changes proposed in [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms."
+> The changes proposed here are rebased atop the changes proposed in [LWG4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms."
 > <i>-- end note]</i>
 
 <i>[Note:</i> These functions correspond to the BLAS functions
@@ -1894,7 +1894,7 @@ where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 > Change [linalg.algs.blas3.rank2k] as follows.
 >
 > <i>[Editorial Note:</i>
-> The changes proposed here are rebased atop the changes proposed in [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms."
+> The changes proposed here are rebased atop the changes proposed in [LWG4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms."
 > <i>-- end note]</i>
 
 [1]{.pnum} <i>[Note:</i> These functions correspond to the BLAS functions
@@ -1932,7 +1932,7 @@ where the scalar $\alpha$ is _`real-if-needed`_`(alpha)`.
 :::
 
 > <i>[Editorial Note:</i>
-> The proposed fix for [LWG 4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms," incorrectly adds `(0, 1)` after _`possibly-multipliable`_`<decltype(B), decltype(transposed(A)), decltype(C)>` in paragraph 4.3 above (3.3 in the issue).
+> The proposed fix for [LWG4137](https://cplusplus.github.io/LWG/lwg-active.html#4137), "Fix Mandates, Preconditions, and Complexity elements of [linalg] algorithms," incorrectly adds `(0, 1)` after _`possibly-multipliable`_`<decltype(B), decltype(transposed(A)), decltype(C)>` in paragraph 4.3 above (3.3 in the issue).
 > <i>-- end note]</i>
 
 [5]{.pnum} *Preconditions:*
